@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: web-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_NAME
+        value: Web Dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: web-dashboard-db
+          property: connectionString
+
+databases:
+  - name: web-dashboard-db
+    databaseName: web_dashboard
+    user: web_dashboard_user

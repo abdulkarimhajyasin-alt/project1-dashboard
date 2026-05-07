@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="stats-grid">
+  <div class="stat-card">
+    <span>Total Users</span>
+    <strong>{{ users_count }}</strong>
+  </div>
+  <div class="stat-card">
+    <span>Total Records</span>
+    <strong>{{ records_count }}</strong>
+  </div>
+  <div class="stat-card">
+    <span>Total Amount</span>
+    <strong>{{ "%.2f"|format(total_amount) }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Latest Records</h2>
+    <a href="/records">View all</a>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in latest_records %}
+      <tr>
+        <td>{{ record.title }}</td>
+        <td>{{ record.record_type }}</td>
+        <td>{{ "%.2f"|format(record.amount) }}</td>
+        <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="empty">No records yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
