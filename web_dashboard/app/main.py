@@ -1,14 +1,20 @@
+import logging
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
-from app.database import init_db
+from app.database import SessionLocal, init_db
 from app.dependencies import LoginRedirect
+from app.models import Admin
 from app.routes import auth, dashboard, records, settings, users
+from app.security import hash_password
 
 
+logger = logging.getLogger("uvicorn.error")
 app_settings = get_settings()
 
 if not app_settings.is_configured:
@@ -25,9 +31,30 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
+def create_initial_admin() -> None:
+    db = SessionLocal()
+    try:
+        if db.query(Admin).first():
+            logger.info("Admin already exists")
+            return
+
+        username = os.getenv("ADMIN_USERNAME")
+        password = os.getenv("ADMIN_PASSWORD")
+        if not username or not password:
+            raise RuntimeError("ADMIN_USERNAME and ADMIN_PASSWORD environment variables are required.")
+
+        admin = Admin(username=username, password_hash=hash_password(password))
+        db.add(admin)
+        db.commit()
+        logger.info("Admin created")
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
+    create_initial_admin()
 
 
 @app.exception_handler(LoginRedirect)
