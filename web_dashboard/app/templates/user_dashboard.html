@@ -1,0 +1,107 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة المستخدم</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
+<body class="user-app">
+  {% if not intro_seen %}
+  <div class="modal-backdrop" id="introModal">
+    <section class="intro-modal">
+      <h2>مرحباً بك</h2>
+      <p>نحن نقوم بتعدين العملات الرقمية عبر أجهزة antminer ذات كلف تشغيلية عالية جدا بسبب استهلاك الطاقة. إسهامك معنا بتغطية الكلفة التشغيلية يعود علينا و عليك بالفائدة حيث نتقاسم الأرباح معك مناصفة و حسب إسهامك.</p>
+      <button type="button" onclick="document.getElementById('introModal').remove()">تم</button>
+    </section>
+  </div>
+  {% endif %}
+
+  <div class="user-shell">
+    <aside class="user-sidebar">
+      <div class="user-brand">Mining Yield</div>
+      <nav>
+        <a class="active" href="/user/dashboard">الرئيسية</a>
+        <a href="#plans">اشتراك</a>
+        <a href="#withdraw">سحب</a>
+        <a href="#referral">دعوة صديق</a>
+        <a href="#support">مراسلة الدعم</a>
+        <a href="#history">سجل العمليات</a>
+        <a href="#account">إعدادات الحساب</a>
+      </nav>
+      <form method="post" action="/user/logout">
+        <button class="ghost-button" type="submit">خروج</button>
+      </form>
+    </aside>
+
+    <main class="user-content">
+      <header class="user-hero">
+        <div>
+          <p>لوحة المستخدم</p>
+          <h1>أهلاً {{ user.name }}</h1>
+        </div>
+        <span>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</span>
+      </header>
+
+      <section class="metric-grid">
+        <article class="metric-card"><span>رأس المال</span><strong>${{ "%.2f"|format(user.capital) }}</strong></article>
+        <article class="metric-card"><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits) }}</strong></article>
+        <article class="metric-card"><span>الأرباح اليومية</span><strong>${{ "%.4f"|format(user.daily_earnings) }}</strong></article>
+        <article class="metric-card"><span>حالة الباقة</span><strong>{{ user.plan if user.plan != 'none' else 'غير مشترك' }}</strong></article>
+        <article class="metric-card"><span>الحد الأدنى للسحب</span><strong>${{ "%.2f"|format(min_withdrawal) }}</strong></article>
+      </section>
+
+      <section class="action-layout">
+        <article class="daily-card">
+          <div class="circle-progress" style="--progress: {{ progress_percent }};">
+            <div><strong>{{ progress_percent }}%</strong><span>دورة 24 ساعة</span></div>
+          </div>
+          <form method="post" action="/user/start">
+            <button type="submit" {% if not can_start %}disabled{% endif %}>Start</button>
+          </form>
+          <p>{% if can_start %}ابدأ دورة أرباح يومية جديدة.{% else %}زر Start يتفعل بعد اكتمال 24 ساعة.{% endif %}</p>
+        </article>
+
+        <article class="withdraw-card" id="withdraw">
+          <h2>تقدم السحب</h2>
+          <div class="linear-progress"><span style="width: {{ withdraw_percent }}%"></span></div>
+          <p>{{ withdraw_percent }}% للوصول إلى 10 دولار.</p>
+          <div class="quick-actions">
+            <a href="#plans">اشتراك</a>
+            <a href="#withdraw">سحب</a>
+            <a href="#referral">دعوة صديق</a>
+            <a href="#support">مراسلة الدعم</a>
+            <a href="#history">سجل العمليات</a>
+            <a href="#account">إعدادات الحساب</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="plans-grid" id="plans">
+        <article><h3>الباقة الفضية</h3><strong>$10 - $100</strong><p>دورة السحب كل 20 يوم</p><button type="button">طلب اشتراك</button></article>
+        <article><h3>الباقة الذهبية</h3><strong>$101 - $300</strong><p>دورة السحب كل 15 يوم</p><button type="button">طلب اشتراك</button></article>
+        <article><h3>VIP</h3><strong>$301+</strong><p>دورة السحب كل 10 أيام</p><button type="button">طلب اشتراك</button></article>
+      </section>
+
+      <section class="referral-panel" id="referral">
+        <div>
+          <h2>دعوة صديق</h2>
+          <p>عدد المدعوين الحالي: {{ referrals_count }}</p>
+        </div>
+        <input id="referralLink" value="{{ referral_url }}" readonly>
+        <div class="share-row">
+          <a href="https://wa.me/?text={{ referral_url }}" target="_blank">WhatsApp</a>
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ referral_url }}" target="_blank">Facebook</a>
+          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('referralLink').value)">نسخ الرابط</button>
+        </div>
+      </section>
+
+      <section class="placeholder-grid">
+        <article id="support"><h2>مراسلة الدعم</h2><p>سيتم تفعيل صندوق الدعم في المرحلة التالية.</p></article>
+        <article id="history"><h2>سجل العمليات</h2><p>سيتم ربط السجل التفصيلي في المرحلة التالية.</p></article>
+        <article id="account"><h2>إعدادات الحساب</h2><p>إعدادات الحساب المتقدمة ضمن المرحلة التالية.</p></article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

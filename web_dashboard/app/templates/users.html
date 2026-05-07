@@ -19,38 +19,59 @@
 </section>
 
 <section class="panel">
-  <div class="panel-header">
-    <h2>User List</h2>
+  <div class="panel-header admin-users-header">
+    <div>
+      <h2>Professional User View</h2>
+      <p>Passwords are stored securely as hashes. Use a password reset action instead of exposing original passwords.</p>
+    </div>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th>Created</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
-      <tr>
-        <td>{{ user.name }}</td>
-        <td>{{ user.email }}</td>
-        <td><span class="status">{{ user.status }}</span></td>
-        <td>{{ user.created_at.strftime("%Y-%m-%d") }}</td>
-        <td>
-          <form method="post" action="/users/{{ user.id }}/delete">
-            <button class="danger-button" type="submit">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5" class="empty">No users yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Capital</th>
+          <th>Profits</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Referrer</th>
+          <th>Referrals</th>
+          <th>Last Start</th>
+          <th>Created</th>
+          <th>Password</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ user.name }}</td>
+          <td>{{ user.username or "-" }}</td>
+          <td>{{ user.email }}</td>
+          <td>${{ "%.2f"|format(user.capital or 0) }}</td>
+          <td>${{ "%.4f"|format(user.profits or 0) }}</td>
+          <td><span class="status">{{ user.plan or "none" }}</span></td>
+          <td><span class="status">{{ user.status }}</span></td>
+          <td>{{ user.referrer.username if user.referrer else "-" }}</td>
+          <td>{{ user.referrals|length }}</td>
+          <td>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</td>
+          <td>{{ user.created_at.strftime("%Y-%m-%d") }}</td>
+          <td><button type="button" class="safe-button">Reset password</button></td>
+          <td>
+            <form method="post" action="/users/{{ user.id }}/delete">
+              <button class="danger-button" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="13" class="empty">No users yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}

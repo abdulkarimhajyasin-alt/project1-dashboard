@@ -9,7 +9,7 @@ from app.config import get_settings
 from app.database import SessionLocal, init_db
 from app.dependencies import LoginRedirect
 from app.models import Admin
-from app.routes import auth, dashboard, records, settings, users
+from app.routes import auth, dashboard, records, settings, user_portal, users
 from app.security import hash_password
 
 
@@ -70,3 +70,4 @@ app.include_router(dashboard.router)
 app.include_router(users.router)
 app.include_router(records.router)
 app.include_router(settings.router)
+app.include_router(user_portal.router)

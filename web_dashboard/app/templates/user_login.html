@@ -1,0 +1,24 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>دخول المستخدم</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
+<body class="user-auth-page">
+  <main class="auth-card">
+    <p class="auth-kicker">منصة التعدين</p>
+    <h1>تسجيل دخول المستخدم</h1>
+    <p>ادخل إلى لوحة أرباحك اليومية ورابط الإحالة الخاص بك.</p>
+    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="/user/login" class="form-stack">
+      <label>اسم المستخدم أو البريد<input type="text" name="username" autocomplete="username" required></label>
+      <label>كلمة المرور<input type="password" name="password" autocomplete="current-password" required></label>
+      <button type="submit">دخول</button>
+    </form>
+    <a class="auth-link" href="/user/register">إنشاء حساب جديد</a>
+    <a class="auth-link muted-link" href="/login">دخول الأدمن</a>
+  </main>
+</body>
+</html>

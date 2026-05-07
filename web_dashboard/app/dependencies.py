@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Admin
+from app.models import Admin, User
 
 
 def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Admin:
@@ -19,8 +19,26 @@ def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Admin:
     return admin
 
 
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise_user_login_redirect()
+
+    user = db.query(User).filter(User.id == user_id, User.status == "active").first()
+    if not user:
+        request.session.pop("user_id", None)
+        raise_user_login_redirect()
+
+    return user
+
+
 def raise_login_redirect() -> None:
     response = RedirectResponse(url="/login", status_code=303)
+    raise LoginRedirect(response)
+
+
+def raise_user_login_redirect() -> None:
+    response = RedirectResponse(url="/user/login", status_code=303)
     raise LoginRedirect(response)
 
 
