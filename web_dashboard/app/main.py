@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -38,12 +37,11 @@ def create_initial_admin() -> None:
             logger.info("Admin already exists")
             return
 
-        username = os.getenv("ADMIN_USERNAME")
-        password = os.getenv("ADMIN_PASSWORD")
-        if not username or not password:
+        print(f"Admin password length: {len(app_settings.admin_password)}")
+        if not app_settings.admin_username or not app_settings.admin_password:
             raise RuntimeError("ADMIN_USERNAME and ADMIN_PASSWORD environment variables are required.")
 
-        admin = Admin(username=username, password_hash=hash_password(password))
+        admin = Admin(username=app_settings.admin_username, password_hash=hash_password(app_settings.admin_password))
         db.add(admin)
         db.commit()
         logger.info("Admin created")
