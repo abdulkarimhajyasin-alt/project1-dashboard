@@ -3,105 +3,158 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>لوحة المستخدم</title>
+  <title>لوحة التعدين</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
-<body class="user-app">
+<body class="user-app mining-app">
   {% if not intro_seen %}
-  <div class="modal-backdrop" id="introModal">
-    <section class="intro-modal">
-      <h2>مرحباً بك</h2>
+  <div class="mining-modal-backdrop" id="introModal">
+    <section class="mining-intro-modal">
+      <div class="modal-orbit"><span></span></div>
+      <p class="modal-kicker">تشغيل عقدة التعدين</p>
+      <h2>مرحباً بك في منصة الأرباح اليومية</h2>
       <p>نحن نقوم بتعدين العملات الرقمية عبر أجهزة antminer ذات كلف تشغيلية عالية جدا بسبب استهلاك الطاقة. إسهامك معنا بتغطية الكلفة التشغيلية يعود علينا و عليك بالفائدة حيث نتقاسم الأرباح معك مناصفة و حسب إسهامك.</p>
-      <button type="button" onclick="document.getElementById('introModal').remove()">تم</button>
+      <button type="button" class="mining-primary-button" data-close-modal>تم</button>
     </section>
   </div>
   {% endif %}
 
-  <div class="user-shell">
-    <aside class="user-sidebar">
-      <div class="user-brand">Mining Yield</div>
-      <nav>
+  <div class="mining-bg" aria-hidden="true"></div>
+  <div class="mining-shell">
+    <aside class="mining-sidebar">
+      <div class="mining-brand">
+        <span class="brand-mark">MY</span>
+        <div>
+          <strong>Mining Yield</strong>
+          <small>Crypto Mining Hub</small>
+        </div>
+      </div>
+      <nav class="mining-nav">
         <a class="active" href="/user/dashboard">الرئيسية</a>
+        <a href="#plans">الباقات</a>
+        <a href="#withdraw">السحب</a>
+        <a href="#referral">الإحالة</a>
+        <a href="#support">الدعم</a>
+        <a href="#history">السجل</a>
+      </nav>
+      <form method="post" action="/user/logout">
+        <button class="mining-ghost-button" type="submit">تسجيل الخروج</button>
+      </form>
+    </aside>
+
+    <main class="mining-content">
+      <header class="mining-topbar">
+        <div>
+          <p class="mining-kicker">لوحة التعدين التفاعلية</p>
+          <h1>أهلاً {{ user.name }}</h1>
+          <span>راقب دورة التعدين اليومية، الأرباح، والإحالات من مكان واحد.</span>
+        </div>
+        <div class="node-status">
+          <span></span>
+          {{ 'العقدة جاهزة' if can_start else 'الدورة تعمل الآن' }}
+        </div>
+      </header>
+
+      <section class="mining-stage">
+        <article class="mining-core-card">
+          <div class="hash-ribbons" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div
+            class="mining-ring"
+            data-progress="{{ progress_percent }}"
+            data-can-start="{{ 'true' if can_start else 'false' }}"
+            data-duration="86400"
+          >
+            <svg viewBox="0 0 360 360" role="img" aria-label="تقدم دورة التعدين اليومية">
+              <defs>
+                <linearGradient id="miningGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+                  <stop offset="0%" stop-color="#25f6a4"></stop>
+                  <stop offset="48%" stop-color="#38bdf8"></stop>
+                  <stop offset="100%" stop-color="#a78bfa"></stop>
+                </linearGradient>
+              </defs>
+              <circle class="ring-track" cx="180" cy="180" r="150"></circle>
+              <circle class="ring-progress" cx="180" cy="180" r="150"></circle>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-label">Daily Mining</span>
+              <strong id="ringPercent">{{ progress_percent }}%</strong>
+              <form method="post" action="/user/start">
+                <button class="start-core-button" type="submit" {% if not can_start %}disabled{% endif %}>Start</button>
+              </form>
+              <small id="miningCountdown">{{ 'جاهز للبدء' if can_start else 'جاري حساب الوقت المتبقي' }}</small>
+            </div>
+          </div>
+          <p class="mining-core-note">
+            {% if can_start %}اضغط Start لتشغيل دورة تعدين لمدة 24 ساعة.{% else %}الدورة الحالية نشطة، ويمكن تشغيل دورة جديدة بعد اكتمالها.{% endif %}
+          </p>
+        </article>
+
+        <section class="mining-stats-grid">
+          <article class="mining-stat-card"><span>رأس المال</span><strong data-counter="{{ '%.2f'|format(user.capital or 0) }}">${{ '%.2f'|format(user.capital or 0) }}</strong><small>Capital Pool</small></article>
+          <article class="mining-stat-card"><span>الأرباح</span><strong data-counter="{{ '%.4f'|format(user.profits or 0) }}">${{ '%.4f'|format(user.profits or 0) }}</strong><small>Total Yield</small></article>
+          <article class="mining-stat-card"><span>الأرباح اليومية</span><strong data-counter="{{ '%.4f'|format(user.daily_earnings or 0) }}">${{ '%.4f'|format(user.daily_earnings or 0) }}</strong><small>Daily Output</small></article>
+          <article class="mining-stat-card"><span>عدد الإحالات</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Referral Nodes</small></article>
+          <article class="mining-stat-card"><span>الباقة الحالية</span><strong>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</strong><small>Active Plan</small></article>
+          <article class="mining-stat-card"><span>وقت السحب القادم</span><strong>{{ 'حسب الباقة' if user.plan != 'none' else 'غير متاح' }}</strong><small>Withdrawal Cycle</small></article>
+        </section>
+      </section>
+
+      <section class="mining-withdraw-panel" id="withdraw">
+        <div>
+          <p class="mining-kicker">سحب الأرباح</p>
+          <h2>نسبة الوصول إلى الحد الأدنى للسحب</h2>
+          <span>الحد الأدنى الحالي: ${{ '%.2f'|format(min_withdrawal) }}</span>
+        </div>
+        <div class="withdraw-progress" data-withdraw="{{ withdraw_percent }}">
+          <span></span>
+          <strong>{{ withdraw_percent }}%</strong>
+        </div>
+      </section>
+
+      <section class="mining-actions">
         <a href="#plans">اشتراك</a>
         <a href="#withdraw">سحب</a>
         <a href="#referral">دعوة صديق</a>
         <a href="#support">مراسلة الدعم</a>
         <a href="#history">سجل العمليات</a>
         <a href="#account">إعدادات الحساب</a>
-      </nav>
-      <form method="post" action="/user/logout">
-        <button class="ghost-button" type="submit">خروج</button>
-      </form>
-    </aside>
-
-    <main class="user-content">
-      <header class="user-hero">
-        <div>
-          <p>لوحة المستخدم</p>
-          <h1>أهلاً {{ user.name }}</h1>
-        </div>
-        <span>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</span>
-      </header>
-
-      <section class="metric-grid">
-        <article class="metric-card"><span>رأس المال</span><strong>${{ "%.2f"|format(user.capital) }}</strong></article>
-        <article class="metric-card"><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits) }}</strong></article>
-        <article class="metric-card"><span>الأرباح اليومية</span><strong>${{ "%.4f"|format(user.daily_earnings) }}</strong></article>
-        <article class="metric-card"><span>حالة الباقة</span><strong>{{ user.plan if user.plan != 'none' else 'غير مشترك' }}</strong></article>
-        <article class="metric-card"><span>الحد الأدنى للسحب</span><strong>${{ "%.2f"|format(min_withdrawal) }}</strong></article>
       </section>
 
-      <section class="action-layout">
-        <article class="daily-card">
-          <div class="circle-progress" style="--progress: {{ progress_percent }};">
-            <div><strong>{{ progress_percent }}%</strong><span>دورة 24 ساعة</span></div>
-          </div>
-          <form method="post" action="/user/start">
-            <button type="submit" {% if not can_start %}disabled{% endif %}>Start</button>
-          </form>
-          <p>{% if can_start %}ابدأ دورة أرباح يومية جديدة.{% else %}زر Start يتفعل بعد اكتمال 24 ساعة.{% endif %}</p>
-        </article>
-
-        <article class="withdraw-card" id="withdraw">
-          <h2>تقدم السحب</h2>
-          <div class="linear-progress"><span style="width: {{ withdraw_percent }}%"></span></div>
-          <p>{{ withdraw_percent }}% للوصول إلى 10 دولار.</p>
-          <div class="quick-actions">
-            <a href="#plans">اشتراك</a>
-            <a href="#withdraw">سحب</a>
-            <a href="#referral">دعوة صديق</a>
-            <a href="#support">مراسلة الدعم</a>
-            <a href="#history">سجل العمليات</a>
-            <a href="#account">إعدادات الحساب</a>
-          </div>
-        </article>
+      <section class="mining-plans" id="plans">
+        <article><span>Silver</span><h3>الباقة الفضية</h3><strong>$10 - $100</strong><p>دورة السحب كل 20 يوم</p><button type="button">طلب اشتراك</button></article>
+        <article class="featured"><span>Gold</span><h3>الباقة الذهبية</h3><strong>$101 - $300</strong><p>دورة السحب كل 15 يوم</p><button type="button">طلب اشتراك</button></article>
+        <article><span>VIP</span><h3>باقة VIP</h3><strong>$301+</strong><p>دورة السحب كل 10 أيام</p><button type="button">طلب اشتراك</button></article>
       </section>
 
-      <section class="plans-grid" id="plans">
-        <article><h3>الباقة الفضية</h3><strong>$10 - $100</strong><p>دورة السحب كل 20 يوم</p><button type="button">طلب اشتراك</button></article>
-        <article><h3>الباقة الذهبية</h3><strong>$101 - $300</strong><p>دورة السحب كل 15 يوم</p><button type="button">طلب اشتراك</button></article>
-        <article><h3>VIP</h3><strong>$301+</strong><p>دورة السحب كل 10 أيام</p><button type="button">طلب اشتراك</button></article>
-      </section>
-
-      <section class="referral-panel" id="referral">
-        <div>
+      <section class="mining-referral" id="referral">
+        <div class="referral-copy">
+          <p class="mining-kicker">Referral Network</p>
           <h2>دعوة صديق</h2>
-          <p>عدد المدعوين الحالي: {{ referrals_count }}</p>
+          <p>شارك الرابط، وعند بدء دورة تعدين من أحد المدعوين تحصل على مكافأة إحالة يومية.</p>
+          <div class="referral-mini-stats">
+            <span>المدعوون: <strong>{{ referrals_count }}</strong></span>
+            <span>مكافأة النشاط: <strong>$0.0005</strong></span>
+          </div>
         </div>
-        <input id="referralLink" value="{{ referral_url }}" readonly>
-        <div class="share-row">
-          <a href="https://wa.me/?text={{ referral_url }}" target="_blank">WhatsApp</a>
-          <a href="https://www.facebook.com/sharer/sharer.php?u={{ referral_url }}" target="_blank">Facebook</a>
-          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('referralLink').value)">نسخ الرابط</button>
+        <div class="referral-link-card">
+          <label for="referralLink">رابط الإحالة الخاص بك</label>
+          <input id="referralLink" value="{{ referral_url }}" readonly>
+          <div class="share-row mining-share-row">
+            <a href="https://wa.me/?text={{ referral_url }}" target="_blank" rel="noopener">WhatsApp</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ referral_url }}" target="_blank" rel="noopener">Facebook</a>
+            <button type="button" data-copy-referral>نسخ الرابط</button>
+          </div>
+          <small id="copyFeedback"></small>
         </div>
       </section>
 
-      <section class="placeholder-grid">
-        <article id="support"><h2>مراسلة الدعم</h2><p>سيتم تفعيل صندوق الدعم في المرحلة التالية.</p></article>
-        <article id="history"><h2>سجل العمليات</h2><p>سيتم ربط السجل التفصيلي في المرحلة التالية.</p></article>
-        <article id="account"><h2>إعدادات الحساب</h2><p>إعدادات الحساب المتقدمة ضمن المرحلة التالية.</p></article>
+      <section class="mining-placeholders">
+        <article id="support"><h2>مراسلة الدعم</h2><p>قادم في المرحلة التالية بواجهة محادثة ورفع ملفات.</p></article>
+        <article id="history"><h2>سجل العمليات</h2><p>قادم مع طلبات السحب والاشتراكات.</p></article>
+        <article id="account"><h2>إعدادات الحساب</h2><p>قادم مع إدارة الملف الشخصي والأمان.</p></article>
       </section>
     </main>
   </div>
+  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}"></script>
 </body>
 </html>

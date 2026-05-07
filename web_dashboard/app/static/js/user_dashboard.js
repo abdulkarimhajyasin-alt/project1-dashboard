@@ -1,0 +1,107 @@
+﻿(function () {
+  const ring = document.querySelector(".mining-ring");
+  const progressCircle = document.querySelector(".ring-progress");
+  const percentText = document.getElementById("ringPercent");
+  const countdownText = document.getElementById("miningCountdown");
+  const radius = 150;
+  const circumference = 2 * Math.PI * radius;
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function setRingProgress(value) {
+    if (!progressCircle || !percentText) return;
+    const progress = clamp(value, 0, 100);
+    const offset = circumference - (progress / 100) * circumference;
+    progressCircle.style.strokeDasharray = `${circumference}`;
+    progressCircle.style.strokeDashoffset = `${offset}`;
+    percentText.textContent = `${Math.round(progress)}%`;
+  }
+
+  function formatRemaining(seconds) {
+    const safeSeconds = Math.max(0, Math.floor(seconds));
+    const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, "0");
+    const minutes = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0");
+    const secs = String(safeSeconds % 60).padStart(2, "0");
+    return `${hours}:${minutes}:${secs}`;
+  }
+
+  if (ring) {
+    const initialProgress = Number(ring.dataset.progress || 0);
+    const canStart = ring.dataset.canStart === "true";
+    const duration = Number(ring.dataset.duration || 86400);
+    let animatedProgress = 0;
+    const introTimer = window.setInterval(function () {
+      animatedProgress += Math.max(1, initialProgress / 24);
+      if (animatedProgress >= initialProgress) {
+        animatedProgress = initialProgress;
+        window.clearInterval(introTimer);
+      }
+      setRingProgress(animatedProgress);
+    }, 18);
+
+    if (canStart) {
+      countdownText.textContent = "جاهز للبدء";
+    } else {
+      const startedAt = Date.now() - (initialProgress / 100) * duration * 1000;
+      window.setInterval(function () {
+        const elapsed = (Date.now() - startedAt) / 1000;
+        const liveProgress = clamp((elapsed / duration) * 100, initialProgress, 100);
+        setRingProgress(liveProgress);
+        countdownText.textContent = liveProgress >= 100 ? "اكتملت الدورة، حدّث الصفحة" : `المتبقي ${formatRemaining(duration - elapsed)}`;
+      }, 1000);
+    }
+  }
+
+  document.querySelectorAll("[data-counter]").forEach(function (counter) {
+    const rawValue = Number(counter.dataset.counter || 0);
+    const isMoney = counter.textContent.trim().startsWith("$");
+    const decimals = counter.textContent.includes(".") ? counter.textContent.trim().split(".")[1].replace(/[^0-9]/g, "").length : 0;
+    let frame = 0;
+    const totalFrames = 42;
+    const timer = window.setInterval(function () {
+      frame += 1;
+      const eased = 1 - Math.pow(1 - frame / totalFrames, 3);
+      const value = rawValue * eased;
+      counter.textContent = `${isMoney ? "$" : ""}${value.toFixed(decimals)}`;
+      if (frame >= totalFrames) {
+        counter.textContent = `${isMoney ? "$" : ""}${rawValue.toFixed(decimals)}`;
+        window.clearInterval(timer);
+      }
+    }, 18);
+  });
+
+  document.querySelectorAll(".withdraw-progress").forEach(function (bar) {
+    const value = clamp(Number(bar.dataset.withdraw || 0), 0, 100);
+    const fill = bar.querySelector("span");
+    const label = bar.querySelector("strong");
+    window.setTimeout(function () {
+      if (fill) fill.style.width = `${value}%`;
+      if (label) label.textContent = `${Math.round(value)}%`;
+    }, 250);
+  });
+
+  const copyButton = document.querySelector("[data-copy-referral]");
+  const copyFeedback = document.getElementById("copyFeedback");
+  if (copyButton) {
+    copyButton.addEventListener("click", function () {
+      const input = document.getElementById("referralLink");
+      if (!input) return;
+      navigator.clipboard.writeText(input.value).then(function () {
+        if (copyFeedback) copyFeedback.textContent = "تم نسخ الرابط";
+      });
+    });
+  }
+
+  document.querySelectorAll("[data-close-modal]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const modal = document.getElementById("introModal");
+      if (!modal) return;
+      modal.classList.add("closing");
+      window.setTimeout(function () {
+        modal.remove();
+      }, 260);
+    });
+  });
+})();
