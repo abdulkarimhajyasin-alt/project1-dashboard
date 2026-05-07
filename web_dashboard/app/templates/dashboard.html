@@ -1,51 +1,74 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}مركز التحكم{% endblock %}
 
 {% block content %}
-<section class="stats-grid">
-  <div class="stat-card">
-    <span>Total Users</span>
+<section class="admin-command-grid">
+  <article class="admin-command-hero">
+    <p class="mining-kicker">Admin Command Core</p>
+    <h2>مراقبة منصة التعدين</h2>
+    <p>نظرة سريعة على المستخدمين، رأس المال، الأرباح، ودورات التعدين النشطة.</p>
+    <div class="admin-signal-row">
+      <span>المستخدمون النشطون: <strong>{{ active_users_count }}</strong></span>
+      <span>الدورات النشطة: <strong>{{ active_cycles }}</strong></span>
+    </div>
+  </article>
+  <article class="admin-orbit-card">
+    <div class="admin-orbit"><span></span></div>
     <strong>{{ users_count }}</strong>
-  </div>
-  <div class="stat-card">
-    <span>Total Records</span>
-    <strong>{{ records_count }}</strong>
-  </div>
-  <div class="stat-card">
-    <span>Total Amount</span>
-    <strong>{{ "%.2f"|format(total_amount) }}</strong>
-  </div>
+    <p>إجمالي المستخدمين</p>
+  </article>
 </section>
 
-<section class="panel">
-  <div class="panel-header">
-    <h2>Latest Records</h2>
-    <a href="/records">View all</a>
+<section class="admin-stats-grid">
+  <article class="admin-stat-card"><span>إجمالي المستخدمين</span><strong>{{ users_count }}</strong><small>Total Users</small></article>
+  <article class="admin-stat-card"><span>المستخدمون النشطون</span><strong>{{ active_users_count }}</strong><small>Active Accounts</small></article>
+  <article class="admin-stat-card"><span>مجموع رؤوس الأموال</span><strong>${{ "%.2f"|format(total_capital or 0) }}</strong><small>Capital Pool</small></article>
+  <article class="admin-stat-card"><span>مجموع الأرباح</span><strong>${{ "%.4f"|format(total_profits or 0) }}</strong><small>User Profits</small></article>
+  <article class="admin-stat-card"><span>سجلات العمليات</span><strong>{{ records_count }}</strong><small>Records</small></article>
+  <article class="admin-stat-card"><span>إجمالي العمليات</span><strong>${{ "%.2f"|format(total_amount or 0) }}</strong><small>Record Volume</small></article>
+</section>
+
+<section class="admin-action-strip">
+  <a href="/users">إدارة المستخدمين</a>
+  <a href="/records">مراجعة السجلات</a>
+  <a href="/settings">إعدادات المنصة</a>
+  <a href="/user/dashboard">معاينة المستخدم</a>
+</section>
+
+<section class="admin-panel-card">
+  <div class="admin-panel-header">
+    <div>
+      <p class="mining-kicker">Latest Ledger</p>
+      <h2>أحدث التسجيلات</h2>
+    </div>
+    <a href="/records">عرض الكل</a>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Type</th>
-        <th>Amount</th>
-        <th>Date</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for record in latest_records %}
-      <tr>
-        <td>{{ record.title }}</td>
-        <td>{{ record.record_type }}</td>
-        <td>{{ "%.2f"|format(record.amount) }}</td>
-        <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="4" class="empty">No records yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="admin-table-wrap">
+    <table class="admin-data-table">
+      <thead>
+        <tr>
+          <th>العنوان</th>
+          <th>النوع</th>
+          <th>المبلغ</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in latest_records %}
+        <tr>
+          <td>{{ record.title }}</td>
+          <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
+          <td>${{ "%.2f"|format(record.amount) }}</td>
+          <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="empty">لا توجد سجلات حتى الآن.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}

@@ -1350,3 +1350,344 @@ th {
     width: 66%;
   }
 }
+
+/* Mining admin dashboard */
+.mining-admin-app {
+  background: #050914;
+  color: #f8fbff;
+  min-height: 100vh;
+}
+
+.admin-mining-shell {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.admin-mining-sidebar {
+  backdrop-filter: blur(22px);
+  background: rgba(5, 12, 25, 0.78);
+  border-left: 1px solid rgba(103, 232, 249, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  height: 100vh;
+  padding: 26px;
+  position: sticky;
+  top: 0;
+}
+
+.admin-mining-content {
+  padding: 30px;
+}
+
+.admin-mining-topbar {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.admin-mining-topbar h1 {
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.05;
+  margin: 0 0 10px;
+}
+
+.admin-mining-topbar span {
+  color: #9eb2c8;
+}
+
+.admin-control-cluster {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.mining-admin-badge {
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  color: #dff7ff;
+}
+
+.admin-command-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  margin-bottom: 18px;
+}
+
+.admin-command-hero,
+.admin-orbit-card,
+.admin-stat-card,
+.admin-panel-card,
+.admin-app .panel {
+  background: linear-gradient(145deg, rgba(15, 31, 51, 0.94), rgba(7, 14, 28, 0.88));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.admin-command-hero {
+  overflow: hidden;
+  padding: 28px;
+  position: relative;
+}
+
+.admin-command-hero::after,
+.admin-stat-card::after {
+  background: radial-gradient(circle, rgba(103, 232, 249, 0.18), transparent 62%);
+  content: "";
+  height: 180px;
+  left: -70px;
+  position: absolute;
+  top: -70px;
+  width: 180px;
+}
+
+.admin-command-hero h2 {
+  font-size: clamp(28px, 4vw, 46px);
+  margin: 0 0 12px;
+}
+
+.admin-command-hero p {
+  color: #9fb1c7;
+  max-width: 760px;
+}
+
+.admin-signal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.admin-signal-row span {
+  background: rgba(56, 189, 248, 0.10);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 999px;
+  color: #dff7ff;
+  padding: 10px 13px;
+}
+
+.admin-orbit-card {
+  align-items: center;
+  display: grid;
+  justify-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.admin-orbit {
+  animation: slow-spin 18s linear infinite;
+  aspect-ratio: 1;
+  border: 1px dashed rgba(103, 232, 249, 0.36);
+  border-radius: 50%;
+  display: grid;
+  margin-bottom: 14px;
+  place-items: center;
+  width: 116px;
+}
+
+.admin-orbit span {
+  animation: pulse-node 1.5s ease-in-out infinite;
+  background: linear-gradient(135deg, #25f6a4, #38bdf8);
+  border-radius: 50%;
+  box-shadow: 0 0 34px rgba(56, 189, 248, 0.55);
+  height: 34px;
+  width: 34px;
+}
+
+.admin-orbit-card strong {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.admin-orbit-card p {
+  color: #9fb1c7;
+}
+
+.admin-stats-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.admin-stat-card {
+  overflow: hidden;
+  padding: 20px;
+  position: relative;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.admin-stat-card:hover,
+.admin-app .panel:hover,
+.admin-panel-card:hover {
+  border-color: rgba(103, 232, 249, 0.42);
+  box-shadow: 0 24px 80px rgba(56, 189, 248, 0.13);
+  transform: translateY(-3px);
+}
+
+.admin-stat-card span,
+.admin-stat-card small {
+  color: #8ea5bb;
+  display: block;
+}
+
+.admin-stat-card strong {
+  color: #ffffff;
+  display: block;
+  font-size: clamp(26px, 4vw, 42px);
+  margin: 10px 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.admin-action-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.admin-action-strip a,
+.admin-panel-header a {
+  background: rgba(18, 52, 82, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 8px;
+  color: #e0faff;
+  font-weight: 900;
+  padding: 12px 14px;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.admin-action-strip a:hover,
+.admin-panel-header a:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(103, 232, 249, 0.36);
+  transform: translateY(-2px);
+}
+
+.admin-panel-card,
+.admin-app .panel {
+  margin-bottom: 18px;
+  overflow: hidden;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.admin-panel-header,
+.admin-app .panel-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 22px;
+}
+
+.admin-panel-header h2,
+.admin-app .panel-header h2 {
+  color: #ffffff;
+  margin: 0;
+}
+
+.admin-table-wrap,
+.table-scroll {
+  overflow-x: auto;
+}
+
+.admin-data-table,
+.admin-app table {
+  color: #dbeafe;
+  min-width: 760px;
+}
+
+.admin-data-table th,
+.admin-data-table td,
+.admin-app th,
+.admin-app td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  color: #dbeafe;
+  text-align: right;
+}
+
+.admin-data-table th,
+.admin-app th {
+  color: #8ea5bb;
+}
+
+.admin-status-pill,
+.admin-app .status {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  color: #dff7ff;
+}
+
+.admin-app .inline-form,
+.admin-app .record-form,
+.admin-app .form-stack {
+  padding: 20px;
+}
+
+.admin-app input,
+.admin-app select,
+.admin-app textarea {
+  background: rgba(3, 10, 20, 0.72);
+  border-color: rgba(103, 232, 249, 0.18);
+  color: #f8fbff;
+}
+
+.admin-app input::placeholder,
+.admin-app textarea::placeholder {
+  color: #71859e;
+}
+
+.admin-app button:not(.danger-button):not(.mining-ghost-button) {
+  background: linear-gradient(135deg, #25f6a4, #38bdf8);
+  border-radius: 8px;
+  color: #03111b;
+  font-weight: 900;
+}
+
+.admin-app .danger-button {
+  border-radius: 8px;
+}
+
+.admin-app .empty {
+  color: #9fb1c7;
+}
+
+@media (max-width: 1100px) {
+  .admin-command-grid,
+  .admin-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-mining-shell,
+  .admin-command-grid,
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-mining-sidebar {
+    height: auto;
+    position: static;
+  }
+
+  .admin-mining-content {
+    padding: 18px;
+  }
+
+  .admin-mining-topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-control-cluster {
+    justify-content: flex-start;
+  }
+}
