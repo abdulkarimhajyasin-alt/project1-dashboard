@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>لوحة التعدين</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=user-drawer">
 </head>
 <body class="user-app mining-app">
   {% if not intro_seen %}
@@ -20,16 +20,20 @@
   {% endif %}
 
   <div class="mining-bg" aria-hidden="true"></div>
+  <div class="user-drawer-overlay" data-user-drawer-overlay aria-hidden="true"></div>
   <div class="mining-shell">
-    <aside class="mining-sidebar">
-      <div class="mining-brand">
-        <span class="brand-mark">MY</span>
-        <div>
-          <strong>Mining Yield</strong>
-          <small>Crypto Mining Hub</small>
+    <aside class="mining-sidebar" id="userSidebar" data-user-drawer aria-label="القائمة الجانبية" aria-hidden="true">
+      <div class="user-sidebar-top">
+        <div class="mining-brand">
+          <span class="brand-mark">MY</span>
+          <div>
+            <strong>Mining Yield</strong>
+            <small>Crypto Mining Hub</small>
+          </div>
         </div>
+        <button class="user-drawer-close" type="button" data-user-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">X</button>
       </div>
-      <nav class="mining-nav">
+      <nav class="mining-nav" data-user-drawer-nav>
         <a class="active" href="/user/dashboard">الرئيسية</a>
         <a href="#plans">الباقات</a>
         <a href="#withdraw">السحب</a>
@@ -44,6 +48,10 @@
 
     <main class="mining-content">
       <header class="mining-topbar">
+        <button class="user-drawer-toggle" type="button" data-user-drawer-open aria-controls="userSidebar" aria-expanded="false">
+          <span aria-hidden="true">&#9776;</span>
+          <span>القائمة</span>
+        </button>
         <div>
           <p class="mining-kicker">لوحة التعدين التفاعلية</p>
           <h1>أهلاً {{ user.name }}</h1>
@@ -155,6 +163,6 @@
       </section>
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}"></script>
+  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=user-drawer"></script>
 </body>
 </html>

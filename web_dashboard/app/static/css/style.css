@@ -2200,3 +2200,142 @@ body.menu-open .admin-drawer-overlay,
     width: 326px;
   }
 }
+
+/* User drawer navigation */
+.user-app .mining-shell {
+  display: block;
+}
+
+.user-app .mining-content {
+  margin: 0;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.user-drawer-overlay {
+  backdrop-filter: blur(7px);
+  background: rgba(2, 6, 23, 0.64);
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 240ms ease, visibility 240ms ease;
+  visibility: hidden;
+  z-index: 80;
+}
+
+body.user-menu-open {
+  overflow: hidden;
+}
+
+body.user-menu-open .user-drawer-overlay,
+.user-drawer-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.user-app .mining-sidebar {
+  border-bottom: 0;
+  border-left: 1px solid rgba(103, 232, 249, 0.2);
+  bottom: 0;
+  height: 100vh;
+  max-width: calc(100vw - 22px);
+  opacity: 0;
+  overflow-y: auto;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  transform: translateX(108%);
+  transition: transform 320ms cubic-bezier(.2, .8, .2, 1), opacity 220ms ease, visibility 320ms ease, box-shadow 320ms ease;
+  visibility: hidden;
+  width: 360px;
+  z-index: 90;
+}
+
+.user-app .mining-sidebar.is-open {
+  box-shadow: -28px 0 90px rgba(0, 0, 0, 0.46), 0 0 52px rgba(56, 189, 248, 0.13);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.user-sidebar-top {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.user-drawer-toggle,
+.user-drawer-close {
+  align-items: center;
+  border: 1px solid rgba(103, 232, 249, 0.26);
+  box-shadow: 0 0 26px rgba(56, 189, 248, 0.13);
+  display: inline-flex;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: center;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.user-drawer-toggle {
+  background: rgba(15, 23, 42, 0.82);
+  border-radius: 8px;
+  color: #e0faff;
+  flex: 0 0 auto;
+  padding: 11px 14px;
+}
+
+.user-drawer-toggle:hover,
+.user-drawer-close:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(103, 232, 249, 0.44);
+  box-shadow: 0 0 34px rgba(56, 189, 248, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.user-drawer-close {
+  background: rgba(15, 23, 42, 0.72);
+  border-radius: 8px;
+  color: #dff7ff;
+  flex: 0 0 auto;
+  font-size: 24px;
+  height: 42px;
+  line-height: 1;
+  padding: 0;
+  width: 42px;
+}
+
+@media (max-width: 900px) {
+  .user-app .mining-sidebar {
+    height: 100vh;
+    max-width: calc(100vw - 16px);
+    padding: 20px;
+    position: fixed;
+    width: 340px;
+  }
+
+  .user-app .mining-nav {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .user-app .mining-topbar {
+    gap: 14px;
+  }
+
+  .user-drawer-toggle {
+    width: fit-content;
+  }
+
+  .user-app .mining-sidebar {
+    max-width: calc(100vw - 10px);
+    width: 326px;
+  }
+}

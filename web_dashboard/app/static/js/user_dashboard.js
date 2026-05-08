@@ -1,4 +1,53 @@
 ﻿(function () {
+  const body = document.body;
+  const userDrawer = document.querySelector("[data-user-drawer]");
+  const userOverlay = document.querySelector("[data-user-drawer-overlay]");
+  const userOpenButtons = document.querySelectorAll("[data-user-drawer-open]");
+  const userCloseButtons = document.querySelectorAll("[data-user-drawer-close]");
+  const userNavLinks = document.querySelectorAll("[data-user-drawer-nav] a");
+
+  function setUserDrawerOpen(isOpen) {
+    if (!userDrawer) return;
+    body.classList.toggle("user-menu-open", isOpen);
+    userDrawer.classList.toggle("is-open", isOpen);
+    userOverlay?.classList.toggle("is-visible", isOpen);
+    userDrawer.setAttribute("aria-hidden", String(!isOpen));
+    userOverlay?.setAttribute("aria-hidden", String(!isOpen));
+    userOpenButtons.forEach(function (button) {
+      button.setAttribute("aria-expanded", String(isOpen));
+    });
+  }
+
+  userOpenButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setUserDrawerOpen(true);
+    });
+  });
+
+  userCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setUserDrawerOpen(false);
+    });
+  });
+
+  userOverlay?.addEventListener("click", function () {
+    setUserDrawerOpen(false);
+  });
+
+  userNavLinks.forEach(function (link) {
+    link.addEventListener("click", function () {
+      setUserDrawerOpen(false);
+    });
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      setUserDrawerOpen(false);
+    }
+  });
+
+  setUserDrawerOpen(false);
+
   const ring = document.querySelector(".mining-ring");
   const progressCircle = document.querySelector(".ring-progress");
   const percentText = document.getElementById("ringPercent");
