@@ -8,8 +8,9 @@
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
-  <div class="admin-mining-shell">
-    <aside class="admin-mining-sidebar">
+  <div class="admin-menu-backdrop" data-admin-menu-close aria-hidden="true"></div>
+  <aside class="admin-mining-sidebar" id="adminMenu" data-admin-menu aria-hidden="true">
+    <div class="admin-menu-header">
       <div class="mining-brand">
         <span class="brand-mark">AD</span>
         <div>
@@ -17,20 +18,32 @@
           <small>Control Center</small>
         </div>
       </div>
-      <nav class="mining-nav admin-mining-nav">
-        <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">مركز التحكم</a>
-        <a href="/users" class="{{ 'active' if active_page == 'users' else '' }}">إدارة المستخدمين</a>
-        <a href="/records" class="{{ 'active' if active_page == 'records' else '' }}">سجل العمليات</a>
-        <a href="/settings" class="{{ 'active' if active_page == 'settings' else '' }}">إعدادات المنصة</a>
-      </nav>
-      <form method="post" action="/logout">
-        <button class="mining-ghost-button" type="submit">تسجيل الخروج</button>
-      </form>
-    </aside>
+      <button class="admin-menu-close" type="button" data-admin-menu-close aria-label="إغلاق القائمة" title="إغلاق القائمة">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+    </div>
+    <nav class="mining-nav admin-mining-nav">
+      <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">مركز التحكم</a>
+      <a href="/users" class="{{ 'active' if active_page == 'users' else '' }}">إدارة المستخدمين</a>
+      <a href="/records" class="{{ 'active' if active_page == 'records' else '' }}">سجل العمليات</a>
+      <a href="/settings" class="{{ 'active' if active_page == 'settings' else '' }}">إعدادات المنصة</a>
+    </nav>
+    <form method="post" action="/logout">
+      <button class="mining-ghost-button" type="submit">تسجيل الخروج</button>
+    </form>
+  </aside>
+
+  <div class="admin-mining-shell">
 
     <main class="admin-mining-content">
       <header class="admin-mining-topbar">
-        <div>
+        <button class="admin-menu-button" type="button" data-admin-menu-toggle aria-label="فتح القائمة" aria-controls="adminMenu" aria-expanded="false" title="القائمة">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
+        <div class="admin-page-heading">
           <p class="mining-kicker">لوحة التحكم الإدارية</p>
           <h1>{% block page_title %}{% endblock %}</h1>
           <span>إدارة المستخدمين، الأرباح، رأس المال، وسجلات المنصة.</span>
@@ -43,5 +56,39 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+  <script>
+    (() => {
+      const body = document.body;
+      const menu = document.querySelector("[data-admin-menu]");
+      const toggles = document.querySelectorAll("[data-admin-menu-toggle]");
+      const closers = document.querySelectorAll("[data-admin-menu-close]");
+
+      if (!menu || !toggles.length) {
+        return;
+      }
+
+      const setMenuOpen = (isOpen) => {
+        body.classList.toggle("admin-menu-open", isOpen);
+        menu.setAttribute("aria-hidden", String(!isOpen));
+        toggles.forEach((toggle) => toggle.setAttribute("aria-expanded", String(isOpen)));
+      };
+
+      toggles.forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+          setMenuOpen(!body.classList.contains("admin-menu-open"));
+        });
+      });
+
+      closers.forEach((closer) => {
+        closer.addEventListener("click", () => setMenuOpen(false));
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setMenuOpen(false);
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
