@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block page_title %}الدعم{% endblock %}
+
+{% block content %}
+<section class="admin-support-grid">
+  <article class="admin-support-card">
+    <p class="mining-kicker">Support Desk</p>
+    <h2>{{ settings.site_name or "Mining Platform" }}</h2>
+    <p>البريد المعتمد للدعم: <strong>{{ settings.support_email or "support@example.com" }}</strong></p>
+    <a href="mailto:{{ settings.support_email or 'support@example.com' }}">فتح بريد الدعم</a>
+  </article>
+  <article class="admin-support-card">
+    <p class="mining-kicker">Operations</p>
+    <h2>ملخص التشغيل</h2>
+    <p>يمكن متابعة المستخدمين والسجلات والإعدادات من صفحات مستقلة واضحة وملائمة للموبايل والكمبيوتر.</p>
+    <div class="admin-signal-row">
+      <span>المستخدمون: <strong>{{ users_count }}</strong></span>
+      <span>السجلات: <strong>{{ records_count }}</strong></span>
+    </div>
+  </article>
+</section>
+{% endblock %}

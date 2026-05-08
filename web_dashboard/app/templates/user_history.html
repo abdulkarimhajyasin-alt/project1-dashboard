@@ -1,0 +1,42 @@
+{% extends "user_base.html" %}
+
+{% block title %}السجل - لوحة التعدين{% endblock %}
+{% block page_title %}السجل{% endblock %}
+{% block page_description %}تابع سجل العمليات والمكافآت المرتبطة بحسابك.{% endblock %}
+
+{% block content %}
+<section class="admin-panel-card">
+  <div class="admin-panel-header">
+    <div>
+      <p class="mining-kicker">User Ledger</p>
+      <h2>سجل العمليات</h2>
+    </div>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-data-table">
+      <thead>
+        <tr>
+          <th>العنوان</th>
+          <th>النوع</th>
+          <th>المبلغ</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+        <tr>
+          <td>{{ record.title }}</td>
+          <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
+          <td>${{ "%.4f"|format(record.amount) }}</td>
+          <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="empty">لا توجد عمليات حتى الآن.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

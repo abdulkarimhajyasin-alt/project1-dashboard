@@ -1,0 +1,29 @@
+{% extends "user_base.html" %}
+
+{% block title %}الإحالة - لوحة التعدين{% endblock %}
+{% block page_title %}الإحالة{% endblock %}
+{% block page_description %}شارك رابطك واحصل على مكافآت عند نشاط المدعوين.{% endblock %}
+
+{% block content %}
+<section class="mining-referral">
+  <div class="referral-copy">
+    <p class="mining-kicker">Referral Network</p>
+    <h2>دعوة صديق</h2>
+    <p>شارك الرابط، وعند بدء دورة تعدين من أحد المدعوين تحصل على مكافأة إحالة يومية.</p>
+    <div class="referral-mini-stats">
+      <span>المدعوون: <strong>{{ referrals_count }}</strong></span>
+      <span>مكافأة النشاط: <strong>$0.0005</strong></span>
+    </div>
+  </div>
+  <div class="referral-link-card">
+    <label for="referralLink">رابط الإحالة الخاص بك</label>
+    <input id="referralLink" value="{{ referral_url }}" readonly>
+    <div class="share-row mining-share-row">
+      <a href="https://wa.me/?text={{ referral_url }}" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://www.facebook.com/sharer/sharer.php?u={{ referral_url }}" target="_blank" rel="noopener">Facebook</a>
+      <button type="button" data-copy-referral>نسخ الرابط</button>
+    </div>
+    <small id="copyFeedback"></small>
+  </div>
+</section>
+{% endblock %}

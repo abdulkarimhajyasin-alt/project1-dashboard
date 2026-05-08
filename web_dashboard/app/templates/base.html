@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or "لوحة تحكم التعدين" }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=drawer-fix">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=separate-pages">
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -23,27 +23,27 @@
       </div>
 
       <nav class="mining-nav admin-mining-nav" data-dashboard-nav aria-label="أقسام لوحة التحكم">
-        <a href="/dashboard#home" data-target="home" class="{{ 'active' if active_page == 'dashboard' else '' }}">
+        <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">
           <span>الرئيسية</span>
           <small>Overview</small>
         </a>
-        <a href="/dashboard#users" data-target="users" class="{{ 'active' if active_page == 'users' else '' }}">
+        <a href="/users" class="{{ 'active' if active_page == 'users' else '' }}">
           <span>المستخدمون</span>
           <small>Accounts</small>
         </a>
-        <a href="/dashboard#records" data-target="records" class="{{ 'active' if active_page == 'records' else '' }}">
+        <a href="/records" class="{{ 'active' if active_page == 'records' else '' }}">
           <span>السجلات</span>
           <small>Ledger</small>
         </a>
-        <a href="/dashboard#settings" data-target="settings" class="{{ 'active' if active_page == 'settings' else '' }}">
+        <a href="/settings" class="{{ 'active' if active_page == 'settings' else '' }}">
           <span>الإعدادات</span>
           <small>Platform</small>
         </a>
-        <a href="/dashboard#notifications" data-target="notifications">
+        <a href="/notifications" class="{{ 'active' if active_page == 'notifications' else '' }}">
           <span>الإشعارات</span>
           <small>Alerts</small>
         </a>
-        <a href="/dashboard#support" data-target="support">
+        <a href="/support" class="{{ 'active' if active_page == 'support' else '' }}">
           <span>الدعم</span>
           <small>Help Desk</small>
         </a>
@@ -76,7 +76,7 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=drawer-fix" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=separate-pages" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

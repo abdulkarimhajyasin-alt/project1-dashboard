@@ -70,6 +70,21 @@ def get_referral_url(request: Request, user: User) -> str:
     return str(request.url_for("user_register")) + f"?ref={code}"
 
 
+def build_user_context(request: Request, user: User, active_user_page: str) -> dict:
+    withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
+    return {
+        "request": request,
+        "user": user,
+        "active_user_page": active_user_page,
+        "progress_percent": get_progress_percent(user),
+        "can_start": user.last_start_at is None,
+        "withdraw_percent": withdraw_percent,
+        "min_withdrawal": MIN_WITHDRAWAL,
+        "referral_url": get_referral_url(request, user),
+        "referrals_count": len(user.referrals),
+    }
+
+
 @router.get("/register", response_class=HTMLResponse, name="user_register")
 def register_page(request: Request, ref: str = ""):
     return templates.TemplateResponse("user_register.html", {"request": request, "error": None, "ref": ref})
@@ -147,22 +162,52 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
     settle_daily_cycle(user, db)
     intro_seen = bool(request.session.get("user_intro_seen"))
     request.session["user_intro_seen"] = True
-    withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
-    referral_url = get_referral_url(request, user)
+    context = build_user_context(request, user, "dashboard")
     return templates.TemplateResponse(
         "user_dashboard.html",
         {
-            "request": request,
-            "user": user,
             "intro_seen": intro_seen,
-            "progress_percent": get_progress_percent(user),
-            "can_start": user.last_start_at is None,
-            "withdraw_percent": withdraw_percent,
-            "min_withdrawal": MIN_WITHDRAWAL,
-            "referral_url": referral_url,
-            "referrals_count": len(user.referrals),
+            **context,
         },
     )
+
+
+@router.get("/plans", response_class=HTMLResponse)
+def plans_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_daily_cycle(user, db)
+    return templates.TemplateResponse("user_plans.html", build_user_context(request, user, "plans"))
+
+
+@router.get("/withdraw", response_class=HTMLResponse)
+def withdraw_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_daily_cycle(user, db)
+    return templates.TemplateResponse("user_withdraw.html", build_user_context(request, user, "withdraw"))
+
+
+@router.get("/referral", response_class=HTMLResponse)
+def referral_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_daily_cycle(user, db)
+    return templates.TemplateResponse("user_referral.html", build_user_context(request, user, "referral"))
+
+
+@router.get("/support", response_class=HTMLResponse)
+def support_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_daily_cycle(user, db)
+    return templates.TemplateResponse("user_support.html", build_user_context(request, user, "support"))
+
+
+@router.get("/history", response_class=HTMLResponse)
+def history_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_daily_cycle(user, db)
+    context = build_user_context(request, user, "history")
+    context["records"] = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
+    return templates.TemplateResponse("user_history.html", context)
+
+
+@router.get("/account", response_class=HTMLResponse)
+def account_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_daily_cycle(user, db)
+    return templates.TemplateResponse("user_account.html", build_user_context(request, user, "account"))
 
 
 @router.post("/start")

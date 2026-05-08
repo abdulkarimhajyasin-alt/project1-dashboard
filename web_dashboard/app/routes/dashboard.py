@@ -19,8 +19,7 @@ DEFAULT_SETTINGS = {
 }
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+def get_admin_metrics(db: Session) -> dict:
     users_count = db.query(User).count()
     active_users_count = db.query(User).filter(User.status == "active").count()
     records_count = db.query(Record).count()
@@ -28,28 +27,60 @@ def dashboard(request: Request, admin: Admin = Depends(get_current_admin), db: S
     total_capital = db.query(func.coalesce(func.sum(User.capital), 0)).scalar()
     total_profits = db.query(func.coalesce(func.sum(User.profits), 0)).scalar()
     active_cycles = db.query(User).filter(User.last_start_at.isnot(None)).count()
-    users = db.query(User).order_by(User.created_at.desc()).all()
-    records = db.query(Record).order_by(Record.created_at.desc()).all()
-    latest_records = records[:5]
+    latest_records = db.query(Record).order_by(Record.created_at.desc()).limit(5).all()
     stored_settings = {item.key: item.value for item in db.query(AppSetting).all()}
     settings = {**DEFAULT_SETTINGS, **stored_settings}
 
+    return {
+        "users_count": users_count,
+        "active_users_count": active_users_count,
+        "records_count": records_count,
+        "total_amount": total_amount,
+        "total_capital": total_capital,
+        "total_profits": total_profits,
+        "active_cycles": active_cycles,
+        "latest_records": latest_records,
+        "settings": settings,
+    }
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    context = get_admin_metrics(db)
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "admin": admin,
             "active_page": "dashboard",
-            "users_count": users_count,
-            "active_users_count": active_users_count,
-            "records_count": records_count,
-            "total_amount": total_amount,
-            "total_capital": total_capital,
-            "total_profits": total_profits,
-            "active_cycles": active_cycles,
-            "latest_records": latest_records,
-            "users": users,
-            "records": records,
-            "settings": settings,
+            **context,
+        },
+    )
+
+
+@router.get("/notifications", response_class=HTMLResponse)
+def notifications(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    context = get_admin_metrics(db)
+    return templates.TemplateResponse(
+        "notifications.html",
+        {
+            "request": request,
+            "admin": admin,
+            "active_page": "notifications",
+            **context,
+        },
+    )
+
+
+@router.get("/support", response_class=HTMLResponse)
+def support(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    context = get_admin_metrics(db)
+    return templates.TemplateResponse(
+        "support.html",
+        {
+            "request": request,
+            "admin": admin,
+            "active_page": "support",
+            **context,
         },
     )

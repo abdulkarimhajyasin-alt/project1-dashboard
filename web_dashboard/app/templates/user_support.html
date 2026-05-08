@@ -1,0 +1,22 @@
+{% extends "user_base.html" %}
+
+{% block title %}الدعم - لوحة التعدين{% endblock %}
+{% block page_title %}الدعم{% endblock %}
+{% block page_description %}قنوات مساعدة سريعة لمتابعة الاشتراكات والسحب والحساب.{% endblock %}
+
+{% block content %}
+<section class="mining-placeholders">
+  <article>
+    <h2>مراسلة الدعم</h2>
+    <p>واجهة المحادثة ورفع الملفات قادمة في المرحلة التالية. يمكنك حالياً متابعة طلبات الاشتراك والسحب من الصفحات المستقلة.</p>
+  </article>
+  <article>
+    <h2>حالة الحساب</h2>
+    <p>حسابك {{ user.status }}، وباقتك الحالية {{ user.plan if user.plan != 'none' else 'غير مفعلة' }}.</p>
+  </article>
+  <article>
+    <h2>معلومات مهمة</h2>
+    <p>استخدم رابط الإحالة من صفحة الإحالة، وتابع السجل من صفحة السجل المستقلة.</p>
+  </article>
+</section>
+{% endblock %}

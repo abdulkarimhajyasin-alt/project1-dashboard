@@ -1,0 +1,13 @@
+{% extends "user_base.html" %}
+
+{% block title %}الباقات - لوحة التعدين{% endblock %}
+{% block page_title %}الباقات{% endblock %}
+{% block page_description %}اختر باقة التعدين المناسبة لرأس المال ودورة السحب التي تريدها.{% endblock %}
+
+{% block content %}
+<section class="mining-plans">
+  <article><span>Silver</span><h3>الباقة الفضية</h3><strong>$10 - $100</strong><p>دورة السحب كل 20 يوم</p><button type="button">طلب اشتراك</button></article>
+  <article class="featured"><span>Gold</span><h3>الباقة الذهبية</h3><strong>$101 - $300</strong><p>دورة السحب كل 15 يوم</p><button type="button">طلب اشتراك</button></article>
+  <article><span>VIP</span><h3>باقة VIP</h3><strong>$301+</strong><p>دورة السحب كل 10 أيام</p><button type="button">طلب اشتراك</button></article>
+</section>
+{% endblock %}

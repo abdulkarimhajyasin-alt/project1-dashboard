@@ -1,0 +1,25 @@
+{% extends "user_base.html" %}
+
+{% block title %}السحب - لوحة التعدين{% endblock %}
+{% block page_title %}السحب{% endblock %}
+{% block page_description %}تابع نسبة الوصول إلى الحد الأدنى للسحب ودورة السحب الحالية.{% endblock %}
+
+{% block content %}
+<section class="mining-withdraw-panel">
+  <div>
+    <p class="mining-kicker">سحب الأرباح</p>
+    <h2>نسبة الوصول إلى الحد الأدنى للسحب</h2>
+    <span>الحد الأدنى الحالي: ${{ '%.2f'|format(min_withdrawal) }}</span>
+  </div>
+  <div class="withdraw-progress" data-withdraw="{{ withdraw_percent }}">
+    <span></span>
+    <strong>{{ withdraw_percent }}%</strong>
+  </div>
+</section>
+
+<section class="mining-stats-grid">
+  <article class="mining-stat-card"><span>الأرباح المتاحة</span><strong>${{ '%.4f'|format(user.profits or 0) }}</strong><small>Available Yield</small></article>
+  <article class="mining-stat-card"><span>الباقة الحالية</span><strong>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</strong><small>Active Plan</small></article>
+  <article class="mining-stat-card"><span>دورة السحب</span><strong>{{ 'حسب الباقة' if user.plan != 'none' else 'غير متاح' }}</strong><small>Withdrawal Cycle</small></article>
+</section>
+{% endblock %}

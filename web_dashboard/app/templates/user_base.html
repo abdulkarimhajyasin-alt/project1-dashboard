@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}لوحة التعدين{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=user-pages">
+</head>
+<body class="user-app mining-app">
+  <div class="mining-bg" aria-hidden="true"></div>
+  <div class="user-drawer-overlay" data-user-drawer-overlay aria-hidden="true"></div>
+  <div class="mining-shell">
+    <aside class="mining-sidebar" id="userSidebar" data-user-drawer aria-label="القائمة الجانبية" aria-hidden="true">
+      <div class="user-sidebar-top">
+        <div class="mining-brand">
+          <span class="brand-mark">MY</span>
+          <div>
+            <strong>Mining Yield</strong>
+            <small>Crypto Mining Hub</small>
+          </div>
+        </div>
+        <button class="user-drawer-close" type="button" data-user-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">X</button>
+      </div>
+      <nav class="mining-nav" data-user-drawer-nav>
+        <a class="{{ 'active' if active_user_page == 'dashboard' else '' }}" href="/user/dashboard">الرئيسية</a>
+        <a class="{{ 'active' if active_user_page == 'plans' else '' }}" href="/user/plans">الباقات</a>
+        <a class="{{ 'active' if active_user_page == 'withdraw' else '' }}" href="/user/withdraw">السحب</a>
+        <a class="{{ 'active' if active_user_page == 'referral' else '' }}" href="/user/referral">الإحالة</a>
+        <a class="{{ 'active' if active_user_page == 'support' else '' }}" href="/user/support">الدعم</a>
+        <a class="{{ 'active' if active_user_page == 'history' else '' }}" href="/user/history">السجل</a>
+        <a class="{{ 'active' if active_user_page == 'account' else '' }}" href="/user/account">الحساب</a>
+      </nav>
+      <form method="post" action="/user/logout">
+        <button class="mining-ghost-button" type="submit">تسجيل الخروج</button>
+      </form>
+    </aside>
+
+    <main class="mining-content">
+      <header class="mining-topbar">
+        <button class="user-drawer-toggle" type="button" data-user-drawer-open aria-controls="userSidebar" aria-expanded="false">
+          <span aria-hidden="true">&#9776;</span>
+          <span>القائمة</span>
+        </button>
+        <div>
+          <p class="mining-kicker">{% block page_kicker %}لوحة التعدين التفاعلية{% endblock %}</p>
+          <h1>{% block page_title %}أهلاً {{ user.name }}{% endblock %}</h1>
+          <span>{% block page_description %}راقب دورة التعدين اليومية، الأرباح، والإحالات من مكان واحد.{% endblock %}</span>
+        </div>
+        <div class="node-status">
+          <span></span>
+          {{ 'العقدة جاهزة' if can_start|default(true) else 'الدورة تعمل الآن' }}
+        </div>
+      </header>
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=user-pages"></script>
+</body>
+</html>

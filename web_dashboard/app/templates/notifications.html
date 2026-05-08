@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block page_title %}الإشعارات{% endblock %}
+
+{% block content %}
+<section class="admin-insight-grid">
+  <article class="admin-insight-card">
+    <span class="admin-alert-dot"></span>
+    <p class="mining-kicker">System Pulse</p>
+    <h2>حالة الشبكة مستقرة</h2>
+    <p>يوجد {{ active_cycles }} دورة تعدين نشطة و{{ active_users_count }} حساب نشط حالياً.</p>
+  </article>
+  <article class="admin-insight-card">
+    <span class="admin-alert-dot warning"></span>
+    <p class="mining-kicker">Capital Watch</p>
+    <h2>مراقبة رأس المال</h2>
+    <p>إجمالي رأس المال الحالي هو ${{ "%.2f"|format(total_capital or 0) }} مع أرباح قدرها ${{ "%.4f"|format(total_profits or 0) }}.</p>
+  </article>
+  <article class="admin-insight-card">
+    <span class="admin-alert-dot info"></span>
+    <p class="mining-kicker">Latest Ledger</p>
+    <h2>آخر تحديث للسجلات</h2>
+    <p>{% if latest_records %}آخر سجل هو "{{ latest_records[0].title }}" بتاريخ {{ latest_records[0].created_at.strftime("%Y-%m-%d") }}.{% else %}لا توجد سجلات بعد لعرض تنبيه مرتبط بها.{% endif %}</p>
+  </article>
+</section>
+{% endblock %}

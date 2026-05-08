@@ -1,0 +1,31 @@
+{% extends "user_base.html" %}
+
+{% block title %}الحساب - لوحة التعدين{% endblock %}
+{% block page_title %}الحساب{% endblock %}
+{% block page_description %}ملخص بيانات الحساب وحالة الاشتراك والأمان.{% endblock %}
+
+{% block content %}
+<section class="mining-stats-grid">
+  <article class="mining-stat-card"><span>الاسم</span><strong>{{ user.name }}</strong><small>Profile Name</small></article>
+  <article class="mining-stat-card"><span>اسم المستخدم</span><strong>{{ user.username or "-" }}</strong><small>Username</small></article>
+  <article class="mining-stat-card"><span>البريد</span><strong>{{ user.email }}</strong><small>Email</small></article>
+  <article class="mining-stat-card"><span>الحالة</span><strong>{{ user.status }}</strong><small>Account Status</small></article>
+  <article class="mining-stat-card"><span>الباقة</span><strong>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</strong><small>Active Plan</small></article>
+  <article class="mining-stat-card"><span>تاريخ الإنشاء</span><strong>{{ user.created_at.strftime("%Y-%m-%d") }}</strong><small>Created</small></article>
+</section>
+
+<section class="mining-placeholders">
+  <article>
+    <h2>إعدادات الأمان</h2>
+    <p>تحديث كلمة المرور وإعدادات الأمان ستكون متاحة في المرحلة التالية.</p>
+  </article>
+  <article>
+    <h2>إعدادات الملف الشخصي</h2>
+    <p>يمكنك متابعة بياناتك الحالية هنا، وسيتم إضافة التعديل المباشر لاحقاً.</p>
+  </article>
+  <article>
+    <h2>حالة العقدة</h2>
+    <p>{{ 'العقدة جاهزة للتشغيل' if can_start else 'الدورة تعمل الآن' }}</p>
+  </article>
+</section>
+{% endblock %}
