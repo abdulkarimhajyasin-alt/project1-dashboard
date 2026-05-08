@@ -15,7 +15,7 @@
   const supportImageOpenButtons = document.querySelectorAll("[data-support-image-open]");
   const supportImageCloseButtons = document.querySelectorAll("[data-support-image-close]");
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
-  const imageExtensions = [".apng", ".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"];
+  const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   function formatFileSize(size) {
     if (!Number.isFinite(size)) return "";

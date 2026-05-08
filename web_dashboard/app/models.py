@@ -12,7 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
-IMAGE_EXTENSIONS = {".apng", ".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
+IMAGE_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
 
 
 class Admin(Base):
@@ -150,7 +150,18 @@ class SupportMessage(Base):
     def attachment_display_url(self):
         if not self.attachment_url:
             return ""
-        if self.attachment_url.startswith(("http://", "https://", "/")):
+
+        parsed_path = urlparse(self.attachment_url).path
+        filename = PurePath(parsed_path).name
+        if parsed_path.startswith("/support/attachments/") and filename:
+            return f"/static/uploads/support/{filename}"
+        if parsed_path.startswith("support/attachments/") and filename:
+            return f"/static/uploads/support/{filename}"
+        if parsed_path.startswith("/static/"):
+            return parsed_path
+        if parsed_path.startswith("static/"):
+            return f"/{parsed_path}"
+        if self.attachment_url.startswith(("http://", "https://")):
             return self.attachment_url
         return "/" + self.attachment_url
 

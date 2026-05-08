@@ -3072,7 +3072,8 @@ body.support-chat-open {
   text-align: inherit;
 }
 
-.support-attachment-image img {
+.support-attachment-image img,
+.chat-image {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   display: block;
