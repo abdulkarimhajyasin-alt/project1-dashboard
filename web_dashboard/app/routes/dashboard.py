@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, AppSetting, Notification, Record, User
+from app.models import Admin, AppSetting, Notification, Record, SupportThread, User
 from app.notifications import get_admin_notifications_context
+from app.support_chat import add_support_message, get_thread_messages
 
 
 router = APIRouter()
@@ -44,6 +45,10 @@ def get_admin_metrics(db: Session) -> dict:
         "settings": settings,
         **get_admin_notifications_context(db),
     }
+
+
+def get_support_threads(db: Session) -> list[SupportThread]:
+    return db.query(SupportThread).order_by(SupportThread.updated_at.desc()).all()
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -103,6 +108,66 @@ def support(request: Request, admin: Admin = Depends(get_current_admin), db: Ses
             "request": request,
             "admin": admin,
             "active_page": "support",
+            "support_threads": get_support_threads(db),
+            "active_support_thread": None,
+            "support_messages": [],
+            "support_chat_open": False,
             **context,
         },
     )
+
+
+@router.get("/support/chat/{thread_id}", response_class=HTMLResponse)
+def support_chat(
+    thread_id: int,
+    request: Request,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    context = get_admin_metrics(db)
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Support thread not found")
+
+    return templates.TemplateResponse(
+        "support.html",
+        {
+            "request": request,
+            "admin": admin,
+            "active_page": "support",
+            "support_threads": get_support_threads(db),
+            "active_support_thread": thread,
+            "support_thread": thread,
+            "support_messages": get_thread_messages(db, thread),
+            "support_chat_mode": "admin",
+            "support_chat_open": True,
+            "support_chat_post_url": f"/support/chat/{thread.id}/reply",
+            "support_chat_title": f"محادثة {thread.user.username or thread.user.name}",
+            "support_chat_subtitle": thread.user.email,
+            "can_user_send_support": True,
+            **context,
+        },
+    )
+
+
+@router.post("/support/chat/{thread_id}/reply")
+def support_chat_reply(
+    thread_id: int,
+    message: str = Form(""),
+    attachment: UploadFile | None = File(None),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Support thread not found")
+
+    add_support_message(
+        db,
+        thread=thread,
+        sender_type="admin",
+        body=message,
+        attachment=attachment,
+    )
+    db.commit()
+    return RedirectResponse(url=f"/support/chat/{thread.id}", status_code=303)

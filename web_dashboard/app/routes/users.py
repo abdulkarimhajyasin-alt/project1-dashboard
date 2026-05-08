@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, Record, User
+from app.models import Admin, Record, SupportThread, User
 from app.notifications import get_admin_notifications_context
 
 
@@ -146,6 +146,9 @@ def reset_user_cycle(user_id: int, admin: Admin = Depends(get_current_admin), db
 def delete_user(user_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if user:
+        support_thread = db.query(SupportThread).filter(SupportThread.user_id == user.id).first()
+        if support_thread:
+            db.delete(support_thread)
         db.delete(user)
         db.commit()
     return RedirectResponse(url="/users", status_code=303)

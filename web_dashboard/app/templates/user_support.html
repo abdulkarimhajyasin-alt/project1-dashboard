@@ -2,21 +2,25 @@
 
 {% block title %}الدعم - لوحة التعدين{% endblock %}
 {% block page_title %}الدعم{% endblock %}
-{% block page_description %}قنوات مساعدة سريعة لمتابعة الاشتراكات والسحب والحساب.{% endblock %}
+{% block page_description %}تواصل مع الدعم برسائل وفقاعات ومرفقات من صندوق واحد.{% endblock %}
 
 {% block content %}
-<section class="mining-placeholders">
-  <article>
+<section class="support-entry-grid">
+  <article class="support-entry-card">
+    <p class="mining-kicker">Support Desk</p>
     <h2>مراسلة الدعم</h2>
-    <p>واجهة المحادثة ورفع الملفات قادمة في المرحلة التالية. يمكنك حالياً متابعة طلبات الاشتراك والسحب من الصفحات المستقلة.</p>
+    <p>افتح صندوق الرسائل، أرسل استفسارك، وارفق صورة أو ملفاً إذا احتجت. بعد إرسال رسالة، انتظر رد الدعم قبل إرسال رسالة أخرى.</p>
+    <button class="mining-primary-button" type="button" data-support-chat-open>فتح المحادثة</button>
   </article>
-  <article>
-    <h2>حالة الحساب</h2>
-    <p>حسابك {{ user.status }}، وباقتك الحالية {{ user.plan if user.plan != 'none' else 'غير مفعلة' }}.</p>
-  </article>
-  <article>
-    <h2>معلومات مهمة</h2>
-    <p>استخدم رابط الإحالة من صفحة الإحالة، وتابع السجل من صفحة السجل المستقلة.</p>
+  <article class="support-entry-card">
+    <p class="mining-kicker">Thread Status</p>
+    <h2>{{ support_thread.status }}</h2>
+    <p>عدد الرسائل في هذه المحادثة: <strong>{{ support_messages|length }}</strong></p>
+    {% if not can_user_send_support %}
+    <p class="support-waiting-note">رسالتك وصلت، وسيتم تفعيل الإرسال بعد رد الدعم.</p>
+    {% endif %}
   </article>
 </section>
+
+{% include "partials/support_chat_modal.html" %}
 {% endblock %}

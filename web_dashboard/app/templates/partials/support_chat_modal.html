@@ -1,0 +1,59 @@
+{% if support_thread %}
+<div class="support-chat-backdrop {{ 'is-open' if support_chat_open else '' }}" data-support-chat-modal aria-hidden="{{ 'false' if support_chat_open else 'true' }}">
+  <section class="support-chat-window" role="dialog" aria-modal="true" aria-label="محادثة الدعم">
+    <header class="support-chat-header">
+      <div>
+        <p class="mining-kicker">Support Chat</p>
+        <h2>{{ support_chat_title or "مراسلة الدعم" }}</h2>
+        <span>{{ support_chat_subtitle or "أرسل رسالتك وسنرد عليك قريباً." }}</span>
+      </div>
+      <button class="support-chat-close" type="button" data-support-chat-close aria-label="إغلاق المحادثة">X</button>
+    </header>
+
+    <div class="support-chat-body">
+      {% for chat_message in support_messages %}
+      <article class="support-bubble {{ 'from-admin' if chat_message.sender_type == 'admin' else 'from-user' }}">
+        <div class="support-bubble-meta">
+          <strong>{{ 'الدعم' if chat_message.sender_type == 'admin' else support_thread.user.username or support_thread.user.name }}</strong>
+          <small>{{ chat_message.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
+        </div>
+        {% if chat_message.body %}
+        <p>{{ chat_message.body }}</p>
+        {% endif %}
+        {% if chat_message.attachment_url %}
+          {% if chat_message.is_image %}
+          <a class="support-attachment-image" href="{{ chat_message.attachment_url }}" target="_blank" rel="noopener">
+            <img src="{{ chat_message.attachment_url }}" alt="{{ chat_message.attachment_name or 'مرفق' }}">
+          </a>
+          {% else %}
+          <a class="support-attachment-file" href="{{ chat_message.attachment_url }}" target="_blank" rel="noopener">{{ chat_message.attachment_name or "فتح الملف" }}</a>
+          {% endif %}
+        {% endif %}
+      </article>
+      {% else %}
+      <div class="support-chat-empty">
+        <strong>لا توجد رسائل بعد</strong>
+        <p>ابدأ المحادثة برسالة واضحة، ويمكنك إرفاق صورة أو ملف.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% set user_locked = support_chat_mode == 'user' and not can_user_send_support %}
+    <form class="support-chat-compose" method="post" action="{{ support_chat_post_url }}" enctype="multipart/form-data">
+      {% if user_locked %}
+      <div class="support-chat-locked">
+        لا يمكنك إرسال رسالة جديدة حتى يرد الدعم على رسالتك السابقة.
+      </div>
+      {% endif %}
+      <textarea name="message" placeholder="اكتب رسالتك هنا..." {% if user_locked %}disabled{% endif %}></textarea>
+      <div class="support-compose-actions">
+        <label class="support-file-button">
+          <input type="file" name="attachment" {% if user_locked %}disabled{% endif %}>
+          إرفاق صورة أو ملف
+        </label>
+        <button class="mining-primary-button" type="submit" {% if user_locked %}disabled{% endif %}>إرسال</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endif %}

@@ -5,6 +5,33 @@
   const openButtons = Array.from(document.querySelectorAll("[data-drawer-open]"));
   const closeButtons = Array.from(document.querySelectorAll("[data-drawer-close]"));
   const notificationRoots = Array.from(document.querySelectorAll("[data-notification-root]"));
+  const supportChatModal = document.querySelector("[data-support-chat-modal]");
+  const supportChatOpenButtons = Array.from(document.querySelectorAll("[data-support-chat-open]"));
+  const supportChatCloseButtons = Array.from(document.querySelectorAll("[data-support-chat-close]"));
+
+  const setSupportChatOpen = (isOpen) => {
+    if (!supportChatModal) {
+      return;
+    }
+
+    supportChatModal.classList.toggle("is-open", isOpen);
+    supportChatModal.setAttribute("aria-hidden", String(!isOpen));
+    document.body.classList.toggle("support-chat-open", isOpen);
+  };
+
+  supportChatOpenButtons.forEach((button) => {
+    button.addEventListener("click", () => setSupportChatOpen(true));
+  });
+
+  supportChatCloseButtons.forEach((button) => {
+    button.addEventListener("click", () => setSupportChatOpen(false));
+  });
+
+  supportChatModal?.addEventListener("click", (event) => {
+    if (event.target === supportChatModal) {
+      setSupportChatOpen(false);
+    }
+  });
 
   const closeNotifications = (exceptRoot = null) => {
     notificationRoots.forEach((root) => {
@@ -62,6 +89,7 @@
     if (event.key === "Escape") {
       setDrawerOpen(false);
       closeNotifications();
+      setSupportChatOpen(false);
     }
   });
 
@@ -73,6 +101,7 @@
 
   setDrawerOpen(false);
   closeNotifications();
+  setSupportChatOpen(supportChatModal?.classList.contains("is-open") || false);
 
   const dashboard = document.querySelector("[data-dashboard-page]");
 

@@ -90,3 +90,35 @@ class Notification(Base):
         if not isinstance(data, dict):
             return []
         return [{"label": str(key), "value": str(value)} for key, value in data.items()]
+
+
+class SupportThread(Base):
+    __tablename__ = "support_threads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="open", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship()
+    messages: Mapped[list["SupportMessage"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+
+
+class SupportMessage(Base):
+    __tablename__ = "support_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    thread_id: Mapped[int] = mapped_column(ForeignKey("support_threads.id"), nullable=False, index=True)
+    sender_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=True)
+    attachment_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    attachment_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    attachment_content_type: Mapped[str] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    thread: Mapped[SupportThread] = relationship(back_populates="messages")
+
+    @property
+    def is_image(self) -> bool:
+        return bool(self.attachment_content_type and self.attachment_content_type.startswith("image/"))

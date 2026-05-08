@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import or_
@@ -14,6 +14,12 @@ from app.dependencies import get_current_user
 from app.models import Record, User
 from app.notifications import create_admin_notification
 from app.security import hash_password, verify_password
+from app.support_chat import (
+    add_support_message,
+    can_user_send_support_message,
+    get_or_create_support_thread,
+    get_thread_messages,
+)
 
 
 router = APIRouter(prefix="/user")
@@ -209,9 +215,68 @@ def referral_page(request: Request, user: User = Depends(get_current_user), db: 
 
 
 @router.get("/support", response_class=HTMLResponse)
-def support_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def support_page(
+    request: Request,
+    chat: str = "",
+    locked: str = "",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     settle_daily_cycle(user, db)
-    return templates.TemplateResponse("user_support.html", build_user_context(request, user, "support"))
+    thread = get_or_create_support_thread(db, user)
+    messages = get_thread_messages(db, thread)
+    context = build_user_context(request, user, "support")
+    context.update(
+        {
+            "support_thread": thread,
+            "support_messages": messages,
+            "support_chat_mode": "user",
+            "support_chat_open": chat == "open",
+            "support_chat_post_url": "/user/support/messages",
+            "support_chat_title": "مراسلة الدعم",
+            "support_chat_subtitle": "اكتب رسالتك وارفق صورة أو ملفاً عند الحاجة.",
+            "can_user_send_support": can_user_send_support_message(db, thread),
+            "support_waiting_message": bool(locked),
+        }
+    )
+    return templates.TemplateResponse("user_support.html", context)
+
+
+@router.post("/support/messages")
+def send_support_message(
+    message: str = Form(""),
+    attachment: UploadFile | None = File(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    thread = get_or_create_support_thread(db, user)
+    if not can_user_send_support_message(db, thread):
+        return RedirectResponse(url="/user/support?chat=open&locked=1", status_code=303)
+
+    support_message = add_support_message(
+        db,
+        thread=thread,
+        sender_type="user",
+        body=message,
+        attachment=attachment,
+    )
+    if support_message:
+        create_admin_notification(
+            db,
+            title="رسالة دعم جديدة",
+            message=f"أرسل {user.name} رسالة جديدة إلى الدعم.",
+            target_url=f"/support/chat/{thread.id}",
+            kind="support",
+            data={
+                "الاسم": user.name,
+                "اسم المستخدم": user.username or "-",
+                "البريد": user.email,
+                "مرفق": support_message.attachment_name or "بدون مرفق",
+            },
+        )
+        db.commit()
+
+    return RedirectResponse(url="/user/support?chat=open", status_code=303)
 
 
 @router.get("/history", response_class=HTMLResponse)

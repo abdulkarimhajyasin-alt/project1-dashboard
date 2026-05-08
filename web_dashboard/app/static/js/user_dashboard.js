@@ -6,6 +6,36 @@
   const userCloseButtons = document.querySelectorAll("[data-user-drawer-close]");
   const userNavLinks = document.querySelectorAll("[data-user-drawer-nav] a");
   const notificationRoots = document.querySelectorAll("[data-notification-root]");
+  const supportChatModal = document.querySelector("[data-support-chat-modal]");
+  const supportChatOpenButtons = document.querySelectorAll("[data-support-chat-open]");
+  const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
+
+  function setSupportChatOpen(isOpen) {
+    if (!supportChatModal) return;
+    supportChatModal.classList.toggle("is-open", isOpen);
+    supportChatModal.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("support-chat-open", isOpen);
+  }
+
+  supportChatOpenButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setSupportChatOpen(true);
+    });
+  });
+
+  supportChatCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setSupportChatOpen(false);
+    });
+  });
+
+  if (supportChatModal) {
+    supportChatModal.addEventListener("click", function (event) {
+      if (event.target === supportChatModal) {
+        setSupportChatOpen(false);
+      }
+    });
+  }
 
   function closeNotifications(exceptRoot) {
     notificationRoots.forEach(function (root) {
@@ -71,6 +101,7 @@
     if (event.key === "Escape") {
       setUserDrawerOpen(false);
       closeNotifications();
+      setSupportChatOpen(false);
     }
   });
 
@@ -82,6 +113,7 @@
 
   setUserDrawerOpen(false);
   closeNotifications();
+  setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
 
   const ring = document.querySelector(".mining-ring");
   const progressCircle = document.querySelector(".ring-progress");
