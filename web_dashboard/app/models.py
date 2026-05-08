@@ -105,10 +105,17 @@ class Notification(Base):
         return self.kind == "support" and self.title == "رسالة دعم جديدة" and bool(data.get("اسم المستخدم") or data.get("الاسم"))
 
     @property
+    def is_support_reply_notification(self) -> bool:
+        data = self.data_dict
+        return self.kind == "support" and self.title == "رد جديد من الدعم" and bool(data.get("المحادثة") or data.get("المرسل"))
+
+    @property
     def display_title(self) -> str:
         if self.is_user_support_message:
             data = self.data_dict
             return data.get("اسم المستخدم") or data.get("الاسم") or self.title
+        if self.is_support_reply_notification:
+            return "الدعم"
         return self.title
 
     @property

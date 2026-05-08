@@ -52,6 +52,12 @@ def get_support_threads(db: Session) -> list[SupportThread]:
     return db.query(SupportThread).order_by(SupportThread.updated_at.desc()).all()
 
 
+def get_support_notification_message(support_message: SupportMessage) -> str:
+    if support_message.has_attachment_data:
+        return "صورة" if support_message.is_image else "ملف"
+    return support_message.body or "رسالة جديدة"
+
+
 @router.get("/support/attachments/{message_id}")
 def support_attachment(message_id: int, request: Request, db: Session = Depends(get_db)):
     admin_id = request.session.get("admin_id")
@@ -238,14 +244,10 @@ def support_chat_reply(
         create_user_notification(
             db,
             user_id=thread.user_id,
-            title="رد جديد من الدعم",
-            message="قام الدعم بالرد على محادثتك.",
+            title="الدعم",
+            message=get_support_notification_message(support_message),
             target_url="/user/support?chat=open",
             kind="support",
-            data={
-                "المحادثة": f"#{thread.id}",
-                "المرسل": admin.username,
-            },
         )
         db.commit()
     return RedirectResponse(url=f"/support/chat/{thread.id}", status_code=303)
