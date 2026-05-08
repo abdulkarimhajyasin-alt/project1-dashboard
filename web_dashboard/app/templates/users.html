@@ -48,7 +48,9 @@
         {% for user in users %}
         <tr>
           <td>{{ user.name }}</td>
-          <td>{{ user.username or "-" }}</td>
+          <td>
+            <a class="admin-user-link" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
+          </td>
           <td>{{ user.email }}</td>
           <td>${{ "%.2f"|format(user.capital or 0) }}</td>
           <td>${{ "%.4f"|format(user.profits or 0) }}</td>

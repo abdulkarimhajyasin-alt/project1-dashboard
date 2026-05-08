@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block page_title %}بيانات المستخدم{% endblock %}
+
+{% block content %}
+<section class="admin-user-detail-shell">
+  <article class="admin-user-detail-hero">
+    <div>
+      <p class="mining-kicker">User Control Node</p>
+      <h2>{{ user.username or user.name }}</h2>
+      <p>{{ user.email }}</p>
+      <div class="admin-signal-row">
+        <span>الحالة: <strong>{{ user.status }}</strong></span>
+        <span>الخطة: <strong>{{ user.plan or "none" }}</strong></span>
+        <span>الإحالات: <strong>{{ user.referrals|length }}</strong></span>
+      </div>
+    </div>
+    <a class="admin-user-back" href="/users">العودة للمستخدمين</a>
+  </article>
+
+  <nav class="admin-detail-tabs" aria-label="أقسام بيانات المستخدم">
+    <a href="#overview">Overview</a>
+    <a href="#financial">Financial</a>
+    <a href="#transactions">Transactions</a>
+    <a href="#verification">Verification</a>
+    <a class="is-primary" href="#actions">Actions</a>
+  </nav>
+
+  <section class="admin-user-control-board" id="actions">
+    <div class="admin-control-block">
+      <h3>التحكم بالمستخدم</h3>
+      <div class="admin-control-actions">
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="unfreeze">
+          <button class="admin-action-button blue" type="submit">Unfreeze</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="freeze">
+          <button class="admin-action-button amber" type="submit">Freeze</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="unban">
+          <button class="admin-action-button green" type="submit">Unban</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="ban">
+          <button class="admin-action-button red" type="submit">Ban</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-control-block" id="financial">
+      <h3>Financial Control</h3>
+      <div class="admin-finance-grid">
+        <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form">
+          <input type="hidden" name="field" value="capital">
+          <label>
+            رأس المال
+            <input type="number" name="amount" step="0.01" min="0" value="10">
+          </label>
+          <button class="admin-action-button green" type="submit" name="operation" value="add">Balance +</button>
+          <button class="admin-action-button red" type="submit" name="operation" value="subtract">Balance -</button>
+        </form>
+
+        <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form">
+          <input type="hidden" name="field" value="profits">
+          <label>
+            الأرباح
+            <input type="number" name="amount" step="0.0001" min="0" value="1">
+          </label>
+          <button class="admin-action-button green" type="submit" name="operation" value="add">Profit +</button>
+          <button class="admin-action-button red" type="submit" name="operation" value="subtract">Profit -</button>
+        </form>
+
+        <form method="post" action="/users/{{ user.id }}/plan" class="admin-plan-form">
+          <label>
+            تغيير الخطة
+            <select name="plan">
+              <option value="none" {{ "selected" if user.plan == "none" else "" }}>none</option>
+              <option value="silver" {{ "selected" if user.plan == "silver" else "" }}>silver</option>
+              <option value="gold" {{ "selected" if user.plan == "gold" else "" }}>gold</option>
+              <option value="vip" {{ "selected" if user.plan == "vip" else "" }}>vip</option>
+            </select>
+          </label>
+          <button class="admin-action-button purple" type="submit">Change Plan</button>
+        </form>
+
+        <form method="post" action="/users/{{ user.id }}/reset-cycle" class="admin-plan-form">
+          <span>دورة التعدين اليومية</span>
+          <button class="admin-action-button slate" type="submit">Reset Cycle</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-danger-zone">
+      <h3>Danger Zone</h3>
+      <form method="post" action="/users/{{ user.id }}/delete">
+        <button class="admin-action-button red dark" type="submit">Delete Subscription</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="admin-user-detail-grid" id="overview">
+    <article class="admin-user-data-card"><span>ID</span><strong>{{ user.id }}</strong></article>
+    <article class="admin-user-data-card"><span>الاسم</span><strong>{{ user.name }}</strong></article>
+    <article class="admin-user-data-card"><span>اسم المستخدم</span><strong>{{ user.username or "-" }}</strong></article>
+    <article class="admin-user-data-card"><span>البريد</span><strong>{{ user.email }}</strong></article>
+    <article class="admin-user-data-card"><span>الحالة</span><strong>{{ user.status }}</strong></article>
+    <article class="admin-user-data-card"><span>رأس المال</span><strong>${{ "%.2f"|format(user.capital or 0) }}</strong></article>
+    <article class="admin-user-data-card"><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></article>
+    <article class="admin-user-data-card"><span>الأرباح اليومية</span><strong>${{ "%.4f"|format(user.daily_earnings or 0) }}</strong></article>
+    <article class="admin-user-data-card"><span>الخطة</span><strong>{{ user.plan or "none" }}</strong></article>
+    <article class="admin-user-data-card"><span>كود الإحالة</span><strong>{{ user.referral_code or "-" }}</strong></article>
+    <article class="admin-user-data-card"><span>المحيل</span><strong>{{ user.referrer.username if user.referrer else "-" }}</strong></article>
+    <article class="admin-user-data-card"><span>آخر تشغيل</span><strong>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</strong></article>
+    <article class="admin-user-data-card"><span>تاريخ الإنشاء</span><strong>{{ user.created_at.strftime("%Y-%m-%d %H:%M") }}</strong></article>
+    <article class="admin-user-data-card" id="verification"><span>كلمة المرور</span><strong>{{ "محفوظة كـ hash" if user.password_hash else "غير مضبوطة" }}</strong></article>
+  </section>
+
+  <section class="admin-panel-card" id="transactions">
+    <div class="admin-panel-header">
+      <div>
+        <p class="mining-kicker">Transactions</p>
+        <h2>سجلات المستخدم</h2>
+      </div>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-data-table">
+        <thead>
+          <tr>
+            <th>العنوان</th>
+            <th>النوع</th>
+            <th>المبلغ</th>
+            <th>ملاحظات</th>
+            <th>التاريخ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+          <tr>
+            <td>{{ record.title }}</td>
+            <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
+            <td>${{ "%.4f"|format(record.amount) }}</td>
+            <td>{{ record.notes or "-" }}</td>
+            <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="empty">لا توجد سجلات لهذا المستخدم.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-panel-card">
+    <div class="admin-panel-header">
+      <div>
+        <p class="mining-kicker">Referral Tree</p>
+        <h2>المستخدمون المحالون</h2>
+      </div>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-data-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>اسم المستخدم</th>
+            <th>البريد</th>
+            <th>الحالة</th>
+            <th>تاريخ الإنشاء</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for referral in user.referrals %}
+          <tr>
+            <td>{{ referral.name }}</td>
+            <td><a class="admin-user-link" href="/users/{{ referral.id }}">{{ referral.username or referral.name }}</a></td>
+            <td>{{ referral.email }}</td>
+            <td><span class="status admin-status-pill">{{ referral.status }}</span></td>
+            <td>{{ referral.created_at.strftime("%Y-%m-%d") }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="empty">لا توجد إحالات لهذا المستخدم.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}
