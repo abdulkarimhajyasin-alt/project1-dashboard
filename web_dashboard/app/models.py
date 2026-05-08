@@ -3,16 +3,11 @@
 import json
 from datetime import datetime
 from decimal import Decimal
-from pathlib import PurePath
-from urllib.parse import urlparse
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-
-
-IMAGE_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
 
 
 class Admin(Base):
@@ -121,53 +116,27 @@ class SupportMessage(Base):
     attachment_name: Mapped[str] = mapped_column(String(255), nullable=True)
     attachment_url: Mapped[str] = mapped_column(String(255), nullable=True)
     attachment_content_type: Mapped[str] = mapped_column(String(120), nullable=True)
+    attachment_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
+    attachment_mime_type: Mapped[str] = mapped_column(String(120), nullable=True)
+    attachment_size: Mapped[int] = mapped_column(Integer, nullable=True)
+    is_image: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     thread: Mapped[SupportThread] = relationship(back_populates="messages")
 
     @property
-    def is_image(self) -> bool:
-        if self.attachment_content_type and self.attachment_content_type.startswith("image/"):
-            return True
-
-        for value in (self.attachment_name, self.attachment_url):
-            if value and PurePath(value).suffix.lower() in IMAGE_EXTENSIONS:
-                return True
-
-        return False
+    def has_attachment_data(self) -> bool:
+        return self.attachment_data_length > 0
 
     @property
-    def attachment_static_path(self):
-        if not self.attachment_url:
-            return None
-        if self.attachment_url.startswith("/static/"):
-            return self.attachment_url.replace("/static", "", 1)
-        if self.attachment_url.startswith("static/"):
-            return "/" + self.attachment_url.replace("static/", "", 1)
-        return None
+    def attachment_data_length(self) -> int:
+        if self.attachment_data is None:
+            return 0
+        try:
+            return len(self.attachment_data)
+        except TypeError:
+            return len(bytes(self.attachment_data))
 
     @property
-    def attachment_display_url(self):
-        if not self.attachment_url:
-            return ""
-
-        parsed_path = urlparse(self.attachment_url).path
-        filename = PurePath(parsed_path).name
-        if parsed_path.startswith("/support/attachments/") and filename:
-            return f"/static/uploads/support/{filename}"
-        if parsed_path.startswith("support/attachments/") and filename:
-            return f"/static/uploads/support/{filename}"
-        if parsed_path.startswith("/static/"):
-            return parsed_path
-        if parsed_path.startswith("static/"):
-            return f"/{parsed_path}"
-        if self.attachment_url.startswith(("http://", "https://")):
-            return self.attachment_url
-        return "/" + self.attachment_url
-
-    @property
-    def attachment_filename(self):
-        if not self.attachment_url:
-            return None
-        filename = PurePath(urlparse(self.attachment_url).path).name
-        return filename or None
+    def attachment_type(self) -> str:
+        return self.attachment_mime_type or self.attachment_content_type or "application/octet-stream"

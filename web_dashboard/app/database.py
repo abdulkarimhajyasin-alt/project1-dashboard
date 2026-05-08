@@ -65,12 +65,33 @@ def ensure_notification_columns() -> None:
                 connection.execute(text(ddl))
 
 
+def ensure_support_message_columns() -> None:
+    inspector = inspect(engine)
+    if "support_messages" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("support_messages")}
+    binary_type = "BYTEA" if engine.dialect.name.startswith("postgresql") else "BLOB"
+    column_sql = {
+        "attachment_data": f"ALTER TABLE support_messages ADD COLUMN attachment_data {binary_type}",
+        "attachment_mime_type": "ALTER TABLE support_messages ADD COLUMN attachment_mime_type VARCHAR(120)",
+        "attachment_size": "ALTER TABLE support_messages ADD COLUMN attachment_size INTEGER",
+        "is_image": "ALTER TABLE support_messages ADD COLUMN is_image BOOLEAN NOT NULL DEFAULT FALSE",
+    }
+
+    with engine.begin() as connection:
+        for column_name, ddl in column_sql.items():
+            if column_name not in existing_columns:
+                connection.execute(text(ddl))
+
+
 def init_db() -> None:
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     ensure_user_columns()
     ensure_notification_columns()
+    ensure_support_message_columns()
 
 
 def get_db():

@@ -9,12 +9,8 @@
   const supportChatModal = document.querySelector("[data-support-chat-modal]");
   const supportChatOpenButtons = document.querySelectorAll("[data-support-chat-open]");
   const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
-  const supportImageLightbox = document.querySelector("[data-support-image-lightbox]");
-  const supportImagePreview = document.querySelector("[data-support-image-preview]");
-  const supportImageTitle = document.querySelector("[data-support-image-title]");
-  const supportImageOpenButtons = document.querySelectorAll("[data-support-image-open]");
-  const supportImageCloseButtons = document.querySelectorAll("[data-support-image-close]");
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
+  const chatImages = document.querySelectorAll(".chat-image");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   function formatFileSize(size) {
@@ -95,21 +91,18 @@
     });
   }
 
-  function setSupportImageOpen(isOpen, src, title) {
-    if (!supportImageLightbox || !supportImagePreview) return;
-    supportImageLightbox.classList.toggle("is-open", isOpen);
-    supportImageLightbox.setAttribute("aria-hidden", String(!isOpen));
-    body.classList.toggle("support-image-open", isOpen);
+  function setupChatImageLogs() {
+    chatImages.forEach(function (img) {
+      function logImage() {
+        console.log(img.src, img.naturalWidth, img.naturalHeight);
+      }
 
-    if (isOpen) {
-      supportImagePreview.src = src || "";
-      supportImagePreview.alt = title || "صورة مرفقة";
-      if (supportImageTitle) supportImageTitle.textContent = title || "صورة مرفقة";
-    } else {
-      supportImagePreview.src = "";
-      supportImagePreview.alt = "";
-      if (supportImageTitle) supportImageTitle.textContent = "";
-    }
+      if (img.complete) {
+        logImage();
+      } else {
+        img.addEventListener("load", logImage, { once: true });
+      }
+    });
   }
 
   function setSupportChatOpen(isOpen) {
@@ -135,27 +128,6 @@
     supportChatModal.addEventListener("click", function (event) {
       if (event.target === supportChatModal) {
         setSupportChatOpen(false);
-      }
-    });
-  }
-
-  supportImageOpenButtons.forEach(function (button) {
-    button.addEventListener("click", function (event) {
-      event.stopPropagation();
-      setSupportImageOpen(true, button.dataset.imageSrc || "", button.dataset.imageTitle || "");
-    });
-  });
-
-  supportImageCloseButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      setSupportImageOpen(false);
-    });
-  });
-
-  if (supportImageLightbox) {
-    supportImageLightbox.addEventListener("click", function (event) {
-      if (event.target === supportImageLightbox) {
-        setSupportImageOpen(false);
       }
     });
   }
@@ -224,7 +196,6 @@
     if (event.key === "Escape") {
       setUserDrawerOpen(false);
       closeNotifications();
-      setSupportImageOpen(false);
       setSupportChatOpen(false);
     }
   });
@@ -238,7 +209,7 @@
   setUserDrawerOpen(false);
   closeNotifications();
   setupSupportFilePreview();
-  setSupportImageOpen(false);
+  setupChatImageLogs();
   setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
 
   const ring = document.querySelector(".mining-ring");

@@ -3062,42 +3062,15 @@ body.support-chat-open {
   white-space: pre-wrap;
 }
 
-.support-attachment-image {
-  background: rgba(3, 10, 20, 0.18);
-  border: 0;
-  cursor: zoom-in;
-  display: block;
-  margin-top: 10px;
-  padding: 0;
-  text-align: inherit;
-}
-
-.support-attachment-image img,
 .chat-image {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
   display: block;
-  max-height: 240px;
-  max-width: 100%;
-  object-fit: cover;
-  transition: filter 180ms ease, transform 180ms ease;
-}
-
-.support-attachment-image:hover img {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-}
-
-.support-attachment-image span {
-  color: #bae6fd;
-  display: block;
-  font-size: 12px;
-  font-weight: 900;
-  margin-top: 6px;
-  max-width: min(320px, 100%);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 220px;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 2px solid red;
 }
 
 .support-attachment-file {
@@ -3129,13 +3102,23 @@ body.support-chat-open {
 }
 
 .support-chat-empty,
-.support-chat-locked {
+.support-chat-locked,
+.support-chat-error,
+.support-missing-attachment {
   background: rgba(15, 23, 42, 0.76);
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 8px;
   color: #cbd5e1;
   padding: 14px;
   text-align: center;
+}
+
+.support-chat-error,
+.support-missing-attachment {
+  border-color: rgba(248, 113, 113, 0.38);
+  color: #fecaca;
+  font-weight: 900;
+  margin-top: 8px;
 }
 
 .support-chat-empty strong {
@@ -3241,79 +3224,6 @@ body.support-chat-open {
   cursor: pointer;
   font-weight: 900;
   padding: 10px 12px !important;
-}
-
-.support-image-lightbox {
-  align-items: center;
-  background: rgba(2, 6, 23, 0.82);
-  backdrop-filter: blur(12px);
-  display: grid;
-  inset: 0;
-  opacity: 0;
-  padding: 18px;
-  place-items: center;
-  pointer-events: none;
-  position: fixed;
-  transition: opacity 180ms ease, visibility 180ms ease;
-  visibility: hidden;
-  z-index: 150;
-}
-
-.support-image-lightbox.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-}
-
-.support-image-lightbox-card {
-  background:
-    linear-gradient(160deg, rgba(15, 31, 51, 0.98), rgba(5, 12, 25, 0.96)),
-    radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.14), transparent 34%);
-  border: 1px solid rgba(103, 232, 249, 0.26);
-  border-radius: 8px;
-  box-shadow: 0 34px 120px rgba(0, 0, 0, 0.58), 0 0 70px rgba(56, 189, 248, 0.16);
-  display: grid;
-  gap: 10px;
-  max-height: calc(100vh - 36px);
-  max-width: min(980px, calc(100vw - 28px));
-  padding: 12px;
-  position: relative;
-  transform: translateY(12px) scale(.98);
-  transition: transform 200ms cubic-bezier(.2, .8, .2, 1);
-}
-
-.support-image-lightbox.is-open .support-image-lightbox-card {
-  transform: translateY(0) scale(1);
-}
-
-.support-image-lightbox-card img {
-  border-radius: 8px;
-  display: block;
-  max-height: calc(100vh - 124px);
-  max-width: 100%;
-  object-fit: contain;
-}
-
-.support-image-lightbox-card span {
-  color: #dff7ff;
-  font-weight: 900;
-  overflow-wrap: anywhere;
-  text-align: center;
-}
-
-.support-image-lightbox-close {
-  background: rgba(15, 23, 42, 0.88) !important;
-  border: 1px solid rgba(103, 232, 249, 0.26);
-  border-radius: 8px;
-  color: #ffffff !important;
-  cursor: pointer;
-  height: 40px;
-  left: 12px;
-  padding: 0 !important;
-  position: absolute;
-  top: 12px;
-  width: 40px;
-  z-index: 2;
 }
 
 @media (max-width: 900px) {

@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import SessionLocal, init_db
 from app.dependencies import LoginRedirect
-from app.models import Admin
+from app.models import Admin, SupportMessage
 from app.routes import auth, dashboard, records, settings, user_portal, users
 from app.security import hash_password
 
@@ -65,6 +65,44 @@ async def login_redirect_handler(request: Request, exc: LoginRedirect):
 @app.get("/")
 def root() -> RedirectResponse:
     return RedirectResponse(url="/dashboard", status_code=303)
+
+
+@app.get("/debug/files")
+def debug_files():
+    db = SessionLocal()
+    try:
+        messages = (
+            db.query(SupportMessage)
+            .filter(
+                (SupportMessage.attachment_data.isnot(None))
+                | (SupportMessage.attachment_size.isnot(None))
+                | (SupportMessage.attachment_url.isnot(None))
+            )
+            .order_by(SupportMessage.created_at.desc())
+            .limit(30)
+            .all()
+        )
+        return {
+            "storage": "postgresql_bytea",
+            "files": [
+                {
+                    "id": message.id,
+                    "thread_id": message.thread_id,
+                    "sender_type": message.sender_type,
+                    "has_data": message.has_attachment_data,
+                    "data_length": message.attachment_data_length,
+                    "size": message.attachment_size or 0,
+                    "is_image": message.is_image,
+                    "mime": message.attachment_type,
+                    "name": message.attachment_name,
+                    "old_url": message.attachment_url,
+                    "url": f"/support/attachments/{message.id}" if message.has_attachment_data else None,
+                }
+                for message in messages
+            ],
+        }
+    finally:
+        db.close()
 
 
 app.include_router(auth.router)

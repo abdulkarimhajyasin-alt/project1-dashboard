@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
+from urllib.parse import quote, urlencode
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, AppSetting, Notification, Record, SupportThread, User
+from app.models import Admin, AppSetting, Notification, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
-from app.support_chat import add_support_message, get_thread_messages
+from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
 
 
 router = APIRouter()
@@ -49,6 +50,54 @@ def get_admin_metrics(db: Session) -> dict:
 
 def get_support_threads(db: Session) -> list[SupportThread]:
     return db.query(SupportThread).order_by(SupportThread.updated_at.desc()).all()
+
+
+@router.get("/support/attachments/{message_id}")
+def support_attachment(message_id: int, request: Request, db: Session = Depends(get_db)):
+    admin_id = request.session.get("admin_id")
+    user_id = request.session.get("user_id")
+    print("Opening support attachment:", {"message_id": message_id, "admin_id": admin_id, "user_id": user_id})
+    if not admin_id and not user_id:
+        print("Support attachment denied: no active session", {"message_id": message_id})
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    query = (
+        db.query(SupportMessage)
+        .join(SupportThread, SupportMessage.thread_id == SupportThread.id)
+        .filter(SupportMessage.id == message_id)
+    )
+    if not admin_id:
+        query = query.filter(SupportThread.user_id == user_id)
+
+    message = query.first()
+    if not message:
+        print("Support attachment missing or unauthorized:", {"message_id": message_id, "admin_id": admin_id, "user_id": user_id})
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    print(
+        "Support attachment message found:",
+        {
+            "id": message.id,
+            "thread_id": message.thread_id,
+            "sender_type": message.sender_type,
+            "has_data": message.has_attachment_data,
+            "data_length": message.attachment_data_length,
+            "attachment_size": message.attachment_size,
+            "is_image": message.is_image,
+            "mime": message.attachment_type,
+            "name": message.attachment_name,
+        },
+    )
+    if message.attachment_data_length <= 0:
+        print("Support attachment has no BYTEA data:", {"message_id": message_id, "attachment_size": message.attachment_size})
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    headers = {}
+    filename = message.attachment_name or f"support_attachment_{message.id}"
+    if not message.is_image:
+        headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{quote(filename)}"
+
+    return Response(content=bytes(message.attachment_data), media_type=message.attachment_type, headers=headers)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -132,6 +181,7 @@ def support(request: Request, admin: Admin = Depends(get_current_admin), db: Ses
 def support_chat(
     thread_id: int,
     request: Request,
+    error: str = "",
     admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
@@ -155,6 +205,7 @@ def support_chat(
             "support_chat_post_url": f"/support/chat/{thread.id}/reply",
             "support_chat_title": f"محادثة {thread.user.username or thread.user.name}",
             "support_chat_subtitle": thread.user.email,
+            "support_chat_error": error,
             "can_user_send_support": True,
             **context,
         },
@@ -173,13 +224,16 @@ def support_chat_reply(
     if not thread:
         raise HTTPException(status_code=404, detail="Support thread not found")
 
-    support_message = add_support_message(
-        db,
-        thread=thread,
-        sender_type="admin",
-        body=message,
-        attachment=attachment,
-    )
+    try:
+        support_message = add_support_message(
+            db,
+            thread=thread,
+            sender_type="admin",
+            body=message,
+            attachment=attachment,
+        )
+    except SupportAttachmentError as exc:
+        return RedirectResponse(url=f"/support/chat/{thread.id}?{urlencode({'error': str(exc)})}", status_code=303)
     if support_message:
         create_user_notification(
             db,

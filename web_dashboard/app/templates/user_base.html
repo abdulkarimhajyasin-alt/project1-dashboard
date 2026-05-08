@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة التعدين{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=support-debug-url">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=support-render-fix">
 </head>
 <body class="user-app mining-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -58,6 +58,6 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=support-debug-url"></script>
+  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=support-render-fix"></script>
 </body>
 </html>

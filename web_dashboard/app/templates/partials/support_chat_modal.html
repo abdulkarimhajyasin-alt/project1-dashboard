@@ -27,18 +27,35 @@
         {% if chat_message.body %}
         <p>{{ chat_message.body }}</p>
         {% endif %}
-        {% if chat_message.attachment_url %}
-          {% set attachment_url = chat_message.attachment_display_url %}
+        <small class="debug-url">
+          id: {{ chat_message.id }} |
+          sender: {{ chat_message.sender_type }} |
+          has_data: {{ chat_message.has_attachment_data }} |
+          data_length: {{ chat_message.attachment_data_length }} |
+          size: {{ chat_message.attachment_size or 0 }} |
+          is_image: {{ chat_message.is_image }} |
+          mime: {{ chat_message.attachment_type }} |
+          name: {{ chat_message.attachment_name or "-" }}
+        </small>
+        {% if chat_message.has_attachment_data %}
+          {% set attachment_url = "/support/attachments/" ~ chat_message.id %}
           {% if chat_message.is_image %}
-          <button class="support-attachment-image" type="button" data-support-image-open data-image-src="{{ attachment_url }}" data-image-title="{{ chat_message.attachment_name or 'صورة مرفقة' }}">
-            <img src="{{ attachment_url }}" class="chat-image" alt="{{ chat_message.attachment_name or 'صورة مرفقة' }}" loading="lazy">
-            <span>{{ chat_message.attachment_name or "صورة مرفقة" }}</span>
-          </button>
-          <small class="debug-url">src: {{ attachment_url }} | db: {{ chat_message.attachment_url }}</small>
+          <img src="{{ attachment_url }}" class="chat-image" alt="attachment">
+          <small class="debug-url">src: {{ attachment_url }}</small>
           {% else %}
           <a class="support-attachment-file" href="{{ attachment_url }}" target="_blank" rel="noopener" download>تحميل الملف</a>
-          <small class="debug-url">href: {{ attachment_url }} | db: {{ chat_message.attachment_url }}</small>
+          <small class="debug-url">href: {{ attachment_url }}</small>
           {% endif %}
+        {% elif chat_message.attachment_size and chat_message.attachment_size > 0 %}
+          <div class="support-missing-attachment">
+            مرفق بدون بيانات BYTEA
+            <small class="debug-url">id: {{ chat_message.id }} | size: {{ chat_message.attachment_size }} | data_length: {{ chat_message.attachment_data_length }}</small>
+          </div>
+        {% elif chat_message.attachment_url %}
+          <div class="support-missing-attachment">
+            مرفق قديم غير متوفر
+            <small class="debug-url">old attachment id: {{ chat_message.id }} | name: {{ chat_message.attachment_name or "-" }}</small>
+          </div>
         {% endif %}
       </article>
       {% else %}
@@ -54,6 +71,11 @@
       {% if user_locked %}
       <div class="support-chat-locked">
         لا يمكنك إرسال رسالة جديدة حتى يرد الدعم على رسالتك السابقة.
+      </div>
+      {% endif %}
+      {% if support_chat_error %}
+      <div class="support-chat-error">
+        {{ support_chat_error }}
       </div>
       {% endif %}
       <textarea name="message" placeholder="اكتب رسالتك هنا..." {% if user_locked %}disabled{% endif %}></textarea>
@@ -77,12 +99,5 @@
       </div>
     </form>
   </section>
-  <div class="support-image-lightbox" data-support-image-lightbox aria-hidden="true">
-    <div class="support-image-lightbox-card" role="dialog" aria-modal="true" aria-label="معاينة الصورة">
-      <button class="support-image-lightbox-close" type="button" data-support-image-close aria-label="إغلاق الصورة">X</button>
-      <img src="" alt="" data-support-image-preview>
-      <span data-support-image-title></span>
-    </div>
-  </div>
 </div>
 {% endif %}

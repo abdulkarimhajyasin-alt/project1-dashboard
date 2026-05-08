@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,6 +16,7 @@ from app.models import Notification, Record, User
 from app.notifications import create_admin_notification, get_user_notifications_context
 from app.security import hash_password, verify_password
 from app.support_chat import (
+    SupportAttachmentError,
     add_support_message,
     can_user_send_support_message,
     get_or_create_support_thread,
@@ -259,6 +261,7 @@ def support_page(
     request: Request,
     chat: str = "",
     locked: str = "",
+    error: str = "",
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -277,6 +280,7 @@ def support_page(
             "support_chat_subtitle": "اكتب رسالتك وارفق صورة أو ملفاً عند الحاجة.",
             "can_user_send_support": can_user_send_support_message(db, thread),
             "support_waiting_message": bool(locked),
+            "support_chat_error": error,
         }
     )
     return templates.TemplateResponse("user_support.html", context)
@@ -293,13 +297,16 @@ def send_support_message(
     if not can_user_send_support_message(db, thread):
         return RedirectResponse(url="/user/support?chat=open&locked=1", status_code=303)
 
-    support_message = add_support_message(
-        db,
-        thread=thread,
-        sender_type="user",
-        body=message,
-        attachment=attachment,
-    )
+    try:
+        support_message = add_support_message(
+            db,
+            thread=thread,
+            sender_type="user",
+            body=message,
+            attachment=attachment,
+        )
+    except SupportAttachmentError as exc:
+        return RedirectResponse(url=f"/user/support?chat=open&{urlencode({'error': str(exc)})}", status_code=303)
     if support_message:
         create_admin_notification(
             db,

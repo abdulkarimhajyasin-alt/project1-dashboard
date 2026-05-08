@@ -8,12 +8,8 @@
   const supportChatModal = document.querySelector("[data-support-chat-modal]");
   const supportChatOpenButtons = Array.from(document.querySelectorAll("[data-support-chat-open]"));
   const supportChatCloseButtons = Array.from(document.querySelectorAll("[data-support-chat-close]"));
-  const supportImageLightbox = document.querySelector("[data-support-image-lightbox]");
-  const supportImagePreview = document.querySelector("[data-support-image-preview]");
-  const supportImageTitle = document.querySelector("[data-support-image-title]");
-  const supportImageOpenButtons = Array.from(document.querySelectorAll("[data-support-image-open]"));
-  const supportImageCloseButtons = Array.from(document.querySelectorAll("[data-support-image-close]"));
   const supportFileInputs = Array.from(document.querySelectorAll("[data-support-file-input]"));
+  const chatImages = Array.from(document.querySelectorAll(".chat-image"));
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   const formatFileSize = (size) => {
@@ -98,28 +94,15 @@
     });
   };
 
-  const setSupportImageOpen = (isOpen, src = "", title = "") => {
-    if (!supportImageLightbox || !supportImagePreview) {
-      return;
-    }
-
-    supportImageLightbox.classList.toggle("is-open", isOpen);
-    supportImageLightbox.setAttribute("aria-hidden", String(!isOpen));
-    body.classList.toggle("support-image-open", isOpen);
-
-    if (isOpen) {
-      supportImagePreview.src = src;
-      supportImagePreview.alt = title || "صورة مرفقة";
-      if (supportImageTitle) {
-        supportImageTitle.textContent = title || "صورة مرفقة";
+  const setupChatImageLogs = () => {
+    chatImages.forEach((img) => {
+      const logImage = () => console.log(img.src, img.naturalWidth, img.naturalHeight);
+      if (img.complete) {
+        logImage();
+      } else {
+        img.addEventListener("load", logImage, { once: true });
       }
-    } else {
-      supportImagePreview.src = "";
-      supportImagePreview.alt = "";
-      if (supportImageTitle) {
-        supportImageTitle.textContent = "";
-      }
-    }
+    });
   };
 
   const setSupportChatOpen = (isOpen) => {
@@ -143,23 +126,6 @@
   supportChatModal?.addEventListener("click", (event) => {
     if (event.target === supportChatModal) {
       setSupportChatOpen(false);
-    }
-  });
-
-  supportImageOpenButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setSupportImageOpen(true, button.dataset.imageSrc || "", button.dataset.imageTitle || "");
-    });
-  });
-
-  supportImageCloseButtons.forEach((button) => {
-    button.addEventListener("click", () => setSupportImageOpen(false));
-  });
-
-  supportImageLightbox?.addEventListener("click", (event) => {
-    if (event.target === supportImageLightbox) {
-      setSupportImageOpen(false);
     }
   });
 
@@ -219,7 +185,6 @@
     if (event.key === "Escape") {
       setDrawerOpen(false);
       closeNotifications();
-      setSupportImageOpen(false);
       setSupportChatOpen(false);
     }
   });
@@ -233,7 +198,7 @@
   setDrawerOpen(false);
   closeNotifications();
   setupSupportFilePreview();
-  setSupportImageOpen(false);
+  setupChatImageLogs();
   setSupportChatOpen(supportChatModal?.classList.contains("is-open") || false);
 
   const dashboard = document.querySelector("[data-dashboard-page]");
