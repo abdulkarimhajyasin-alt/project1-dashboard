@@ -1,73 +1,294 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_title %}مركز التحكم{% endblock %}
 
 {% block content %}
-<section class="admin-command-grid">
-  <article class="admin-command-hero">
-    <p class="mining-kicker">Admin Command Core</p>
-    <h2>مراقبة منصة التعدين</h2>
-    <p>نظرة سريعة على المستخدمين، رأس المال، الأرباح، ودورات التعدين النشطة.</p>
-    <div class="admin-signal-row">
-      <span>المستخدمون النشطون: <strong>{{ active_users_count }}</strong></span>
-      <span>الدورات النشطة: <strong>{{ active_cycles }}</strong></span>
-    </div>
-  </article>
-  <article class="admin-orbit-card">
-    <div class="admin-orbit"><span></span></div>
-    <strong>{{ users_count }}</strong>
-    <p>إجمالي المستخدمين</p>
-  </article>
-</section>
+<div class="single-dashboard" data-dashboard-page>
+  <section class="dashboard-section is-active" data-section="home" data-title="الرئيسية" data-description="نظرة مباشرة على أداء منصة التعدين والحسابات النشطة." aria-hidden="false">
+    <section class="admin-command-grid">
+      <article class="admin-command-hero">
+        <p class="mining-kicker">Admin Command Core</p>
+        <h2>مراقبة منصة التعدين</h2>
+        <p>نظرة سريعة على المستخدمين، رأس المال، الأرباح، ودورات التعدين النشطة.</p>
+        <div class="admin-signal-row">
+          <span>المستخدمون النشطون: <strong>{{ active_users_count }}</strong></span>
+          <span>الدورات النشطة: <strong>{{ active_cycles }}</strong></span>
+          <span>حجم العمليات: <strong>${{ "%.2f"|format(total_amount or 0) }}</strong></span>
+        </div>
+      </article>
+      <article class="admin-orbit-card">
+        <div class="admin-orbit"><span></span></div>
+        <strong>{{ users_count }}</strong>
+        <p>إجمالي المستخدمين</p>
+      </article>
+    </section>
 
-<section class="admin-stats-grid">
-  <article class="admin-stat-card"><span>إجمالي المستخدمين</span><strong>{{ users_count }}</strong><small>Total Users</small></article>
-  <article class="admin-stat-card"><span>المستخدمون النشطون</span><strong>{{ active_users_count }}</strong><small>Active Accounts</small></article>
-  <article class="admin-stat-card"><span>مجموع رؤوس الأموال</span><strong>${{ "%.2f"|format(total_capital or 0) }}</strong><small>Capital Pool</small></article>
-  <article class="admin-stat-card"><span>مجموع الأرباح</span><strong>${{ "%.4f"|format(total_profits or 0) }}</strong><small>User Profits</small></article>
-  <article class="admin-stat-card"><span>سجلات العمليات</span><strong>{{ records_count }}</strong><small>Records</small></article>
-  <article class="admin-stat-card"><span>إجمالي العمليات</span><strong>${{ "%.2f"|format(total_amount or 0) }}</strong><small>Record Volume</small></article>
-</section>
+    <section class="admin-stats-grid">
+      <article class="admin-stat-card"><span>إجمالي المستخدمين</span><strong>{{ users_count }}</strong><small>Total Users</small></article>
+      <article class="admin-stat-card"><span>المستخدمون النشطون</span><strong>{{ active_users_count }}</strong><small>Active Accounts</small></article>
+      <article class="admin-stat-card"><span>مجموع رؤوس الأموال</span><strong>${{ "%.2f"|format(total_capital or 0) }}</strong><small>Capital Pool</small></article>
+      <article class="admin-stat-card"><span>مجموع الأرباح</span><strong>${{ "%.4f"|format(total_profits or 0) }}</strong><small>User Profits</small></article>
+      <article class="admin-stat-card"><span>سجلات العمليات</span><strong>{{ records_count }}</strong><small>Records</small></article>
+      <article class="admin-stat-card"><span>إجمالي العمليات</span><strong>${{ "%.2f"|format(total_amount or 0) }}</strong><small>Record Volume</small></article>
+    </section>
 
-<section class="admin-action-strip">
-  <a href="/users">إدارة المستخدمين</a>
-  <a href="/records">مراجعة السجلات</a>
-  <a href="/settings">إعدادات المنصة</a>
-</section>
+    <section class="admin-action-strip">
+      <a href="/dashboard#users" data-target="users">إدارة المستخدمين</a>
+      <a href="/dashboard#records" data-target="records">مراجعة السجلات</a>
+      <a href="/dashboard#settings" data-target="settings">إعدادات المنصة</a>
+      <a href="/dashboard#notifications" data-target="notifications">مركز الإشعارات</a>
+    </section>
 
-<section class="admin-panel-card">
-  <div class="admin-panel-header">
-    <div>
-      <p class="mining-kicker">Latest Ledger</p>
-      <h2>أحدث التسجيلات</h2>
-    </div>
-    <a href="/records">عرض الكل</a>
-  </div>
-  <div class="admin-table-wrap">
-    <table class="admin-data-table">
-      <thead>
-        <tr>
-          <th>العنوان</th>
-          <th>النوع</th>
-          <th>المبلغ</th>
-          <th>التاريخ</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for record in latest_records %}
-        <tr>
-          <td>{{ record.title }}</td>
-          <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
-          <td>${{ "%.2f"|format(record.amount) }}</td>
-          <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" class="empty">لا توجد سجلات حتى الآن.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+    <section class="admin-panel-card">
+      <div class="admin-panel-header">
+        <div>
+          <p class="mining-kicker">Latest Ledger</p>
+          <h2>أحدث التسجيلات</h2>
+        </div>
+        <a href="/dashboard#records" data-target="records">عرض الكل</a>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th>العنوان</th>
+              <th>النوع</th>
+              <th>المبلغ</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in latest_records %}
+            <tr>
+              <td>{{ record.title }}</td>
+              <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
+              <td>${{ "%.2f"|format(record.amount) }}</td>
+              <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="empty">لا توجد سجلات حتى الآن.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <section class="dashboard-section" data-section="users" data-title="المستخدمون" data-description="إدارة الحسابات ورأس المال والخطط داخل نفس لوحة التحكم." hidden aria-hidden="true">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>إضافة مستخدم</h2>
+      </div>
+      <form method="post" action="/users" class="inline-form">
+        <input type="text" name="name" placeholder="الاسم" required>
+        <input type="email" name="email" placeholder="البريد الإلكتروني" required>
+        <select name="status">
+          <option value="active">نشط</option>
+          <option value="inactive">غير نشط</option>
+        </select>
+        <button type="submit">إضافة</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header admin-users-header">
+        <div>
+          <p class="mining-kicker">Accounts Matrix</p>
+          <h2>عرض المستخدمين</h2>
+          <p>كلمات المرور محفوظة كـ hashes. استخدم إجراء إعادة التعيين بدلاً من عرض كلمة المرور الأصلية.</p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>اسم المستخدم</th>
+              <th>البريد</th>
+              <th>رأس المال</th>
+              <th>الأرباح</th>
+              <th>الخطة</th>
+              <th>الحالة</th>
+              <th>المحيل</th>
+              <th>الإحالات</th>
+              <th>آخر تشغيل</th>
+              <th>الإنشاء</th>
+              <th>كلمة المرور</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.name }}</td>
+              <td>{{ user.username or "-" }}</td>
+              <td>{{ user.email }}</td>
+              <td>${{ "%.2f"|format(user.capital or 0) }}</td>
+              <td>${{ "%.4f"|format(user.profits or 0) }}</td>
+              <td><span class="status">{{ user.plan or "none" }}</span></td>
+              <td><span class="status">{{ user.status }}</span></td>
+              <td>{{ user.referrer.username if user.referrer else "-" }}</td>
+              <td>{{ user.referrals|length }}</td>
+              <td>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</td>
+              <td>{{ user.created_at.strftime("%Y-%m-%d") }}</td>
+              <td><button type="button" class="safe-button">إعادة تعيين</button></td>
+              <td>
+                <form method="post" action="/users/{{ user.id }}/delete">
+                  <button class="danger-button" type="submit">حذف</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="13" class="empty">لا يوجد مستخدمون حتى الآن.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <section class="dashboard-section" data-section="records" data-title="السجلات" data-description="تسجيل ومراجعة عمليات المنصة بدون مغادرة لوحة التحكم." hidden aria-hidden="true">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>إضافة سجل</h2>
+      </div>
+      <form method="post" action="/records" class="record-form">
+        <input type="text" name="title" placeholder="العنوان" required>
+        <input type="number" name="amount" placeholder="المبلغ" step="0.01" value="0">
+        <input type="text" name="record_type" placeholder="النوع" value="general">
+        <select name="user_id">
+          <option value="">بدون مستخدم</option>
+          {% for user in users %}
+          <option value="{{ user.id }}">{{ user.name }}</option>
+          {% endfor %}
+        </select>
+        <textarea name="notes" placeholder="ملاحظات"></textarea>
+        <button type="submit">إضافة</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="mining-kicker">Ledger Stream</p>
+          <h2>قائمة السجلات</h2>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>العنوان</th>
+              <th>المستخدم</th>
+              <th>النوع</th>
+              <th>المبلغ</th>
+              <th>التاريخ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in records %}
+            <tr>
+              <td>{{ record.title }}</td>
+              <td>{{ record.user.name if record.user else "-" }}</td>
+              <td><span class="status">{{ record.record_type }}</span></td>
+              <td>${{ "%.2f"|format(record.amount) }}</td>
+              <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+              <td>
+                <form method="post" action="/records/{{ record.id }}/delete">
+                  <button class="danger-button" type="submit">حذف</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="empty">لا توجد سجلات حتى الآن.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <section class="dashboard-section" data-section="settings" data-title="الإعدادات" data-description="ضبط اسم المنصة والبريد ووضع الصيانة من نفس الواجهة." hidden aria-hidden="true">
+    <section class="panel narrow-panel">
+      <div class="panel-header">
+        <div>
+          <p class="mining-kicker">Platform Config</p>
+          <h2>الإعدادات العامة</h2>
+        </div>
+      </div>
+      <form method="post" action="/settings" class="form-stack">
+        <label>
+          اسم الموقع
+          <input type="text" name="site_name" value="{{ settings.site_name }}">
+        </label>
+        <label>
+          بريد الدعم
+          <input type="email" name="support_email" value="{{ settings.support_email }}">
+        </label>
+        <label>
+          وضع الصيانة
+          <select name="maintenance_mode">
+            <option value="off" {{ "selected" if settings.maintenance_mode == "off" else "" }}>متوقف</option>
+            <option value="on" {{ "selected" if settings.maintenance_mode == "on" else "" }}>مفعل</option>
+          </select>
+        </label>
+        <button type="submit">حفظ الإعدادات</button>
+      </form>
+    </section>
+  </section>
+
+  <section class="dashboard-section" data-section="notifications" data-title="الإشعارات" data-description="مؤشرات وتنبيهات سريعة مرتبطة بحالة المنصة الحالية." hidden aria-hidden="true">
+    <section class="admin-insight-grid">
+      <article class="admin-insight-card">
+        <span class="admin-alert-dot"></span>
+        <p class="mining-kicker">System Pulse</p>
+        <h2>حالة الشبكة مستقرة</h2>
+        <p>يوجد {{ active_cycles }} دورة تعدين نشطة و{{ active_users_count }} حساب نشط حالياً.</p>
+      </article>
+      <article class="admin-insight-card">
+        <span class="admin-alert-dot warning"></span>
+        <p class="mining-kicker">Capital Watch</p>
+        <h2>مراقبة رأس المال</h2>
+        <p>إجمالي رأس المال الحالي هو ${{ "%.2f"|format(total_capital or 0) }} مع أرباح قدرها ${{ "%.4f"|format(total_profits or 0) }}.</p>
+      </article>
+      <article class="admin-insight-card">
+        <span class="admin-alert-dot info"></span>
+        <p class="mining-kicker">Latest Ledger</p>
+        <h2>آخر تحديث للسجلات</h2>
+        <p>{% if latest_records %}آخر سجل هو "{{ latest_records[0].title }}" بتاريخ {{ latest_records[0].created_at.strftime("%Y-%m-%d") }}.{% else %}لا توجد سجلات بعد لعرض تنبيه مرتبط بها.{% endif %}</p>
+      </article>
+    </section>
+  </section>
+
+  <section class="dashboard-section" data-section="support" data-title="الدعم" data-description="قنوات متابعة سريعة لإدارة تشغيل المنصة ومساعدة المستخدمين." hidden aria-hidden="true">
+    <section class="admin-support-grid">
+      <article class="admin-support-card">
+        <p class="mining-kicker">Support Desk</p>
+        <h2>{{ settings.site_name or "Mining Platform" }}</h2>
+        <p>البريد المعتمد للدعم: <strong>{{ settings.support_email or "support@example.com" }}</strong></p>
+        <a href="mailto:{{ settings.support_email or 'support@example.com' }}">فتح بريد الدعم</a>
+      </article>
+      <article class="admin-support-card">
+        <p class="mining-kicker">Operations</p>
+        <h2>ملخص التشغيل</h2>
+        <p>يمكن متابعة المستخدمين والسجلات والإعدادات من الأقسام الجانبية بدون إعادة تحميل الصفحة.</p>
+        <div class="admin-signal-row">
+          <span>المستخدمون: <strong>{{ users_count }}</strong></span>
+          <span>السجلات: <strong>{{ records_count }}</strong></span>
+        </div>
+      </article>
+    </section>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/dashboard.js') }}" defer></script>
 {% endblock %}

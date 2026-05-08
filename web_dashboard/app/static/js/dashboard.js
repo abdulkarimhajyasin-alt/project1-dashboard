@@ -1,0 +1,66 @@
+(() => {
+  const dashboard = document.querySelector("[data-dashboard-page]");
+
+  if (!dashboard) {
+    return;
+  }
+
+  const sections = Array.from(dashboard.querySelectorAll("[data-section]"));
+  const sectionMap = new Map(sections.map((section) => [section.dataset.section, section]));
+  const targetLinks = Array.from(document.querySelectorAll("[data-target]"));
+  const navLinks = targetLinks.filter((link) => link.closest("[data-dashboard-nav]"));
+  const heading = document.querySelector("[data-dashboard-heading]");
+  const subtitle = document.querySelector("[data-dashboard-subtitle]");
+
+  const getTargetFromHash = () => window.location.hash.replace("#", "") || "home";
+
+  const setActiveSection = (target, shouldPushState = true) => {
+    const nextTarget = sectionMap.has(target) ? target : "home";
+    const nextSection = sectionMap.get(nextTarget);
+
+    sections.forEach((section) => {
+      const isActive = section === nextSection;
+      section.hidden = !isActive;
+      section.classList.toggle("is-active", isActive);
+      section.setAttribute("aria-hidden", String(!isActive));
+    });
+
+    navLinks.forEach((link) => {
+      const isActive = link.dataset.target === nextTarget;
+      link.classList.toggle("active", isActive);
+      link.setAttribute("aria-current", isActive ? "page" : "false");
+    });
+
+    if (heading && nextSection.dataset.title) {
+      heading.textContent = nextSection.dataset.title;
+    }
+
+    if (subtitle && nextSection.dataset.description) {
+      subtitle.textContent = nextSection.dataset.description;
+    }
+
+    const nextHash = `#${nextTarget}`;
+    if (shouldPushState && window.location.hash !== nextHash) {
+      window.history.pushState({ section: nextTarget }, "", nextHash);
+    }
+  };
+
+  targetLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const target = link.dataset.target;
+
+      if (!sectionMap.has(target)) {
+        return;
+      }
+
+      event.preventDefault();
+      setActiveSection(target);
+    });
+  });
+
+  window.addEventListener("popstate", () => {
+    setActiveSection(getTargetFromHash(), false);
+  });
+
+  setActiveSection(getTargetFromHash(), false);
+})();
