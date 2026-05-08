@@ -25,9 +25,9 @@
     <div class="notification-list">
       {% for notification in notification_items %}
       <a class="notification-item {{ notification.kind|default('system') }}" href="{{ notification_open_prefix|default('/notifications') }}/{{ notification.id }}/open">
-        <strong>{{ notification.title }}</strong>
-        <p>{{ notification.message }}</p>
-        {% if notification.data_rows %}
+        <strong>{{ notification.display_title }}</strong>
+        <p>{{ notification.display_message }}</p>
+        {% if notification.data_rows and not notification.is_user_support_message %}
         <dl class="notification-data">
           {% for row in notification.data_rows %}
           <div>

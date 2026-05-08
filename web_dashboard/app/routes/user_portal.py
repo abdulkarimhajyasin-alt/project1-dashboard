@@ -95,6 +95,12 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
     }
 
 
+def get_support_notification_message(support_message) -> str:
+    if support_message.has_attachment_data:
+        return "صورة" if support_message.is_image else "ملف"
+    return support_message.body or "رسالة جديدة"
+
+
 @router.get("/register", response_class=HTMLResponse, name="user_register")
 def register_page(request: Request, ref: str = ""):
     return templates.TemplateResponse("user_register.html", {"request": request, "error": None, "ref": ref})
@@ -310,16 +316,10 @@ def send_support_message(
     if support_message:
         create_admin_notification(
             db,
-            title="رسالة دعم جديدة",
-            message=f"أرسل {user.name} رسالة جديدة إلى الدعم.",
+            title=user.username or user.name,
+            message=get_support_notification_message(support_message),
             target_url=f"/support/chat/{thread.id}",
             kind="support",
-            data={
-                "الاسم": user.name,
-                "اسم المستخدم": user.username or "-",
-                "البريد": user.email,
-                "مرفق": support_message.attachment_name or "بدون مرفق",
-            },
         )
         db.commit()
 

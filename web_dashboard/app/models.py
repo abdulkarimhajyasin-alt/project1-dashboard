@@ -81,16 +81,44 @@ class Notification(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     @property
-    def data_rows(self) -> list[dict[str, str]]:
+    def data_dict(self) -> dict[str, str]:
         if not self.data_json:
-            return []
+            return {}
         try:
             data = json.loads(self.data_json)
         except json.JSONDecodeError:
-            return []
+            return {}
         if not isinstance(data, dict):
+            return {}
+        return {str(key): str(value) for key, value in data.items()}
+
+    @property
+    def data_rows(self) -> list[dict[str, str]]:
+        data = self.data_dict
+        if not data:
             return []
-        return [{"label": str(key), "value": str(value)} for key, value in data.items()]
+        return [{"label": key, "value": value} for key, value in data.items()]
+
+    @property
+    def is_user_support_message(self) -> bool:
+        data = self.data_dict
+        return self.kind == "support" and self.title == "رسالة دعم جديدة" and bool(data.get("اسم المستخدم") or data.get("الاسم"))
+
+    @property
+    def display_title(self) -> str:
+        if self.is_user_support_message:
+            data = self.data_dict
+            return data.get("اسم المستخدم") or data.get("الاسم") or self.title
+        return self.title
+
+    @property
+    def display_message(self) -> str:
+        if self.is_user_support_message:
+            attachment = self.data_dict.get("مرفق", "")
+            if attachment and attachment != "بدون مرفق":
+                image_extensions = (".gif", ".jpeg", ".jpg", ".png", ".webp")
+                return "صورة" if attachment.lower().endswith(image_extensions) else "ملف"
+        return self.message
 
 
 class SupportThread(Base):
