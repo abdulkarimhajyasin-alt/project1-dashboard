@@ -16,6 +16,18 @@ UPLOAD_ROOT = Path(__file__).resolve().parent / "static" / "uploads" / "support"
 GENERIC_CONTENT_TYPES = {"application/octet-stream", "binary/octet-stream", "application/x-download"}
 
 
+def get_support_attachment_path(filename: str) -> Path | None:
+    safe_filename = PurePath(filename).name
+    if not safe_filename or safe_filename != filename:
+        return None
+
+    upload_root = UPLOAD_ROOT.resolve()
+    attachment_path = (upload_root / safe_filename).resolve()
+    if upload_root not in attachment_path.parents:
+        return None
+    return attachment_path
+
+
 def get_or_create_support_thread(db: Session, user: User) -> SupportThread:
     thread = db.query(SupportThread).filter(SupportThread.user_id == user.id).first()
     if thread:
@@ -64,7 +76,7 @@ def save_support_attachment(upload: UploadFile | None) -> dict[str, str] | None:
 
     return {
         "name": original_name,
-        "url": f"/static/uploads/support/{stored_name}",
+        "url": f"/support/attachments/{stored_name}",
         "content_type": content_type or guessed_content_type or "application/octet-stream",
     }
 

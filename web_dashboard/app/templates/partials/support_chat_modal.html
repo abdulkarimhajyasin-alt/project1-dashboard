@@ -28,7 +28,7 @@
         <p>{{ chat_message.body }}</p>
         {% endif %}
         {% if chat_message.attachment_url %}
-          {% set attachment_url = url_for('static', path=chat_message.attachment_static_path) if chat_message.attachment_static_path else chat_message.attachment_display_url %}
+          {% set attachment_url = url_for('support_attachment', filename=chat_message.attachment_filename) if chat_message.attachment_filename else chat_message.attachment_display_url %}
           {% if chat_message.is_image %}
           <button class="support-attachment-image" type="button" data-support-image-open data-image-src="{{ attachment_url }}" data-image-title="{{ chat_message.attachment_name or 'صورة مرفقة' }}">
             <img src="{{ attachment_url }}" alt="{{ chat_message.attachment_name or 'صورة مرفقة' }}" loading="lazy">

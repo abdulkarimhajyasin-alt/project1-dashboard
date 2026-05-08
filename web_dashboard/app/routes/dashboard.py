@@ -1,14 +1,16 @@
+import mimetypes
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, AppSetting, Notification, Record, SupportThread, User
+from app.models import Admin, AppSetting, Notification, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
-from app.support_chat import add_support_message, get_thread_messages
+from app.support_chat import add_support_message, get_support_attachment_path, get_thread_messages
 
 
 router = APIRouter()
@@ -49,6 +51,41 @@ def get_admin_metrics(db: Session) -> dict:
 
 def get_support_threads(db: Session) -> list[SupportThread]:
     return db.query(SupportThread).order_by(SupportThread.updated_at.desc()).all()
+
+
+@router.get("/support/attachments/{filename}", name="support_attachment")
+def support_attachment(filename: str, request: Request, db: Session = Depends(get_db)):
+    attachment_path = get_support_attachment_path(filename)
+    if not attachment_path or not attachment_path.is_file():
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    admin_id = request.session.get("admin_id")
+    user_id = request.session.get("user_id")
+    if not admin_id and not user_id:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    attachment_urls = [
+        f"/support/attachments/{filename}",
+        f"/static/uploads/support/{filename}",
+        f"static/uploads/support/{filename}",
+    ]
+    query = (
+        db.query(SupportMessage)
+        .join(SupportThread, SupportMessage.thread_id == SupportThread.id)
+        .filter(SupportMessage.attachment_url.in_(attachment_urls))
+    )
+    if not admin_id:
+        query = query.filter(SupportThread.user_id == user_id)
+
+    message = query.first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    media_type = message.attachment_content_type
+    if not media_type or media_type == "application/octet-stream":
+        media_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+
+    return FileResponse(attachment_path, media_type=media_type)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

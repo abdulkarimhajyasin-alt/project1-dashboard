@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 from pathlib import PurePath
+from urllib.parse import urlparse
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -152,3 +153,10 @@ class SupportMessage(Base):
         if self.attachment_url.startswith(("http://", "https://", "/")):
             return self.attachment_url
         return "/" + self.attachment_url
+
+    @property
+    def attachment_filename(self):
+        if not self.attachment_url:
+            return None
+        filename = PurePath(urlparse(self.attachment_url).path).name
+        return filename or None
