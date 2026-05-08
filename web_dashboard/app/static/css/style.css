@@ -3111,6 +3111,23 @@ body.support-chat-open {
   padding: 10px 12px;
 }
 
+.debug-url {
+  background: rgba(2, 6, 23, 0.52);
+  border: 1px dashed rgba(103, 232, 249, 0.24);
+  border-radius: 6px;
+  color: #7dd3fc;
+  direction: ltr;
+  display: block;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 7px;
+  max-width: min(420px, 100%);
+  overflow-wrap: anywhere;
+  padding: 6px 8px;
+  text-align: left;
+}
+
 .support-chat-empty,
 .support-chat-locked {
   background: rgba(15, 23, 42, 0.76);

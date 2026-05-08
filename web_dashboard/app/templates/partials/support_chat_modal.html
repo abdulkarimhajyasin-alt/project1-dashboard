@@ -34,8 +34,10 @@
             <img src="{{ attachment_url }}" class="chat-image" alt="{{ chat_message.attachment_name or 'صورة مرفقة' }}" loading="lazy">
             <span>{{ chat_message.attachment_name or "صورة مرفقة" }}</span>
           </button>
+          <small class="debug-url">src: {{ attachment_url }} | db: {{ chat_message.attachment_url }}</small>
           {% else %}
           <a class="support-attachment-file" href="{{ attachment_url }}" target="_blank" rel="noopener" download>تحميل الملف</a>
+          <small class="debug-url">href: {{ attachment_url }} | db: {{ chat_message.attachment_url }}</small>
           {% endif %}
         {% endif %}
       </article>

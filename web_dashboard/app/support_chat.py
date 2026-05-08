@@ -14,6 +14,7 @@ from app.models import SupportMessage, SupportThread, User
 
 UPLOAD_ROOT = Path(__file__).resolve().parent / "static" / "uploads" / "support"
 GENERIC_CONTENT_TYPES = {"application/octet-stream", "binary/octet-stream", "application/x-download"}
+SUPPORT_UPLOAD_URL = "/static/uploads/support"
 
 
 def get_or_create_support_thread(db: Session, user: User) -> SupportThread:
@@ -51,8 +52,8 @@ def save_support_attachment(upload: UploadFile | None) -> dict[str, str] | None:
 
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     original_name = PurePath(upload.filename).name
-    suffix = Path(original_name).suffix[:16]
-    stored_name = f"{uuid4().hex}{suffix}"
+    suffix = Path(original_name).suffix.lower()[:16]
+    stored_name = f"support_{uuid4().hex}{suffix}"
     destination = UPLOAD_ROOT / stored_name
 
     with destination.open("wb") as buffer:
@@ -63,8 +64,9 @@ def save_support_attachment(upload: UploadFile | None) -> dict[str, str] | None:
     content_type = uploaded_content_type if uploaded_content_type not in GENERIC_CONTENT_TYPES else guessed_content_type
 
     return {
-        "name": original_name,
-        "url": f"/static/uploads/support/{stored_name}",
+        "name": stored_name,
+        "path": str(destination),
+        "url": f"{SUPPORT_UPLOAD_URL}/{stored_name}",
         "content_type": content_type or guessed_content_type or "application/octet-stream",
     }
 

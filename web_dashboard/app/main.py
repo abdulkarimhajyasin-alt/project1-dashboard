@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -15,6 +16,7 @@ from app.security import hash_password
 
 logger = logging.getLogger("uvicorn.error")
 app_settings = get_settings()
+BASE_DIR = Path(__file__).resolve().parent
 
 if not app_settings.is_configured:
     raise RuntimeError("DATABASE_URL and SECRET_KEY environment variables are required.")
@@ -27,7 +29,7 @@ app.add_middleware(
     https_only=False,
     same_site="lax",
 )
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
 def create_initial_admin() -> None:
