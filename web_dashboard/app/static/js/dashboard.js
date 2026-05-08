@@ -10,7 +10,10 @@
       return;
     }
 
-    body.classList.toggle("admin-drawer-open", isOpen);
+    body.classList.remove("admin-drawer-open");
+    body.classList.toggle("menu-open", isOpen);
+    drawer.classList.toggle("is-open", isOpen);
+    overlay?.classList.toggle("is-visible", isOpen);
     drawer.setAttribute("aria-hidden", String(!isOpen));
     overlay?.setAttribute("aria-hidden", String(!isOpen));
     openButtons.forEach((button) => {
@@ -33,6 +36,8 @@
       setDrawerOpen(false);
     }
   });
+
+  setDrawerOpen(false);
 
   const dashboard = document.querySelector("[data-dashboard-page]");
 

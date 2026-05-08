@@ -2068,6 +2068,12 @@ th {
   display: block;
 }
 
+.admin-mining-content {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
 .admin-drawer-overlay {
   backdrop-filter: blur(7px);
   background: rgba(2, 6, 23, 0.64);
@@ -2080,11 +2086,12 @@ th {
   z-index: 80;
 }
 
-body.admin-drawer-open {
+body.menu-open {
   overflow: hidden;
 }
 
-body.admin-drawer-open .admin-drawer-overlay {
+body.menu-open .admin-drawer-overlay,
+.admin-drawer-overlay.is-visible {
   opacity: 1;
   pointer-events: auto;
   visibility: visible;
@@ -2096,19 +2103,25 @@ body.admin-drawer-open .admin-drawer-overlay {
   bottom: 0;
   height: 100vh;
   max-width: calc(100vw - 22px);
+  opacity: 0;
   overflow-y: auto;
+  pointer-events: none;
   position: fixed;
   right: 0;
   top: 0;
   transform: translateX(108%);
-  transition: transform 320ms cubic-bezier(.2, .8, .2, 1), box-shadow 320ms ease;
+  transition: transform 320ms cubic-bezier(.2, .8, .2, 1), opacity 220ms ease, visibility 320ms ease, box-shadow 320ms ease;
+  visibility: hidden;
   width: 360px;
   z-index: 90;
 }
 
-body.admin-drawer-open .admin-sidebar {
+.admin-sidebar.is-open {
   box-shadow: -28px 0 90px rgba(0, 0, 0, 0.46), 0 0 52px rgba(56, 189, 248, 0.13);
+  opacity: 1;
+  pointer-events: auto;
   transform: translateX(0);
+  visibility: visible;
 }
 
 .admin-sidebar-top {

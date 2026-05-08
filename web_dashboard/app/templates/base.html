@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or "لوحة تحكم التعدين" }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=drawer-fix">
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -19,7 +19,7 @@
             <small>Control Center</small>
           </div>
         </div>
-        <button class="admin-drawer-close" type="button" data-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">×</button>
+        <button class="admin-drawer-close" type="button" data-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">X</button>
       </div>
 
       <nav class="mining-nav admin-mining-nav" data-dashboard-nav aria-label="أقسام لوحة التحكم">
@@ -76,7 +76,7 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/dashboard.js') }}" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=drawer-fix" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
