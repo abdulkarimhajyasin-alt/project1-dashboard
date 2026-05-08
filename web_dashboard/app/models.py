@@ -3,11 +3,15 @@
 import json
 from datetime import datetime
 from decimal import Decimal
+from pathlib import PurePath
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+IMAGE_EXTENSIONS = {".apng", ".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
 
 
 class Admin(Base):
@@ -122,7 +126,14 @@ class SupportMessage(Base):
 
     @property
     def is_image(self) -> bool:
-        return bool(self.attachment_content_type and self.attachment_content_type.startswith("image/"))
+        if self.attachment_content_type and self.attachment_content_type.startswith("image/"):
+            return True
+
+        for value in (self.attachment_name, self.attachment_url):
+            if value and PurePath(value).suffix.lower() in IMAGE_EXTENSIONS:
+                return True
+
+        return False
 
     @property
     def attachment_static_path(self):

@@ -32,6 +32,7 @@
           {% if chat_message.is_image %}
           <button class="support-attachment-image" type="button" data-support-image-open data-image-src="{{ attachment_url }}" data-image-title="{{ chat_message.attachment_name or 'صورة مرفقة' }}">
             <img src="{{ attachment_url }}" alt="{{ chat_message.attachment_name or 'صورة مرفقة' }}" loading="lazy">
+            <span>{{ chat_message.attachment_name or "صورة مرفقة" }}</span>
           </button>
           {% else %}
           <a class="support-attachment-file" href="{{ attachment_url }}" target="_blank" rel="noopener">{{ chat_message.attachment_name or "فتح الملف" }}</a>

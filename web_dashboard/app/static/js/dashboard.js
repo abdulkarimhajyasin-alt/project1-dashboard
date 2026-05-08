@@ -14,6 +14,7 @@
   const supportImageOpenButtons = Array.from(document.querySelectorAll("[data-support-image-open]"));
   const supportImageCloseButtons = Array.from(document.querySelectorAll("[data-support-image-close]"));
   const supportFileInputs = Array.from(document.querySelectorAll("[data-support-file-input]"));
+  const imageExtensions = [".apng", ".avif", ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"];
 
   const formatFileSize = (size) => {
     if (!Number.isFinite(size)) {
@@ -23,6 +24,11 @@
       return `${Math.max(1, Math.round(size / 1024))} KB`;
     }
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const isImageFile = (file) => {
+    const fileName = (file.name || "").toLowerCase();
+    return file.type.startsWith("image/") || imageExtensions.some((extension) => fileName.endsWith(extension));
   };
 
   const setupSupportFilePreview = () => {
@@ -69,7 +75,7 @@
         name.textContent = file.name;
         meta.textContent = `${file.type || "ملف"} - ${formatFileSize(file.size)}`;
 
-        if (file.type.startsWith("image/")) {
+        if (isImageFile(file)) {
           objectUrl = URL.createObjectURL(file);
           image.src = objectUrl;
           image.hidden = false;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import mimetypes
 import shutil
 from datetime import datetime
 from pathlib import Path, PurePath
@@ -12,6 +13,7 @@ from app.models import SupportMessage, SupportThread, User
 
 
 UPLOAD_ROOT = Path(__file__).resolve().parent / "static" / "uploads" / "support"
+GENERIC_CONTENT_TYPES = {"application/octet-stream", "binary/octet-stream", "application/x-download"}
 
 
 def get_or_create_support_thread(db: Session, user: User) -> SupportThread:
@@ -56,10 +58,14 @@ def save_support_attachment(upload: UploadFile | None) -> dict[str, str] | None:
     with destination.open("wb") as buffer:
         shutil.copyfileobj(upload.file, buffer)
 
+    guessed_content_type = mimetypes.guess_type(original_name)[0]
+    uploaded_content_type = (upload.content_type or "").lower()
+    content_type = uploaded_content_type if uploaded_content_type not in GENERIC_CONTENT_TYPES else guessed_content_type
+
     return {
         "name": original_name,
         "url": f"/static/uploads/support/{stored_name}",
-        "content_type": upload.content_type or "application/octet-stream",
+        "content_type": content_type or guessed_content_type or "application/octet-stream",
     }
 
 

@@ -3087,6 +3087,18 @@ body.support-chat-open {
   transform: translateY(-1px);
 }
 
+.support-attachment-image span {
+  color: #bae6fd;
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 6px;
+  max-width: min(320px, 100%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .support-attachment-file {
   background: rgba(3, 10, 20, 0.42);
   border: 1px solid rgba(103, 232, 249, 0.22);
