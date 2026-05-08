@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import get_current_admin
 from app.models import Admin, Record, SupportThread, User
 from app.notifications import get_admin_notifications_context
+from app.support_chat import get_or_create_support_thread
 
 
 router = APIRouter(prefix="/users")
@@ -52,6 +53,19 @@ def user_details(user_id: int, request: Request, admin: Admin = Depends(get_curr
             **get_admin_notifications_context(db),
         },
     )
+
+
+@router.post("/{user_id}/message")
+def open_user_message_thread(
+    user_id: int,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = get_admin_user(db, user_id)
+    thread = get_or_create_support_thread(db, user)
+    thread_id = thread.id
+    db.commit()
+    return RedirectResponse(url=f"/support/chat/{thread_id}", status_code=303)
 
 
 @router.post("")

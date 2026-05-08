@@ -49,7 +49,12 @@
         <tr>
           <td>{{ user.name }}</td>
           <td>
-            <a class="admin-user-link" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
+            <div class="admin-user-name-actions">
+              <a class="admin-user-link" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
+              <form method="post" action="/users/{{ user.id }}/message">
+                <button class="admin-message-button" type="submit">إرسال رسالة</button>
+              </form>
+            </div>
           </td>
           <td>{{ user.email }}</td>
           <td>${{ "%.2f"|format(user.capital or 0) }}</td>

@@ -1732,7 +1732,7 @@ th {
   color: #71859e;
 }
 
-.admin-app button:not(.danger-button):not(.mining-ghost-button):not(.admin-menu-button) {
+.admin-app button:not(.danger-button):not(.mining-ghost-button):not(.admin-menu-button):not(.admin-message-button) {
   background: linear-gradient(135deg, #25f6a4, #38bdf8);
   border-radius: 8px;
   color: #03111b;
@@ -2358,6 +2358,33 @@ body.user-menu-open .user-drawer-overlay,
   box-shadow: 0 0 26px rgba(56, 189, 248, 0.18);
   color: #ffffff;
   transform: translateY(-2px);
+}
+
+.admin-user-name-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-user-name-actions form {
+  margin: 0;
+}
+
+.admin-app .admin-message-button {
+  background: rgba(37, 246, 164, 0.14);
+  border: 1px solid rgba(37, 246, 164, 0.34);
+  border-radius: 8px;
+  color: #dfffea;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 8px 11px;
+}
+
+.admin-app .admin-message-button:hover {
+  background: rgba(37, 246, 164, 0.22);
+  border-color: rgba(37, 246, 164, 0.52);
+  color: #ffffff;
 }
 
 .admin-user-detail-shell {
