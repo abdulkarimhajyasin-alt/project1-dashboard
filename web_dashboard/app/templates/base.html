@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or "لوحة تحكم التعدين" }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=notification-bell">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=support-chat-preview">
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -77,7 +77,7 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=notification-bell" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=support-chat-preview" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

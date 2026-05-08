@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.models import SupportMessage, SupportThread, User
 
 
-UPLOAD_ROOT = Path("app/static/uploads/support")
+UPLOAD_ROOT = Path(__file__).resolve().parent / "static" / "uploads" / "support"
 
 
 def get_or_create_support_thread(db: Session, user: User) -> SupportThread:

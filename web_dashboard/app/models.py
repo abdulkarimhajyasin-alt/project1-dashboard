@@ -123,3 +123,21 @@ class SupportMessage(Base):
     @property
     def is_image(self) -> bool:
         return bool(self.attachment_content_type and self.attachment_content_type.startswith("image/"))
+
+    @property
+    def attachment_static_path(self):
+        if not self.attachment_url:
+            return None
+        if self.attachment_url.startswith("/static/"):
+            return self.attachment_url.replace("/static", "", 1)
+        if self.attachment_url.startswith("static/"):
+            return "/" + self.attachment_url.replace("static/", "", 1)
+        return None
+
+    @property
+    def attachment_display_url(self):
+        if not self.attachment_url:
+            return ""
+        if self.attachment_url.startswith(("http://", "https://", "/")):
+            return self.attachment_url
+        return "/" + self.attachment_url

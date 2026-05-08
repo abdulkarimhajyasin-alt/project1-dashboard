@@ -9,6 +9,100 @@
   const supportChatModal = document.querySelector("[data-support-chat-modal]");
   const supportChatOpenButtons = document.querySelectorAll("[data-support-chat-open]");
   const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
+  const supportImageLightbox = document.querySelector("[data-support-image-lightbox]");
+  const supportImagePreview = document.querySelector("[data-support-image-preview]");
+  const supportImageTitle = document.querySelector("[data-support-image-title]");
+  const supportImageOpenButtons = document.querySelectorAll("[data-support-image-open]");
+  const supportImageCloseButtons = document.querySelectorAll("[data-support-image-close]");
+  const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
+
+  function formatFileSize(size) {
+    if (!Number.isFinite(size)) return "";
+    if (size < 1024 * 1024) {
+      return `${Math.max(1, Math.round(size / 1024))} KB`;
+    }
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function setupSupportFilePreview() {
+    supportFileInputs.forEach(function (input) {
+      const form = input.closest("form");
+      const preview = form?.querySelector("[data-support-file-preview]");
+      const image = form?.querySelector("[data-support-file-preview-image]");
+      const icon = form?.querySelector("[data-support-file-preview-icon]");
+      const name = form?.querySelector("[data-support-file-preview-name]");
+      const meta = form?.querySelector("[data-support-file-preview-meta]");
+      const clearButton = form?.querySelector("[data-support-file-clear]");
+      let objectUrl = "";
+
+      if (!preview || !image || !icon || !name || !meta || !clearButton) return;
+
+      function resetPreview() {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
+        input.value = "";
+        image.src = "";
+        image.hidden = true;
+        icon.hidden = false;
+        name.textContent = "";
+        meta.textContent = "";
+        preview.hidden = true;
+      }
+
+      input.addEventListener("change", function () {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
+
+        const file = input.files?.[0];
+        if (!file) {
+          resetPreview();
+          return;
+        }
+
+        name.textContent = file.name;
+        meta.textContent = `${file.type || "ملف"} - ${formatFileSize(file.size)}`;
+
+        if (file.type.startsWith("image/")) {
+          objectUrl = URL.createObjectURL(file);
+          image.src = objectUrl;
+          image.hidden = false;
+          icon.hidden = true;
+        } else {
+          image.src = "";
+          image.hidden = true;
+          icon.hidden = false;
+        }
+
+        preview.hidden = false;
+      });
+
+      clearButton.addEventListener("click", resetPreview);
+      form?.addEventListener("submit", function () {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      });
+    });
+  }
+
+  function setSupportImageOpen(isOpen, src, title) {
+    if (!supportImageLightbox || !supportImagePreview) return;
+    supportImageLightbox.classList.toggle("is-open", isOpen);
+    supportImageLightbox.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("support-image-open", isOpen);
+
+    if (isOpen) {
+      supportImagePreview.src = src || "";
+      supportImagePreview.alt = title || "صورة مرفقة";
+      if (supportImageTitle) supportImageTitle.textContent = title || "صورة مرفقة";
+    } else {
+      supportImagePreview.src = "";
+      supportImagePreview.alt = "";
+      if (supportImageTitle) supportImageTitle.textContent = "";
+    }
+  }
 
   function setSupportChatOpen(isOpen) {
     if (!supportChatModal) return;
@@ -33,6 +127,27 @@
     supportChatModal.addEventListener("click", function (event) {
       if (event.target === supportChatModal) {
         setSupportChatOpen(false);
+      }
+    });
+  }
+
+  supportImageOpenButtons.forEach(function (button) {
+    button.addEventListener("click", function (event) {
+      event.stopPropagation();
+      setSupportImageOpen(true, button.dataset.imageSrc || "", button.dataset.imageTitle || "");
+    });
+  });
+
+  supportImageCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setSupportImageOpen(false);
+    });
+  });
+
+  if (supportImageLightbox) {
+    supportImageLightbox.addEventListener("click", function (event) {
+      if (event.target === supportImageLightbox) {
+        setSupportImageOpen(false);
       }
     });
   }
@@ -101,6 +216,7 @@
     if (event.key === "Escape") {
       setUserDrawerOpen(false);
       closeNotifications();
+      setSupportImageOpen(false);
       setSupportChatOpen(false);
     }
   });
@@ -113,6 +229,8 @@
 
   setUserDrawerOpen(false);
   closeNotifications();
+  setupSupportFilePreview();
+  setSupportImageOpen(false);
   setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
 
   const ring = document.querySelector(".mining-ring");

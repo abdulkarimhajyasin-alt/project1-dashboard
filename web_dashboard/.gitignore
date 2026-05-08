@@ -6,3 +6,4 @@ venv/
 *.db
 .pytest_cache/
 .mypy_cache/
+app/static/uploads/

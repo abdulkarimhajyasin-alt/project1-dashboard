@@ -28,12 +28,13 @@
         <p>{{ chat_message.body }}</p>
         {% endif %}
         {% if chat_message.attachment_url %}
+          {% set attachment_url = url_for('static', path=chat_message.attachment_static_path) if chat_message.attachment_static_path else chat_message.attachment_display_url %}
           {% if chat_message.is_image %}
-          <a class="support-attachment-image" href="{{ chat_message.attachment_url }}" target="_blank" rel="noopener">
-            <img src="{{ chat_message.attachment_url }}" alt="{{ chat_message.attachment_name or 'مرفق' }}">
-          </a>
+          <button class="support-attachment-image" type="button" data-support-image-open data-image-src="{{ attachment_url }}" data-image-title="{{ chat_message.attachment_name or 'صورة مرفقة' }}">
+            <img src="{{ attachment_url }}" alt="{{ chat_message.attachment_name or 'صورة مرفقة' }}" loading="lazy">
+          </button>
           {% else %}
-          <a class="support-attachment-file" href="{{ chat_message.attachment_url }}" target="_blank" rel="noopener">{{ chat_message.attachment_name or "فتح الملف" }}</a>
+          <a class="support-attachment-file" href="{{ attachment_url }}" target="_blank" rel="noopener">{{ chat_message.attachment_name or "فتح الملف" }}</a>
           {% endif %}
         {% endif %}
       </article>
@@ -55,12 +56,30 @@
       <textarea name="message" placeholder="اكتب رسالتك هنا..." {% if user_locked %}disabled{% endif %}></textarea>
       <div class="support-compose-actions">
         <label class="support-file-button">
-          <input type="file" name="attachment" {% if user_locked %}disabled{% endif %}>
+          <input type="file" name="attachment" data-support-file-input {% if user_locked %}disabled{% endif %}>
           إرفاق صورة أو ملف
         </label>
         <button class="mining-primary-button" type="submit" {% if user_locked %}disabled{% endif %}>إرسال</button>
       </div>
+      <div class="support-file-preview" data-support-file-preview hidden>
+        <div class="support-file-preview-thumb">
+          <img src="" alt="معاينة المرفق" data-support-file-preview-image hidden>
+          <span data-support-file-preview-icon>FILE</span>
+        </div>
+        <div class="support-file-preview-info">
+          <strong data-support-file-preview-name></strong>
+          <span data-support-file-preview-meta></span>
+        </div>
+        <button type="button" data-support-file-clear>إزالة</button>
+      </div>
     </form>
   </section>
+  <div class="support-image-lightbox" data-support-image-lightbox aria-hidden="true">
+    <div class="support-image-lightbox-card" role="dialog" aria-modal="true" aria-label="معاينة الصورة">
+      <button class="support-image-lightbox-close" type="button" data-support-image-close aria-label="إغلاق الصورة">X</button>
+      <img src="" alt="" data-support-image-preview>
+      <span data-support-image-title></span>
+    </div>
+  </div>
 </div>
 {% endif %}
