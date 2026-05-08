@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_admin
 from app.models import Admin, AppSetting, Notification, Record, SupportThread, User
-from app.notifications import get_admin_notifications_context
+from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import add_support_message, get_thread_messages
 
 
@@ -99,6 +99,17 @@ def open_notification(
     return RedirectResponse(url=target_url, status_code=303)
 
 
+@router.post("/notifications/clear")
+def clear_notifications(admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    (
+        db.query(Notification)
+        .filter(Notification.recipient_type == "admin", Notification.is_read.is_(False))
+        .update({"is_read": True}, synchronize_session=False)
+    )
+    db.commit()
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+
 @router.get("/support", response_class=HTMLResponse)
 def support(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     context = get_admin_metrics(db)
@@ -162,12 +173,52 @@ def support_chat_reply(
     if not thread:
         raise HTTPException(status_code=404, detail="Support thread not found")
 
-    add_support_message(
+    support_message = add_support_message(
         db,
         thread=thread,
         sender_type="admin",
         body=message,
         attachment=attachment,
     )
-    db.commit()
+    if support_message:
+        create_user_notification(
+            db,
+            user_id=thread.user_id,
+            title="رد جديد من الدعم",
+            message="قام الدعم بالرد على محادثتك.",
+            target_url="/user/support?chat=open",
+            kind="support",
+            data={
+                "المحادثة": f"#{thread.id}",
+                "المرسل": admin.username,
+            },
+        )
+        db.commit()
     return RedirectResponse(url=f"/support/chat/{thread.id}", status_code=303)
+
+
+@router.post("/support/chat/{thread_id}/delete")
+def delete_support_chat(
+    thread_id: int,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if thread:
+        (
+            db.query(Notification)
+            .filter(
+                or_(
+                    Notification.target_url == f"/support/chat/{thread.id}",
+                    (
+                        (Notification.recipient_type == "user")
+                        & (Notification.recipient_user_id == thread.user_id)
+                        & (Notification.kind == "support")
+                    ),
+                )
+            )
+            .update({"is_read": True}, synchronize_session=False)
+        )
+        db.delete(thread)
+        db.commit()
+    return RedirectResponse(url="/support", status_code=303)

@@ -13,11 +13,18 @@
         <p class="mining-kicker">Notification Hub</p>
         <h2>الإشعارات</h2>
       </div>
-      <span>{{ notification_count }} جديد</span>
+      <div class="notification-panel-tools">
+        <span>{{ notification_count }} جديد</span>
+        {% if notification_count %}
+        <form method="post" action="{{ notification_clear_url|default('/notifications/clear') }}">
+          <button type="submit">مسح</button>
+        </form>
+        {% endif %}
+      </div>
     </div>
     <div class="notification-list">
       {% for notification in notification_items %}
-      <a class="notification-item {{ notification.kind|default('system') }}" href="/notifications/{{ notification.id }}/open">
+      <a class="notification-item {{ notification.kind|default('system') }}" href="{{ notification_open_prefix|default('/notifications') }}/{{ notification.id }}/open">
         <strong>{{ notification.title }}</strong>
         <p>{{ notification.message }}</p>
         {% if notification.data_rows %}

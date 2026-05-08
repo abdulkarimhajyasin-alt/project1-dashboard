@@ -2717,6 +2717,37 @@ body.user-menu-open .user-drawer-overlay,
   white-space: nowrap;
 }
 
+.notification-panel-tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.notification-panel-tools form {
+  margin: 0;
+}
+
+.notification-panel-tools button {
+  background: linear-gradient(135deg, rgba(239, 41, 41, 0.95), rgba(220, 38, 38, 0.82)) !important;
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  border-radius: 999px;
+  box-shadow: 0 0 24px rgba(239, 41, 41, 0.22);
+  color: #ffffff !important;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 12px !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.notification-panel-tools button:hover {
+  border-color: rgba(254, 202, 202, 0.62);
+  box-shadow: 0 0 30px rgba(239, 41, 41, 0.34);
+  transform: translateY(-1px);
+}
+
 .notification-list {
   display: grid;
   gap: 10px;
@@ -2935,6 +2966,30 @@ body.support-chat-open {
   color: #9fb1c7;
 }
 
+.support-chat-header-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.support-chat-delete-form {
+  margin: 0;
+}
+
+.support-chat-delete {
+  background: linear-gradient(135deg, #ef2929, #b91c1c) !important;
+  border: 1px solid rgba(248, 113, 113, 0.44);
+  border-radius: 8px;
+  box-shadow: 0 0 26px rgba(239, 41, 41, 0.22);
+  color: #ffffff !important;
+  cursor: pointer;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 14px !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
 .support-chat-close {
   background: rgba(15, 23, 42, 0.72) !important;
   border: 1px solid rgba(103, 232, 249, 0.24);
@@ -2944,6 +2999,13 @@ body.support-chat-open {
   height: 42px;
   padding: 0 !important;
   width: 42px;
+}
+
+.support-chat-delete:hover,
+.support-chat-close:hover {
+  border-color: rgba(103, 232, 249, 0.42);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.18);
+  transform: translateY(-1px);
 }
 
 .support-chat-body {
@@ -3091,6 +3153,15 @@ body.support-chat-open {
   .support-compose-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .support-chat-header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .support-chat-delete {
+    flex: 1;
   }
 
   .support-bubble {

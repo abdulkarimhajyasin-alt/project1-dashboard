@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import Record, User
-from app.notifications import create_admin_notification
+from app.models import Notification, Record, User
+from app.notifications import create_admin_notification, get_user_notifications_context
 from app.security import hash_password, verify_password
 from app.support_chat import (
     add_support_message,
@@ -77,7 +77,7 @@ def get_referral_url(request: Request, user: User) -> str:
     return str(request.url_for("user_register")) + f"?ref={code}"
 
 
-def build_user_context(request: Request, user: User, active_user_page: str) -> dict:
+def build_user_context(request: Request, user: User, active_user_page: str, db: Session) -> dict:
     withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
     return {
         "request": request,
@@ -89,6 +89,7 @@ def build_user_context(request: Request, user: User, active_user_page: str) -> d
         "min_withdrawal": MIN_WITHDRAWAL,
         "referral_url": get_referral_url(request, user),
         "referrals_count": len(user.referrals),
+        **get_user_notifications_context(db, user.id),
     }
 
 
@@ -181,12 +182,51 @@ def logout(request: Request):
     return RedirectResponse(url="/user/login", status_code=303)
 
 
+@router.get("/notifications/{notification_id}/open")
+def open_user_notification(
+    notification_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notification = (
+        db.query(Notification)
+        .filter(
+            Notification.id == notification_id,
+            Notification.recipient_type == "user",
+            Notification.recipient_user_id == user.id,
+        )
+        .first()
+    )
+    if not notification:
+        return RedirectResponse(url="/user/dashboard", status_code=303)
+
+    notification.is_read = True
+    target_url = notification.target_url or "/user/dashboard"
+    db.commit()
+    return RedirectResponse(url=target_url, status_code=303)
+
+
+@router.post("/notifications/clear")
+def clear_user_notifications(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    (
+        db.query(Notification)
+        .filter(
+            Notification.recipient_type == "user",
+            Notification.recipient_user_id == user.id,
+            Notification.is_read.is_(False),
+        )
+        .update({"is_read": True}, synchronize_session=False)
+    )
+    db.commit()
+    return RedirectResponse(url="/user/dashboard", status_code=303)
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_daily_cycle(user, db)
     intro_seen = bool(request.session.get("user_intro_seen"))
     request.session["user_intro_seen"] = True
-    context = build_user_context(request, user, "dashboard")
+    context = build_user_context(request, user, "dashboard", db)
     return templates.TemplateResponse(
         "user_dashboard.html",
         {
@@ -199,19 +239,19 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
 @router.get("/plans", response_class=HTMLResponse)
 def plans_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_daily_cycle(user, db)
-    return templates.TemplateResponse("user_plans.html", build_user_context(request, user, "plans"))
+    return templates.TemplateResponse("user_plans.html", build_user_context(request, user, "plans", db))
 
 
 @router.get("/withdraw", response_class=HTMLResponse)
 def withdraw_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_daily_cycle(user, db)
-    return templates.TemplateResponse("user_withdraw.html", build_user_context(request, user, "withdraw"))
+    return templates.TemplateResponse("user_withdraw.html", build_user_context(request, user, "withdraw", db))
 
 
 @router.get("/referral", response_class=HTMLResponse)
 def referral_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_daily_cycle(user, db)
-    return templates.TemplateResponse("user_referral.html", build_user_context(request, user, "referral"))
+    return templates.TemplateResponse("user_referral.html", build_user_context(request, user, "referral", db))
 
 
 @router.get("/support", response_class=HTMLResponse)
@@ -225,7 +265,7 @@ def support_page(
     settle_daily_cycle(user, db)
     thread = get_or_create_support_thread(db, user)
     messages = get_thread_messages(db, thread)
-    context = build_user_context(request, user, "support")
+    context = build_user_context(request, user, "support", db)
     context.update(
         {
             "support_thread": thread,
@@ -282,7 +322,7 @@ def send_support_message(
 @router.get("/history", response_class=HTMLResponse)
 def history_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_daily_cycle(user, db)
-    context = build_user_context(request, user, "history")
+    context = build_user_context(request, user, "history", db)
     context["records"] = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
     return templates.TemplateResponse("user_history.html", context)
 
@@ -290,7 +330,7 @@ def history_page(request: Request, user: User = Depends(get_current_user), db: S
 @router.get("/account", response_class=HTMLResponse)
 def account_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_daily_cycle(user, db)
-    return templates.TemplateResponse("user_account.html", build_user_context(request, user, "account"))
+    return templates.TemplateResponse("user_account.html", build_user_context(request, user, "account", db))
 
 
 @router.post("/start")

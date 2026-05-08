@@ -49,11 +49,28 @@ def ensure_user_columns() -> None:
                 connection.execute(text(ddl))
 
 
+def ensure_notification_columns() -> None:
+    inspector = inspect(engine)
+    if "notifications" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("notifications")}
+    column_sql = {
+        "recipient_user_id": "ALTER TABLE notifications ADD COLUMN recipient_user_id INTEGER REFERENCES users(id)",
+    }
+
+    with engine.begin() as connection:
+        for column_name, ddl in column_sql.items():
+            if column_name not in existing_columns:
+                connection.execute(text(ddl))
+
+
 def init_db() -> None:
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     ensure_user_columns()
+    ensure_notification_columns()
 
 
 def get_db():

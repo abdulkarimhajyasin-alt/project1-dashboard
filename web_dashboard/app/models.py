@@ -71,6 +71,7 @@ class Notification(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     recipient_type: Mapped[str] = mapped_column(String(30), default="admin", nullable=False, index=True)
+    recipient_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     kind: Mapped[str] = mapped_column(String(40), default="system", nullable=False)
     title: Mapped[str] = mapped_column(String(180), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)

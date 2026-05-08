@@ -7,7 +7,14 @@
         <h2>{{ support_chat_title or "مراسلة الدعم" }}</h2>
         <span>{{ support_chat_subtitle or "أرسل رسالتك وسنرد عليك قريباً." }}</span>
       </div>
-      <button class="support-chat-close" type="button" data-support-chat-close aria-label="إغلاق المحادثة">X</button>
+      <div class="support-chat-header-actions">
+        {% if support_chat_mode == 'admin' %}
+        <form class="support-chat-delete-form" method="post" action="/support/chat/{{ support_thread.id }}/delete">
+          <button class="support-chat-delete" type="submit">مسح الدردشة</button>
+        </form>
+        {% endif %}
+        <button class="support-chat-close" type="button" data-support-chat-close aria-label="إغلاق المحادثة">X</button>
+      </div>
     </header>
 
     <div class="support-chat-body">
