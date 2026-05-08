@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_admin
 from app.models import Admin, AppSetting
+from app.notifications import get_admin_notifications_context
 
 
 router = APIRouter(prefix="/settings")
@@ -21,7 +22,13 @@ def settings_page(request: Request, admin: Admin = Depends(get_current_admin), d
     values = {key: stored.get(key, "") for key in DEFAULT_KEYS}
     return templates.TemplateResponse(
         "settings.html",
-        {"request": request, "admin": admin, "active_page": "settings", "settings": values},
+        {
+            "request": request,
+            "admin": admin,
+            "active_page": "settings",
+            "settings": values,
+            **get_admin_notifications_context(db),
+        },
     )
 
 

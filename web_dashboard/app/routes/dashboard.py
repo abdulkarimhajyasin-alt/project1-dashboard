@@ -1,12 +1,13 @@
 ﻿from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, AppSetting, Record, User
+from app.models import Admin, AppSetting, Notification, Record, User
+from app.notifications import get_admin_notifications_context
 
 
 router = APIRouter()
@@ -41,6 +42,7 @@ def get_admin_metrics(db: Session) -> dict:
         "active_cycles": active_cycles,
         "latest_records": latest_records,
         "settings": settings,
+        **get_admin_notifications_context(db),
     }
 
 
@@ -70,6 +72,26 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
             **context,
         },
     )
+
+
+@router.get("/notifications/{notification_id}/open")
+def open_notification(
+    notification_id: int,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    notification = (
+        db.query(Notification)
+        .filter(Notification.id == notification_id, Notification.recipient_type == "admin")
+        .first()
+    )
+    if not notification:
+        return RedirectResponse(url="/notifications", status_code=303)
+
+    notification.is_read = True
+    target_url = notification.target_url or "/notifications"
+    db.commit()
+    return RedirectResponse(url=target_url, status_code=303)
 
 
 @router.get("/support", response_class=HTMLResponse)

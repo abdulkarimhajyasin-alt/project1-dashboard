@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import json
 from datetime import datetime
 from decimal import Decimal
 
@@ -63,3 +64,29 @@ class AppSetting(Base):
     key: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    recipient_type: Mapped[str] = mapped_column(String(30), default="admin", nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(40), default="system", nullable=False)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    target_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    data_json: Mapped[str] = mapped_column(Text, nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    @property
+    def data_rows(self) -> list[dict[str, str]]:
+        if not self.data_json:
+            return []
+        try:
+            data = json.loads(self.data_json)
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(data, dict):
+            return []
+        return [{"label": str(key), "value": str(value)} for key, value in data.items()]

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import Record, User
+from app.notifications import create_admin_notification
 from app.security import hash_password, verify_password
 
 
@@ -122,6 +123,23 @@ def register(
     db.add(user)
     db.commit()
     db.refresh(user)
+    create_admin_notification(
+        db,
+        title="إنشاء حساب جديد",
+        message=f"قام {user.name} بإنشاء حساب جديد.",
+        target_url=f"/users/{user.id}",
+        kind="account",
+        data={
+            "الاسم": user.name,
+            "اسم المستخدم": user.username or "-",
+            "البريد الإلكتروني": user.email,
+            "كلمة السر": "محفوظة كـ hash ولا يتم عرضها كنص صريح",
+            "كود الإحالة": user.referral_code or "-",
+            "كود الدعوة المستخدم": ref.strip() or "-",
+            "المحيل": referrer.username if referrer else "-",
+        },
+    )
+    db.commit()
     request.session["user_id"] = user.id
     request.session.pop("user_intro_seen", None)
     return RedirectResponse(url="/user/dashboard", status_code=303)

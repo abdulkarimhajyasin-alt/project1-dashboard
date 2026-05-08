@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_admin
 from app.models import Admin, Record, User
+from app.notifications import get_admin_notifications_context
 
 
 router = APIRouter(prefix="/records")
@@ -20,7 +21,14 @@ def records_page(request: Request, admin: Admin = Depends(get_current_admin), db
     users = db.query(User).order_by(User.name.asc()).all()
     return templates.TemplateResponse(
         "records.html",
-        {"request": request, "admin": admin, "active_page": "records", "records": records, "users": users},
+        {
+            "request": request,
+            "admin": admin,
+            "active_page": "records",
+            "records": records,
+            "users": users,
+            **get_admin_notifications_context(db),
+        },
     )
 
 

@@ -2735,6 +2735,15 @@ body.user-menu-open .user-drawer-overlay,
 
 .notification-item {
   border-right: 3px solid #38bdf8;
+  color: inherit;
+  display: block;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.notification-item:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(103, 232, 249, 0.34);
+  transform: translateY(-2px);
 }
 
 .notification-item.support {
@@ -2763,6 +2772,33 @@ body.user-menu-open .user-drawer-overlay,
   color: #67e8f9;
   display: block;
   margin-top: 8px;
+}
+
+.notification-data {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.notification-data div {
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+}
+
+.notification-data dt {
+  color: #8ea5bb;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.notification-data dd {
+  color: #ffffff;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .user-topbar-actions {
