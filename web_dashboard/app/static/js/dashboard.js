@@ -9,7 +9,6 @@
   const supportChatOpenButtons = Array.from(document.querySelectorAll("[data-support-chat-open]"));
   const supportChatCloseButtons = Array.from(document.querySelectorAll("[data-support-chat-close]"));
   const supportFileInputs = Array.from(document.querySelectorAll("[data-support-file-input]"));
-  const chatImages = Array.from(document.querySelectorAll(".chat-image"));
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   const formatFileSize = (size) => {
@@ -91,17 +90,6 @@
           URL.revokeObjectURL(objectUrl);
         }
       });
-    });
-  };
-
-  const setupChatImageLogs = () => {
-    chatImages.forEach((img) => {
-      const logImage = () => console.log(img.src, img.naturalWidth, img.naturalHeight);
-      if (img.complete) {
-        logImage();
-      } else {
-        img.addEventListener("load", logImage, { once: true });
-      }
     });
   };
 
@@ -198,7 +186,6 @@
   setDrawerOpen(false);
   closeNotifications();
   setupSupportFilePreview();
-  setupChatImageLogs();
   setSupportChatOpen(supportChatModal?.classList.contains("is-open") || false);
 
   const dashboard = document.querySelector("[data-dashboard-page]");

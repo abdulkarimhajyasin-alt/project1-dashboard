@@ -10,7 +10,6 @@
   const supportChatOpenButtons = document.querySelectorAll("[data-support-chat-open]");
   const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
-  const chatImages = document.querySelectorAll(".chat-image");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   function formatFileSize(size) {
@@ -88,20 +87,6 @@
       form?.addEventListener("submit", function () {
         if (objectUrl) URL.revokeObjectURL(objectUrl);
       });
-    });
-  }
-
-  function setupChatImageLogs() {
-    chatImages.forEach(function (img) {
-      function logImage() {
-        console.log(img.src, img.naturalWidth, img.naturalHeight);
-      }
-
-      if (img.complete) {
-        logImage();
-      } else {
-        img.addEventListener("load", logImage, { once: true });
-      }
     });
   }
 
@@ -209,7 +194,6 @@
   setUserDrawerOpen(false);
   closeNotifications();
   setupSupportFilePreview();
-  setupChatImageLogs();
   setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
 
   const ring = document.querySelector(".mining-ring");

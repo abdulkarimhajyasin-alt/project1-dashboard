@@ -27,35 +27,12 @@
         {% if chat_message.body %}
         <p>{{ chat_message.body }}</p>
         {% endif %}
-        <small class="debug-url">
-          id: {{ chat_message.id }} |
-          sender: {{ chat_message.sender_type }} |
-          has_data: {{ chat_message.has_attachment_data }} |
-          data_length: {{ chat_message.attachment_data_length }} |
-          size: {{ chat_message.attachment_size or 0 }} |
-          is_image: {{ chat_message.is_image }} |
-          mime: {{ chat_message.attachment_type }} |
-          name: {{ chat_message.attachment_name or "-" }}
-        </small>
         {% if chat_message.has_attachment_data %}
-          {% set attachment_url = "/support/attachments/" ~ chat_message.id %}
           {% if chat_message.is_image %}
-          <img src="{{ attachment_url }}" class="chat-image" alt="attachment">
-          <small class="debug-url">src: {{ attachment_url }}</small>
+          <img src="/support/attachments/{{ chat_message.id }}" class="chat-image" alt="attachment">
           {% else %}
-          <a class="support-attachment-file" href="{{ attachment_url }}" target="_blank" rel="noopener" download>تحميل الملف</a>
-          <small class="debug-url">href: {{ attachment_url }}</small>
+          <a href="/support/attachments/{{ chat_message.id }}">تحميل الملف</a>
           {% endif %}
-        {% elif chat_message.attachment_size and chat_message.attachment_size > 0 %}
-          <div class="support-missing-attachment">
-            مرفق بدون بيانات BYTEA
-            <small class="debug-url">id: {{ chat_message.id }} | size: {{ chat_message.attachment_size }} | data_length: {{ chat_message.attachment_data_length }}</small>
-          </div>
-        {% elif chat_message.attachment_url %}
-          <div class="support-missing-attachment">
-            مرفق قديم غير متوفر
-            <small class="debug-url">old attachment id: {{ chat_message.id }} | name: {{ chat_message.attachment_name or "-" }}</small>
-          </div>
         {% endif %}
       </article>
       {% else %}

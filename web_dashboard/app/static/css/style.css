@@ -3070,10 +3070,10 @@ body.support-chat-open {
   height: auto;
   object-fit: contain;
   border-radius: 12px;
-  border: 2px solid red;
+  border: 1px solid rgba(103, 232, 249, 0.18);
 }
 
-.support-attachment-file {
+.support-bubble a[href^="/support/attachments/"] {
   background: rgba(3, 10, 20, 0.42);
   border: 1px solid rgba(103, 232, 249, 0.22);
   border-radius: 8px;
@@ -3084,27 +3084,9 @@ body.support-chat-open {
   padding: 10px 12px;
 }
 
-.debug-url {
-  background: rgba(2, 6, 23, 0.52);
-  border: 1px dashed rgba(103, 232, 249, 0.24);
-  border-radius: 6px;
-  color: #7dd3fc;
-  direction: ltr;
-  display: block;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  margin-top: 7px;
-  max-width: min(420px, 100%);
-  overflow-wrap: anywhere;
-  padding: 6px 8px;
-  text-align: left;
-}
-
 .support-chat-empty,
 .support-chat-locked,
-.support-chat-error,
-.support-missing-attachment {
+.support-chat-error {
   background: rgba(15, 23, 42, 0.76);
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 8px;
@@ -3113,8 +3095,7 @@ body.support-chat-open {
   text-align: center;
 }
 
-.support-chat-error,
-.support-missing-attachment {
+.support-chat-error {
   border-color: rgba(248, 113, 113, 0.38);
   color: #fecaca;
   font-weight: 900;
