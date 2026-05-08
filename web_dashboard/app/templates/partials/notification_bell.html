@@ -1,0 +1,33 @@
+{% set notification_items = notifications|default([]) %}
+{% set notification_count = unread_notifications_count|default(notification_items|length) %}
+<div class="notification-root" data-notification-root>
+  <button class="notification-bell" type="button" data-notification-toggle aria-label="الإشعارات" aria-expanded="false">
+    <span class="notification-bell-icon" aria-hidden="true">&#128276;</span>
+    {% if notification_count %}
+    <span class="notification-badge">{{ notification_count }}</span>
+    {% endif %}
+  </button>
+  <section class="notification-panel" data-notification-panel aria-hidden="true">
+    <div class="notification-panel-header">
+      <div>
+        <p class="mining-kicker">Notification Hub</p>
+        <h2>الإشعارات</h2>
+      </div>
+      <span>{{ notification_count }} جديد</span>
+    </div>
+    <div class="notification-list">
+      {% for notification in notification_items %}
+      <article class="notification-item {{ notification.kind|default('system') }}">
+        <strong>{{ notification.title }}</strong>
+        <p>{{ notification.message }}</p>
+        <small>{{ notification.created_at }}</small>
+      </article>
+      {% else %}
+      <article class="notification-empty">
+        <strong>لا توجد إشعارات حالياً</strong>
+        <p>سيظهر هنا لاحقاً كل تنبيه جديد، بما في ذلك رسائل الدعم والمراسلات بين المستخدم والإدارة.</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</div>

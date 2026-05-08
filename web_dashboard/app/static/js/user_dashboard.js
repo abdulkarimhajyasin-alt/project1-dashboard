@@ -5,6 +5,33 @@
   const userOpenButtons = document.querySelectorAll("[data-user-drawer-open]");
   const userCloseButtons = document.querySelectorAll("[data-user-drawer-close]");
   const userNavLinks = document.querySelectorAll("[data-user-drawer-nav] a");
+  const notificationRoots = document.querySelectorAll("[data-notification-root]");
+
+  function closeNotifications(exceptRoot) {
+    notificationRoots.forEach(function (root) {
+      if (root === exceptRoot) return;
+      root.classList.remove("is-open");
+      const toggle = root.querySelector("[data-notification-toggle]");
+      const panel = root.querySelector("[data-notification-panel]");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+      if (panel) panel.setAttribute("aria-hidden", "true");
+    });
+  }
+
+  notificationRoots.forEach(function (root) {
+    const toggle = root.querySelector("[data-notification-toggle]");
+    const panel = root.querySelector("[data-notification-panel]");
+    if (!toggle) return;
+
+    toggle.addEventListener("click", function (event) {
+      event.stopPropagation();
+      const isOpen = !root.classList.contains("is-open");
+      closeNotifications(root);
+      root.classList.toggle("is-open", isOpen);
+      toggle.setAttribute("aria-expanded", String(isOpen));
+      if (panel) panel.setAttribute("aria-hidden", String(!isOpen));
+    });
+  });
 
   function setUserDrawerOpen(isOpen) {
     if (!userDrawer) return;
@@ -43,10 +70,18 @@
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
       setUserDrawerOpen(false);
+      closeNotifications();
+    }
+  });
+
+  document.addEventListener("click", function (event) {
+    if (!event.target.closest("[data-notification-root]")) {
+      closeNotifications();
     }
   });
 
   setUserDrawerOpen(false);
+  closeNotifications();
 
   const ring = document.querySelector(".mining-ring");
   const progressCircle = document.querySelector(".ring-progress");

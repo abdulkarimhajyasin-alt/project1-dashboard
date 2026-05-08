@@ -4,6 +4,33 @@
   const overlay = document.querySelector("[data-drawer-overlay]");
   const openButtons = Array.from(document.querySelectorAll("[data-drawer-open]"));
   const closeButtons = Array.from(document.querySelectorAll("[data-drawer-close]"));
+  const notificationRoots = Array.from(document.querySelectorAll("[data-notification-root]"));
+
+  const closeNotifications = (exceptRoot = null) => {
+    notificationRoots.forEach((root) => {
+      if (root === exceptRoot) {
+        return;
+      }
+
+      root.classList.remove("is-open");
+      root.querySelector("[data-notification-toggle]")?.setAttribute("aria-expanded", "false");
+      root.querySelector("[data-notification-panel]")?.setAttribute("aria-hidden", "true");
+    });
+  };
+
+  notificationRoots.forEach((root) => {
+    const toggle = root.querySelector("[data-notification-toggle]");
+    const panel = root.querySelector("[data-notification-panel]");
+
+    toggle?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const isOpen = !root.classList.contains("is-open");
+      closeNotifications(root);
+      root.classList.toggle("is-open", isOpen);
+      toggle.setAttribute("aria-expanded", String(isOpen));
+      panel?.setAttribute("aria-hidden", String(!isOpen));
+    });
+  });
 
   const setDrawerOpen = (isOpen) => {
     if (!drawer) {
@@ -34,10 +61,18 @@
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       setDrawerOpen(false);
+      closeNotifications();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-notification-root]")) {
+      closeNotifications();
     }
   });
 
   setDrawerOpen(false);
+  closeNotifications();
 
   const dashboard = document.querySelector("[data-dashboard-page]");
 

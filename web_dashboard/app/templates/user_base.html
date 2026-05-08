@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة التعدين{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=user-pages">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=notification-bell">
 </head>
 <body class="user-app mining-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -46,15 +46,18 @@
           <h1>{% block page_title %}أهلاً {{ user.name }}{% endblock %}</h1>
           <span>{% block page_description %}راقب دورة التعدين اليومية، الأرباح، والإحالات من مكان واحد.{% endblock %}</span>
         </div>
-        <div class="node-status">
-          <span></span>
-          {{ 'العقدة جاهزة' if can_start|default(true) else 'الدورة تعمل الآن' }}
+        <div class="user-topbar-actions">
+          {% include "partials/notification_bell.html" %}
+          <div class="node-status">
+            <span></span>
+            {{ 'العقدة جاهزة' if can_start|default(true) else 'الدورة تعمل الآن' }}
+          </div>
         </div>
       </header>
 
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=user-pages"></script>
+  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=notification-bell"></script>
 </body>
 </html>

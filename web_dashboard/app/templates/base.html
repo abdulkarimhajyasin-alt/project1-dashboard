@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or "لوحة تحكم التعدين" }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=separate-pages">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=notification-bell">
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -69,6 +69,7 @@
           <span data-dashboard-subtitle>إدارة المستخدمين، الأرباح، رأس المال، وسجلات المنصة.</span>
         </div>
         <div class="admin-control-cluster">
+          {% include "partials/notification_bell.html" %}
           <div class="admin-live-chip">Hashrate 128.4 TH/s</div>
           <div class="admin-badge mining-admin-badge">{{ admin.username }}</div>
         </div>
@@ -76,7 +77,7 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=separate-pages" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=notification-bell" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
