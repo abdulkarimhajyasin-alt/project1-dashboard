@@ -8,14 +8,18 @@
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
+  <div class="admin-drawer-overlay" data-drawer-overlay aria-hidden="true"></div>
   <div class="admin-mining-shell">
-    <aside class="admin-sidebar" aria-label="القائمة الجانبية">
-      <div class="admin-sidebar-brand">
-        <span class="brand-mark">M</span>
-        <div>
-          <strong>Mining Admin</strong>
-          <small>Control Center</small>
+    <aside class="admin-sidebar" id="adminSidebar" data-admin-drawer aria-label="القائمة الجانبية" aria-hidden="true">
+      <div class="admin-sidebar-top">
+        <div class="admin-sidebar-brand">
+          <span class="brand-mark">M</span>
+          <div>
+            <strong>Mining Admin</strong>
+            <small>Control Center</small>
+          </div>
         </div>
+        <button class="admin-drawer-close" type="button" data-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">×</button>
       </div>
 
       <nav class="mining-nav admin-mining-nav" data-dashboard-nav aria-label="أقسام لوحة التحكم">
@@ -55,6 +59,10 @@
 
     <main class="admin-mining-content">
       <header class="admin-mining-topbar">
+        <button class="admin-drawer-toggle" type="button" data-drawer-open aria-controls="adminSidebar" aria-expanded="false">
+          <span aria-hidden="true">☰</span>
+          <span>القائمة</span>
+        </button>
         <div class="admin-page-heading">
           <p class="mining-kicker">لوحة التحكم الإدارية</p>
           <h1 data-dashboard-heading>{% block page_title %}{% endblock %}</h1>
@@ -68,6 +76,7 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,4 +1,39 @@
 (() => {
+  const body = document.body;
+  const drawer = document.querySelector("[data-admin-drawer]");
+  const overlay = document.querySelector("[data-drawer-overlay]");
+  const openButtons = Array.from(document.querySelectorAll("[data-drawer-open]"));
+  const closeButtons = Array.from(document.querySelectorAll("[data-drawer-close]"));
+
+  const setDrawerOpen = (isOpen) => {
+    if (!drawer) {
+      return;
+    }
+
+    body.classList.toggle("admin-drawer-open", isOpen);
+    drawer.setAttribute("aria-hidden", String(!isOpen));
+    overlay?.setAttribute("aria-hidden", String(!isOpen));
+    openButtons.forEach((button) => {
+      button.setAttribute("aria-expanded", String(isOpen));
+    });
+  };
+
+  openButtons.forEach((button) => {
+    button.addEventListener("click", () => setDrawerOpen(true));
+  });
+
+  closeButtons.forEach((button) => {
+    button.addEventListener("click", () => setDrawerOpen(false));
+  });
+
+  overlay?.addEventListener("click", () => setDrawerOpen(false));
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      setDrawerOpen(false);
+    }
+  });
+
   const dashboard = document.querySelector("[data-dashboard-page]");
 
   if (!dashboard) {
@@ -55,6 +90,7 @@
 
       event.preventDefault();
       setActiveSection(target);
+      setDrawerOpen(false);
     });
   });
 
