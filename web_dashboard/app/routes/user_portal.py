@@ -8,7 +8,7 @@ from urllib.parse import urlencode, urlsplit
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -141,6 +141,10 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
     referrals_count = len(user.referrals)
     mining_status = build_mining_status(user, db)
     rank_info = get_referral_rank_info(referrals_count)
+    total_referral_earnings = db.query(func.coalesce(func.sum(Record.amount), 0)).filter(
+        Record.user_id == user.id,
+        Record.record_type == "referral_reward",
+    ).scalar()
     return {
         "request": request,
         "user": user,
@@ -153,6 +157,7 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "referral_url": get_referral_url(request, user),
         "referrals_count": referrals_count,
         "referral_rank_info": rank_info,
+        "total_referral_earnings": total_referral_earnings or Decimal("0"),
         "maintenance_enabled": is_maintenance_enabled(db),
         "user_notification_modal": request.session.pop("user_notification_modal", None),
         **get_user_notifications_context(db, user.id),

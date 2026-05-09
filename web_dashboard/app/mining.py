@@ -18,7 +18,7 @@ OFFICIAL_CYCLE_START_HOUR = 18
 BASE_MINING_INCOME = Decimal("0.05")
 CAPITAL_DAILY_RATE = Decimal("0.02")
 REFERRAL_REWARD_RATE = Decimal("0.50")
-MONEY_QUANT = Decimal("0.0001")
+MONEY_QUANT = Decimal("0.00000001")
 CAPITAL_QUANT = Decimal("0.01")
 RATIO_QUANT = Decimal("0.000001")
 
@@ -211,6 +211,12 @@ def cycle_earning_ratio(cycle: MiningCycle | None) -> Decimal:
     return ratio_decimal(active_seconds / Decimal(MINING_CYCLE_SECONDS))
 
 
+def base_referral_source_income(cycle: MiningCycle) -> Decimal:
+    active_seconds = as_decimal(cycle.active_seconds or MINING_CYCLE_SECONDS)
+    earning_ratio = active_seconds / Decimal(MINING_CYCLE_SECONDS)
+    return money(BASE_MINING_INCOME * earning_ratio)
+
+
 def get_earning_referrer_cycle(db: Session, user_id: int, at_time: datetime) -> MiningCycle | None:
     return (
         db.query(MiningCycle)
@@ -245,27 +251,89 @@ def remaining_seconds(cycle: MiningCycle | None, now: datetime | None = None) ->
     return max(0, int((window_end - normalize_utc(now)).total_seconds()))
 
 
-def grant_referral_reward(db: Session, completed_cycle: MiningCycle, completed_user: User, final_income: Decimal) -> None:
+def get_existing_referral_reward_record(
+    db: Session,
+    completed_cycle: MiningCycle,
+    recipient_user_id: int,
+    referral_level: int,
+) -> Record | None:
+    return (
+        db.query(Record)
+        .filter(
+            Record.user_id == recipient_user_id,
+            Record.record_type == "referral_reward",
+            Record.notes.like(f"%mining_cycle_id={completed_cycle.cycle_uuid}%"),
+            Record.notes.like(f"%recipient_user_id={recipient_user_id};%"),
+            Record.notes.like(f"%referral_level={referral_level};%"),
+        )
+        .first()
+    )
+
+
+def build_referral_reward_notes(
+    completed_cycle: MiningCycle,
+    source_user: User,
+    recipient_user: User,
+    level: int,
+    base_referral_source_income: Decimal,
+    reward: Decimal,
+) -> str:
+    return (
+        f"source_user_id={source_user.id}; "
+        f"recipient_user_id={recipient_user.id}; "
+        f"referral_level={level}; "
+        f"base_referral_source_income={base_referral_source_income}; "
+        f"reward_amount={reward}; "
+        f"mining_cycle_id={completed_cycle.cycle_uuid};"
+    )
+
+
+def grant_referral_rewards(db: Session, completed_cycle: MiningCycle, completed_user: User) -> None:
     if completed_cycle.referral_reward_paid:
         return
 
-    if not completed_user.referrer:
+    source_income = base_referral_source_income(completed_cycle)
+    if source_income <= 0 or not completed_user.referrer:
         completed_cycle.referral_reward_paid = True
         completed_cycle.referrer_reward_amount = Decimal("0")
         return
 
-    reward_time = cycle_window_end(completed_cycle) or completed_cycle.end_at
-    referrer_cycle = get_earning_referrer_cycle(db, completed_user.referrer.id, reward_time)
-    if not referrer_cycle:
-        completed_cycle.referral_reward_paid = True
-        completed_cycle.referrer_reward_amount = Decimal("0")
-        return
+    total_paid = Decimal("0")
+    level = 1
+    recipient = completed_user.referrer
+    visited_user_ids = {completed_user.id}
 
-    reward = money(final_income * REFERRAL_REWARD_RATE)
-    referrer_cycle.referral_income = money(as_decimal(referrer_cycle.referral_income) + reward)
+    while recipient and recipient.id not in visited_user_ids:
+        visited_user_ids.add(recipient.id)
+        reward = money(source_income * (REFERRAL_REWARD_RATE ** level))
+        existing_record = get_existing_referral_reward_record(db, completed_cycle, recipient.id, level)
+        if existing_record:
+            total_paid = money(total_paid + existing_record.amount)
+        elif reward > 0:
+            recipient.profits = money(as_decimal(recipient.profits) + reward)
+            total_paid = money(total_paid + reward)
+            db.add(
+                Record(
+                    user_id=recipient.id,
+                    title=f"Level {level} referral mining reward",
+                    amount=reward,
+                    record_type="referral_reward",
+                    notes=build_referral_reward_notes(
+                        completed_cycle,
+                        completed_user,
+                        recipient,
+                        level,
+                        source_income,
+                        reward,
+                    ),
+                )
+            )
+            db.add(recipient)
+        recipient = recipient.referrer
+        level += 1
+
     completed_cycle.referral_reward_paid = True
-    completed_cycle.referrer_reward_amount = reward
-    completed_cycle.referrer_cycle_id = referrer_cycle.id
+    completed_cycle.referrer_reward_amount = money(total_paid)
 
 
 def add_cycle_records(db: Session, cycle: MiningCycle, user: User) -> None:
@@ -338,7 +406,7 @@ def complete_mining_cycle(db: Session, user: User, cycle: MiningCycle, now: date
     user.last_start_at = None
 
     add_cycle_records(db, cycle, user)
-    grant_referral_reward(db, cycle, user, earned_income)
+    grant_referral_rewards(db, cycle, user)
     return cycle
 
 

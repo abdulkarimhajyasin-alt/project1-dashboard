@@ -35,8 +35,8 @@ def ensure_user_columns() -> None:
         "username": "ALTER TABLE users ADD COLUMN username VARCHAR(80)",
         "password_hash": "ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)",
         "capital": "ALTER TABLE users ADD COLUMN capital NUMERIC(12, 2) NOT NULL DEFAULT 0",
-        "profits": "ALTER TABLE users ADD COLUMN profits NUMERIC(12, 4) NOT NULL DEFAULT 0",
-        "daily_earnings": "ALTER TABLE users ADD COLUMN daily_earnings NUMERIC(12, 4) NOT NULL DEFAULT 0",
+        "profits": "ALTER TABLE users ADD COLUMN profits NUMERIC(18, 8) NOT NULL DEFAULT 0",
+        "daily_earnings": "ALTER TABLE users ADD COLUMN daily_earnings NUMERIC(18, 8) NOT NULL DEFAULT 0",
         "plan": "ALTER TABLE users ADD COLUMN plan VARCHAR(30) NOT NULL DEFAULT 'none'",
         "referral_code": "ALTER TABLE users ADD COLUMN referral_code VARCHAR(64)",
         "referred_by_id": "ALTER TABLE users ADD COLUMN referred_by_id INTEGER REFERENCES users(id)",
@@ -123,25 +123,30 @@ def ensure_pending_request_columns() -> None:
                 connection.execute(text(ddl))
 
 
-def ensure_record_amount_precision() -> None:
+def ensure_decimal_precision(table_name: str, column_names: list[str], precision: int = 18, scale: int = 8) -> None:
     inspector = inspect(engine)
-    if "records" not in inspector.get_table_names():
-        return
     if not engine.dialect.name.startswith("postgresql"):
         return
-
-    amount_column = next(
-        (column for column in inspector.get_columns("records") if column["name"] == "amount"),
-        None,
-    )
-    if not amount_column:
+    if table_name not in inspector.get_table_names():
         return
-    column_type = amount_column["type"]
-    if getattr(column_type, "precision", None) == 12 and getattr(column_type, "scale", None) == 4:
+
+    columns = {column["name"]: column for column in inspector.get_columns(table_name)}
+    alter_statements = []
+    for column_name in column_names:
+        column = columns.get(column_name)
+        if not column:
+            continue
+        column_type = column["type"]
+        if getattr(column_type, "precision", None) == precision and getattr(column_type, "scale", None) == scale:
+            continue
+        alter_statements.append(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE NUMERIC({precision}, {scale})")
+
+    if not alter_statements:
         return
 
     with engine.begin() as connection:
-        connection.execute(text("ALTER TABLE records ALTER COLUMN amount TYPE NUMERIC(12, 4)"))
+        for statement in alter_statements:
+            connection.execute(text(statement))
 
 
 def ensure_mining_cycle_columns() -> None:
@@ -157,9 +162,9 @@ def ensure_mining_cycle_columns() -> None:
         "active_seconds": "ALTER TABLE mining_cycles ADD COLUMN active_seconds INTEGER NOT NULL DEFAULT 86400",
         "missed_seconds": "ALTER TABLE mining_cycles ADD COLUMN missed_seconds INTEGER NOT NULL DEFAULT 0",
         "earning_ratio": "ALTER TABLE mining_cycles ADD COLUMN earning_ratio NUMERIC(12, 6) NOT NULL DEFAULT 1",
-        "full_daily_income": "ALTER TABLE mining_cycles ADD COLUMN full_daily_income NUMERIC(12, 4) NOT NULL DEFAULT 0",
+        "full_daily_income": "ALTER TABLE mining_cycles ADD COLUMN full_daily_income NUMERIC(18, 8) NOT NULL DEFAULT 0",
         "final_income_after_time_deduction": (
-            "ALTER TABLE mining_cycles ADD COLUMN final_income_after_time_deduction NUMERIC(12, 4) NOT NULL DEFAULT 0"
+            "ALTER TABLE mining_cycles ADD COLUMN final_income_after_time_deduction NUMERIC(18, 8) NOT NULL DEFAULT 0"
         ),
     }
 
@@ -230,7 +235,20 @@ def init_db() -> None:
     ensure_support_message_columns()
     ensure_pending_request_columns()
     ensure_mining_cycle_columns()
-    ensure_record_amount_precision()
+    ensure_decimal_precision("users", ["profits", "daily_earnings"])
+    ensure_decimal_precision("records", ["amount"])
+    ensure_decimal_precision(
+        "mining_cycles",
+        [
+            "mining_income",
+            "referral_income",
+            "capital_bonus",
+            "full_daily_income",
+            "final_income",
+            "final_income_after_time_deduction",
+            "referrer_reward_amount",
+        ],
+    )
 
 
 def get_db():
