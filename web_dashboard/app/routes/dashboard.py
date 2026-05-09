@@ -25,6 +25,7 @@ from app.mining import (
 )
 from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
+from app.plans import determine_plan_for_amount, plan_label
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
 from app.utils import format_datetime_for_timezone
 
@@ -293,16 +294,19 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
     if pending_request and pending_request.status == "pending":
         if pending_request.request_type == "deposit" and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
+            final_plan = determine_plan_for_amount(amount)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) + amount)
+            pending_request.user.plan = final_plan
             db.add(
                 Record(
                     user_id=pending_request.user.id,
                     title="Approved capital deposit",
                     amount=amount,
                     record_type="capital_deposit",
-                    notes=f"Approved by admin: {admin.username}",
+                    notes=f"Approved by admin: {admin.username}; activated plan: {plan_label(final_plan)}",
                 )
             )
+            update_pending_request_detail(pending_request, "Activated plan", plan_label(final_plan))
         elif pending_request.request_type == "withdraw" and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
             pending_request.user.profits = max(Decimal("0"), Decimal(pending_request.user.profits or 0) - amount)
@@ -398,8 +402,16 @@ def pending_request_image(
     db: Session = Depends(get_db),
 ):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
-    if not pending_request or pending_request.request_type != "verification":
+    if not pending_request or pending_request.request_type not in {"verification", "deposit"}:
         raise HTTPException(status_code=404, detail="Image not found")
+
+    if pending_request.request_type == "deposit":
+        if image_type != "proof" or not pending_request.front_image_data:
+            raise HTTPException(status_code=404, detail="Image not found")
+        return Response(
+            content=bytes(pending_request.front_image_data),
+            media_type=pending_request.front_image_mime_type or "image/jpeg",
+        )
 
     image_map = {
         "front": (pending_request.front_image_data, pending_request.front_image_mime_type),

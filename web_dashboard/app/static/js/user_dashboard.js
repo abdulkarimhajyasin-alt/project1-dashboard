@@ -927,4 +927,111 @@
     setVerificationModalOpen(verificationConfirmModal, false);
     verificationForm.requestSubmit();
   });
+
+  const planModal = document.querySelector("[data-plan-modal]");
+  const planOpenButtons = document.querySelectorAll("[data-plan-open]");
+  const planCloseButtons = document.querySelectorAll("[data-plan-close]");
+  const selectedPlanInput = document.querySelector("[data-selected-plan]");
+  const planTitle = document.querySelector("[data-plan-title]");
+  const planAmountInput = document.querySelector("[data-plan-amount]");
+  const planSwitchNotice = document.querySelector("[data-plan-switch-notice]");
+  const walletInput = document.querySelector("[data-wallet-address]");
+  const walletCopyButton = document.querySelector("[data-wallet-copy]");
+  const walletCopyStatus = document.querySelector("[data-wallet-copy-status]");
+  const planProofInput = document.querySelector("[data-plan-proof]");
+  const planProofPreview = document.querySelector("[data-plan-proof-preview]");
+  const planProofImage = document.querySelector("[data-plan-proof-image]");
+  const planProofName = document.querySelector("[data-plan-proof-name]");
+  let planProofObjectUrl = "";
+
+  function setPlanModalOpen(isOpen) {
+    if (!planModal) return;
+    planModal.classList.toggle("is-open", isOpen);
+    planModal.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("plan-modal-open", isOpen);
+  }
+
+  function planForAmount(amount) {
+    if (!Number.isFinite(amount) || amount < 10) return "";
+    if (amount <= 100) return "silver";
+    if (amount <= 300) return "gold";
+    return "vip";
+  }
+
+  function planLabel(plan) {
+    return { silver: "Silver", gold: "Gold", vip: "VIP" }[plan] || plan;
+  }
+
+  function updatePlanSwitchNotice() {
+    if (!selectedPlanInput || !planAmountInput || !planSwitchNotice) return;
+    const amount = Number(planAmountInput.value);
+    const finalPlan = planForAmount(amount);
+    if (finalPlan && finalPlan !== selectedPlanInput.value) {
+      planSwitchNotice.hidden = false;
+      planSwitchNotice.textContent = `سيتم تحويل الطلب إلى ${planLabel(finalPlan)} حسب المبلغ المدخل.`;
+      return;
+    }
+    planSwitchNotice.hidden = true;
+    planSwitchNotice.textContent = "";
+  }
+
+  function clearPlanProofPreview() {
+    if (planProofObjectUrl) {
+      URL.revokeObjectURL(planProofObjectUrl);
+      planProofObjectUrl = "";
+    }
+    if (planProofImage) planProofImage.src = "";
+    if (planProofName) planProofName.textContent = "";
+    if (planProofPreview) planProofPreview.hidden = true;
+  }
+
+  planOpenButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      const plan = button.dataset.planOpen || "silver";
+      if (selectedPlanInput) selectedPlanInput.value = plan;
+      if (planTitle) planTitle.textContent = button.dataset.planLabel || planLabel(plan);
+      updatePlanSwitchNotice();
+      setPlanModalOpen(true);
+    });
+  });
+
+  planCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setPlanModalOpen(false);
+    });
+  });
+
+  planModal?.addEventListener("click", function (event) {
+    if (event.target === planModal) {
+      setPlanModalOpen(false);
+    }
+  });
+
+  planAmountInput?.addEventListener("input", updatePlanSwitchNotice);
+
+  walletCopyButton?.addEventListener("click", function () {
+    const walletAddress = walletInput?.value || "";
+    copyTextValue(walletAddress).then(function () {
+      if (walletCopyStatus) walletCopyStatus.textContent = "تم نسخ عنوان المحفظة.";
+      showCopyToast("Copied successfully");
+    }).catch(function () {
+      if (walletCopyStatus) walletCopyStatus.textContent = "تعذر النسخ، يرجى نسخ العنوان يدوياً.";
+      showCopyToast("Could not copy. Please select and copy manually.", true);
+    });
+  });
+
+  planProofInput?.addEventListener("change", function () {
+    clearPlanProofPreview();
+    const file = planProofInput.files?.[0];
+    if (!file) return;
+    if (!isImageFile(file)) {
+      planProofInput.value = "";
+      showCopyToast("ملف الإثبات يجب أن يكون صورة.", true);
+      return;
+    }
+    planProofObjectUrl = URL.createObjectURL(file);
+    if (planProofImage) planProofImage.src = planProofObjectUrl;
+    if (planProofName) planProofName.textContent = file.name;
+    if (planProofPreview) planProofPreview.hidden = false;
+  });
 })();

@@ -139,6 +139,16 @@
       {% endif %}
       {% endfor %}
     </dl>
+    {% if request_type == 'deposit' and item.deposit_proof_images %}
+    <div class="verification-proof-grid">
+      {% for image in item.deposit_proof_images %}
+      <button type="button" class="verification-proof-button" data-admin-image-src="/pending-requests/{{ item.id }}/image/{{ image.type }}" data-admin-image-title="{{ image.label }}">
+        <img src="/pending-requests/{{ item.id }}/image/{{ image.type }}" alt="{{ image.label }}">
+        <span>{{ image.label }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
     {% if request_type == 'verification' and item.verification_images %}
     <div class="verification-proof-grid">
       {% for image in item.verification_images %}

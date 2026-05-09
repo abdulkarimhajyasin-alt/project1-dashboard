@@ -18,6 +18,8 @@ from app.dependencies import get_current_user, is_maintenance_enabled
 from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
 from app.models import Notification, PendingRequest, Record, User
 from app.notifications import create_admin_notification, get_user_notifications_context
+from app.config import get_settings
+from app.plans import MIN_DEPOSIT_AMOUNT, determine_plan_for_amount, parse_deposit_amount, plan_label
 from app.security import hash_password, verify_password
 from app.support_chat import (
     SupportAttachmentError,
@@ -31,13 +33,23 @@ from app.utils import format_datetime_for_timezone
 
 router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="app/templates")
+app_settings = get_settings()
 MIN_WITHDRAWAL = Decimal("10.00")
 MAX_VERIFICATION_IMAGE_SIZE = 5 * 1024 * 1024
+MAX_DEPOSIT_PROOF_SIZE = 5 * 1024 * 1024
 DOCUMENT_TYPES = {
     "id_card": "بطاقة شخصية",
     "driver_license": "رخصة قيادة",
     "passport": "جواز سفر",
 }
+IMAGE_SIGNATURES = (
+    b"\xff\xd8\xff",
+    b"\x89PNG\r\n\x1a\n",
+    b"GIF87a",
+    b"GIF89a",
+    b"RIFF",
+    b"BM",
+)
 
 
 def make_referral_code() -> str:
@@ -224,6 +236,41 @@ def read_verification_image(upload: UploadFile | None, label: str) -> dict[str, 
         raise ValueError(f"{label} فارغة ولا يمكن رفعها.")
     if size > MAX_VERIFICATION_IMAGE_SIZE:
         raise ValueError(f"{label} أكبر من الحد المسموح 5MB.")
+    if not is_supported_image_content(content, content_type):
+        raise ValueError(f"{label} يجب أن تكون صورة بصيغة مدعومة.")
+
+    return {
+        "data": content,
+        "mime_type": content_type,
+        "size": size,
+    }
+
+
+def is_supported_image_content(content: bytes, content_type: str) -> bool:
+    if not content_type.startswith("image/"):
+        return False
+    if content.startswith(b"RIFF") and b"WEBP" not in content[:16]:
+        return False
+    return any(content.startswith(signature) for signature in IMAGE_SIGNATURES)
+
+
+def read_deposit_proof_image(upload: UploadFile | None) -> dict[str, object]:
+    if not upload or not upload.filename:
+        raise ValueError("يرجى رفع صورة إثبات التحويل.")
+
+    content_type = (upload.content_type or "application/octet-stream").lower()
+    if not content_type.startswith("image/"):
+        raise ValueError("ملف إثبات التحويل يجب أن يكون صورة.")
+
+    upload.file.seek(0)
+    content = upload.file.read()
+    size = len(content)
+    if size <= 0:
+        raise ValueError("صورة إثبات التحويل فارغة ولا يمكن رفعها.")
+    if size > MAX_DEPOSIT_PROOF_SIZE:
+        raise ValueError("صورة إثبات التحويل أكبر من الحد المسموح 5MB.")
+    if not is_supported_image_content(content, content_type):
+        raise ValueError("ملف إثبات التحويل يجب أن يكون صورة بصيغة مدعومة.")
 
     return {
         "data": content,
@@ -421,9 +468,83 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
 
 
 @router.get("/plans", response_class=HTMLResponse)
-def plans_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def plans_page(
+    request: Request,
+    deposit_error: str = "",
+    deposit_sent: str = "",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     settle_due_mining_cycle(user, db)
-    return templates.TemplateResponse("user_plans.html", build_user_context(request, user, "plans", db))
+    context = build_user_context(request, user, "plans", db)
+    context.update(
+        {
+            "deposit_error": deposit_error,
+            "deposit_sent": deposit_sent == "1",
+            "deposit_wallet_address": app_settings.usdt_wallet_address,
+            "min_deposit_amount": MIN_DEPOSIT_AMOUNT,
+        }
+    )
+    return templates.TemplateResponse("user_plans.html", context)
+
+
+@router.post("/plans/deposit")
+def submit_deposit_request(
+    amount: str = Form(""),
+    selected_plan: str = Form(""),
+    proof_image: UploadFile | None = File(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        clean_amount = parse_deposit_amount(amount)
+        final_plan = determine_plan_for_amount(clean_amount)
+        proof_data = read_deposit_proof_image(proof_image)
+    except ValueError as exc:
+        return RedirectResponse(url=f"/user/plans?{urlencode({'deposit_error': str(exc)})}", status_code=303)
+
+    selected_plan = selected_plan.strip().lower()
+    if selected_plan not in {"silver", "gold", "vip"}:
+        selected_plan = final_plan
+
+    pending_request = PendingRequest(
+        user_id=user.id,
+        request_type="deposit",
+        amount=clean_amount,
+        status="pending",
+        full_name=user.username or user.name,
+        timezone=user.timezone or "UTC",
+        front_image_data=proof_data["data"],
+        front_image_mime_type=proof_data["mime_type"],
+        front_image_size=proof_data["size"],
+        details_json=json.dumps(
+            {
+                "اسم المستخدم": get_user_display_name(user),
+                "الباقة المختارة": plan_label(selected_plan),
+                "الباقة النهائية": plan_label(final_plan),
+                "المبلغ": f"{clean_amount:.2f} USDT",
+                "عنوان المحفظة": app_settings.usdt_wallet_address,
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+    db.add(pending_request)
+    create_admin_notification(
+        db,
+        title="طلب إيداع جديد",
+        message=f"طلب إيداع بقيمة {clean_amount:.2f} USDT من {get_user_display_name(user)}",
+        target_url="/notifications#pending-deposit",
+        kind="deposit",
+        data={
+            "User": get_user_display_name(user),
+            "Amount": f"{clean_amount:.2f} USDT",
+            "Final plan": plan_label(final_plan),
+            "Selected plan": plan_label(selected_plan),
+        },
+    )
+    db.commit()
+    return RedirectResponse(url="/user/plans?deposit_sent=1", status_code=303)
 
 
 @router.get("/withdraw", response_class=HTMLResponse)

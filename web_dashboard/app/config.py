@@ -14,6 +14,7 @@ class Settings:
     session_cookie_name: str = os.getenv("SESSION_COOKIE_NAME", "dashboard_session")
     admin_username: str = os.getenv("ADMIN_USERNAME", "")
     admin_password: str = os.getenv("ADMIN_PASSWORD", "")
+    usdt_wallet_address: str = os.getenv("USDT_WALLET_ADDRESS", "ضع_عنوان_محفظة_USDT_هنا")
 
     @property
     def is_configured(self) -> bool:

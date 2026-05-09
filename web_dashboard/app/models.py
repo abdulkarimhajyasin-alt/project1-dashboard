@@ -157,6 +157,12 @@ class PendingRequest(Base):
             images.append({"type": "passport", "label": "صورة جواز السفر"})
         return images
 
+    @property
+    def deposit_proof_images(self) -> list[dict[str, str]]:
+        if self.request_type == "deposit" and self.front_image_data:
+            return [{"type": "proof", "label": "صورة إثبات التحويل"}]
+        return []
+
 
 class AppSetting(Base):
     __tablename__ = "app_settings"
