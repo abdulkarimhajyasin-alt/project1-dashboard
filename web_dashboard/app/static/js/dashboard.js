@@ -13,7 +13,6 @@
   const adminModals = Array.from(document.querySelectorAll("[data-admin-modal]"));
   const adminImageButtons = Array.from(document.querySelectorAll("[data-admin-image-src]"));
   const deleteUserModal = document.querySelector("[data-delete-user-modal]");
-  const deleteUserForms = Array.from(document.querySelectorAll("[data-delete-user-form]"));
   const deleteUserName = deleteUserModal?.querySelector("[data-delete-user-name]");
   const deleteUserConfirm = deleteUserModal?.querySelector("[data-delete-user-confirm]");
   const deleteUserError = deleteUserModal?.querySelector("[data-delete-user-error]");
@@ -151,36 +150,38 @@
     }
   };
 
-  deleteUserForms.forEach((form) => {
-    form.addEventListener("submit", (event) => {
-      if (form.dataset.deleteConfirmed === "true") {
-        return;
-      }
+  document.addEventListener("submit", (event) => {
+    const form = event.target.closest("[data-delete-user-form]");
+    if (!form) {
+      return;
+    }
+    if (form.dataset.deleteConfirmed === "true") {
+      return;
+    }
 
-      event.preventDefault();
+    event.preventDefault();
 
-      if (form.dataset.deleteProtected === "true") {
-        if (deleteUserError) {
-          deleteUserError.hidden = false;
-          deleteUserError.textContent = "Main admin account cannot be deleted.";
-        }
-        return;
-      }
-
-      pendingDeleteUserForm = form;
-      if (deleteUserName) {
-        deleteUserName.textContent = form.dataset.userName || "this user";
-      }
+    if (form.dataset.deleteProtected === "true") {
       if (deleteUserError) {
-        deleteUserError.hidden = true;
-        deleteUserError.textContent = "";
+        deleteUserError.hidden = false;
+        deleteUserError.textContent = "Main admin account cannot be deleted.";
       }
-      if (deleteUserConfirm) {
-        deleteUserConfirm.disabled = false;
-        deleteUserConfirm.textContent = "Confirm Delete";
-      }
-      setDeleteUserModalOpen(true);
-    });
+      return;
+    }
+
+    pendingDeleteUserForm = form;
+    if (deleteUserName) {
+      deleteUserName.textContent = form.dataset.userName || "this user";
+    }
+    if (deleteUserError) {
+      deleteUserError.hidden = true;
+      deleteUserError.textContent = "";
+    }
+    if (deleteUserConfirm) {
+      deleteUserConfirm.disabled = false;
+      deleteUserConfirm.textContent = "Confirm Delete";
+    }
+    setDeleteUserModalOpen(true);
   });
 
   deleteUserConfirm?.addEventListener("click", () => {
@@ -339,6 +340,282 @@
   closeNotifications();
   setupSupportFilePreview();
   setSupportChatOpen(supportChatModal?.classList.contains("is-open") || false);
+
+  const referralTree = document.querySelector("[data-referral-tree]");
+
+  if (referralTree) {
+    const childrenCache = new Map();
+    const expandedNodes = new Set();
+    const table = referralTree.closest("table");
+    const columnCount = table?.querySelectorAll("thead th").length || 14;
+
+    const makeCell = (text = "") => {
+      const cell = document.createElement("td");
+      cell.textContent = text;
+      return cell;
+    };
+
+    const makeStatusCell = (text = "") => {
+      const cell = document.createElement("td");
+      const status = document.createElement("span");
+      status.className = "status admin-status-pill";
+      status.textContent = text || "-";
+      cell.append(status);
+      return cell;
+    };
+
+    const makeDetailLink = (user, label = "Open Account") => {
+      const link = document.createElement("a");
+      link.className = "admin-user-link referral-account-link";
+      link.href = user.detail_url || `/users/${user.id}`;
+      link.textContent = label;
+      return link;
+    };
+
+    const makePostActionForm = (action, buttonClass, label) => {
+      const form = document.createElement("form");
+      form.method = "post";
+      form.action = action;
+
+      const button = document.createElement("button");
+      button.className = buttonClass;
+      button.type = "submit";
+      button.textContent = label;
+      form.append(button);
+      return form;
+    };
+
+    const makeDeleteForm = (user) => {
+      const form = makePostActionForm(user.delete_url || `/users/${user.id}/delete`, "danger-button", "Delete");
+      form.dataset.deleteUserForm = "";
+      form.dataset.userName = user.delete_label || user.username || user.name || "this user";
+      form.dataset.deleteProtected = user.delete_protected ? "true" : "false";
+
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = "confirm_delete";
+      hidden.value = "yes";
+      form.prepend(hidden);
+
+      const button = form.querySelector("button");
+      if (button && user.delete_protected) {
+        button.disabled = true;
+        button.title = "Main admin account cannot be deleted";
+      }
+      return form;
+    };
+
+    const setToggleState = (button, isExpanded) => {
+      if (!button) {
+        return;
+      }
+      button.textContent = isExpanded ? "Hide" : "View";
+      button.setAttribute("aria-expanded", String(isExpanded));
+    };
+
+    const setToggleLoading = (button, isLoading) => {
+      if (!button) {
+        return;
+      }
+      button.disabled = isLoading;
+      button.textContent = isLoading ? "Loading..." : "View";
+    };
+
+    const removeDescendantRows = (userId) => {
+      const id = String(userId);
+      Array.from(referralTree.querySelectorAll("[data-ancestor-ids]")).forEach((row) => {
+        const ancestors = (row.dataset.ancestorIds || "").split(",").filter(Boolean);
+        if (!ancestors.includes(id)) {
+          return;
+        }
+        if (row.dataset.userId) {
+          expandedNodes.delete(row.dataset.userId);
+        }
+        row.remove();
+      });
+      expandedNodes.delete(id);
+    };
+
+    const makeFeedbackRow = (parentRow, message, type = "loading") => {
+      const row = document.createElement("tr");
+      row.className = `referral-child-row referral-${type}-row`;
+      row.dataset.ancestorIds = [
+        ...(parentRow.dataset.ancestorIds || "").split(",").filter(Boolean),
+        parentRow.dataset.userId,
+      ].join(",");
+
+      const cell = document.createElement("td");
+      cell.colSpan = columnCount;
+      cell.textContent = message;
+      row.append(cell);
+      return row;
+    };
+
+    const makeTreeControls = (user, level) => {
+      const node = document.createElement("div");
+      node.className = "referral-tree-node is-child";
+      node.style.setProperty("--tree-indent", `${level * 28}px`);
+
+      if (user.has_children) {
+        const toggle = document.createElement("button");
+        toggle.className = "referral-tree-toggle";
+        toggle.type = "button";
+        toggle.dataset.referralToggle = "";
+        toggle.dataset.userId = String(user.id);
+        toggle.dataset.treeLevel = String(level);
+        toggle.dataset.childrenCount = String(user.children_count || user.referrals_count || 0);
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.textContent = "View";
+        node.append(toggle);
+
+        const count = document.createElement("span");
+        count.className = "referral-tree-count";
+        count.textContent = `Referrals: ${user.children_count || user.referrals_count || 0}`;
+        node.append(count);
+      } else {
+        const spacer = document.createElement("span");
+        spacer.className = "referral-tree-spacer";
+        spacer.setAttribute("aria-hidden", "true");
+        node.append(spacer);
+
+        const empty = document.createElement("span");
+        empty.className = "referral-tree-count is-empty";
+        empty.textContent = "No referrals";
+        node.append(empty);
+      }
+
+      const name = document.createElement("span");
+      name.className = "referral-tree-name";
+      name.textContent = user.name || "-";
+      node.append(name, makeDetailLink(user));
+      return node;
+    };
+
+    const makeChildRow = (user, level, ancestorIds) => {
+      const row = document.createElement("tr");
+      row.className = "referral-child-row";
+      row.dataset.userRow = "";
+      row.dataset.userId = String(user.id);
+      row.dataset.treeLevel = String(level);
+      row.dataset.ancestorIds = ancestorIds.join(",");
+
+      const nameCell = document.createElement("td");
+      nameCell.append(makeTreeControls(user, level));
+      row.append(nameCell);
+
+      const usernameCell = document.createElement("td");
+      usernameCell.append(makeDetailLink(user, user.username || "-"));
+      row.append(usernameCell);
+
+      row.append(
+        makeCell(user.email || "-"),
+        makeCell(`$${user.capital || "0.00"}`),
+        makeCell(`$${user.profits || "0.0000"}`),
+        makeStatusCell(user.plan || "none"),
+        makeStatusCell(user.status || "active"),
+        makeCell(user.referrer || "-"),
+        makeCell(String(user.referrals_count || 0)),
+        makeStatusCell(user.rank || "-"),
+        makeCell(user.last_start_at || "-"),
+        makeCell(user.created_at || "-"),
+      );
+
+      const passwordCell = document.createElement("td");
+      const resetButton = document.createElement("button");
+      resetButton.className = "safe-button";
+      resetButton.type = "button";
+      resetButton.textContent = "Reset password";
+      passwordCell.append(resetButton);
+      row.append(passwordCell);
+
+      const actionsCell = document.createElement("td");
+      const actions = document.createElement("div");
+      actions.className = "admin-user-name-actions";
+      actions.append(
+        makePostActionForm(user.message_url || `/users/${user.id}/message`, "admin-message-button", "Send Message"),
+        makeDetailLink(user, "Details"),
+        makeDeleteForm(user),
+      );
+      actionsCell.append(actions);
+      row.append(actionsCell);
+      return row;
+    };
+
+    const renderChildren = (parentRow, parentId, children) => {
+      removeDescendantRows(parentId);
+
+      const parentAncestors = (parentRow.dataset.ancestorIds || "").split(",").filter(Boolean);
+      const ancestorIds = [...parentAncestors, String(parentId)];
+      const level = Number(parentRow.dataset.treeLevel || 0) + 1;
+      const fragment = document.createDocumentFragment();
+
+      if (!children.length) {
+        fragment.append(makeFeedbackRow(parentRow, "No children found.", "empty"));
+      } else {
+        children.forEach((child) => {
+          fragment.append(makeChildRow(child, level, ancestorIds));
+        });
+      }
+
+      parentRow.after(fragment);
+      expandedNodes.add(String(parentId));
+      setToggleState(parentRow.querySelector(`[data-referral-toggle][data-user-id="${parentId}"]`), true);
+    };
+
+    referralTree.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-referral-toggle]");
+      if (!button || !referralTree.contains(button)) {
+        return;
+      }
+
+      const parentRow = button.closest("[data-user-row]");
+      const userId = button.dataset.userId;
+
+      if (!parentRow || !userId) {
+        return;
+      }
+
+      if (expandedNodes.has(userId)) {
+        removeDescendantRows(userId);
+        setToggleState(button, false);
+        return;
+      }
+
+      if (childrenCache.has(userId)) {
+        renderChildren(parentRow, userId, childrenCache.get(userId));
+        return;
+      }
+
+      removeDescendantRows(userId);
+      const loadingRow = makeFeedbackRow(parentRow, "Loading children...", "loading");
+      parentRow.after(loadingRow);
+      setToggleLoading(button, true);
+
+      fetch(`/users/${userId}/children`, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Could not load children.");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          const children = Array.isArray(data.children) ? data.children : [];
+          childrenCache.set(userId, children);
+          loadingRow.remove();
+          setToggleLoading(button, false);
+          renderChildren(parentRow, userId, children);
+        })
+        .catch((error) => {
+          loadingRow.remove();
+          setToggleLoading(button, false);
+          const errorRow = makeFeedbackRow(parentRow, error.message || "Could not load children.", "error");
+          parentRow.after(errorRow);
+        });
+    });
+  }
 
   const dashboard = document.querySelector("[data-dashboard-page]");
 

@@ -27,8 +27,8 @@
 <section class="panel">
   <div class="panel-header admin-users-header">
     <div>
-      <h2>Professional User View</h2>
-      <p>Passwords are stored securely as hashes. Use a password reset action instead of exposing original passwords.</p>
+      <h2>Referral Tree Users</h2>
+      <p>Only root users are shown here. Open referrals inline to inspect each user's direct children.</p>
     </div>
   </div>
   <div class="table-scroll">
@@ -51,13 +51,33 @@
           <th></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-referral-tree>
         {% for user in users %}
         {% set delete_user_label = user.username or user.name or user.email %}
         {% set delete_protected = user.id in protected_user_ids %}
-        {% set rank_info = get_referral_rank_info(user.referrals|length) %}
-        <tr>
-          <td>{{ user.name }}</td>
+        {% set referral_count = referral_counts.get(user.id, 0) %}
+        {% set rank_info = get_referral_rank_info(referral_count) %}
+        <tr data-user-row data-user-id="{{ user.id }}" data-tree-level="0">
+          <td>
+            <div class="referral-tree-node" style="--tree-indent: 0px">
+              {% if referral_count %}
+              <button
+                class="referral-tree-toggle"
+                type="button"
+                data-referral-toggle
+                data-user-id="{{ user.id }}"
+                data-tree-level="0"
+                data-children-count="{{ referral_count }}"
+                aria-expanded="false"
+              >View</button>
+              <span class="referral-tree-count">Referrals: {{ referral_count }}</span>
+              {% else %}
+              <span class="referral-tree-spacer" aria-hidden="true"></span>
+              <span class="referral-tree-count is-empty">No referrals</span>
+              {% endif %}
+              <span class="referral-tree-name">{{ user.name }}</span>
+            </div>
+          </td>
           <td>
             <div class="admin-user-name-actions">
               <a class="admin-user-link" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
@@ -72,7 +92,7 @@
           <td><span class="status">{{ user.plan or "none" }}</span></td>
           <td><span class="status">{{ user.status }}</span></td>
           <td>{{ user.referrer.username if user.referrer else "-" }}</td>
-          <td>{{ user.referrals|length }}</td>
+          <td>{{ referral_count }}</td>
           <td><span class="status admin-status-pill">{{ rank_info.rank }}</span></td>
           <td>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</td>
           <td>{{ user.created_at.strftime("%Y-%m-%d") }}</td>

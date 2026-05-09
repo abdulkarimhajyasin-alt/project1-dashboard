@@ -3561,6 +3561,114 @@ body.user-menu-open .user-drawer-overlay,
   color: #ffffff;
 }
 
+.referral-tree-node {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 260px;
+  padding-left: var(--tree-indent, 0);
+  position: relative;
+}
+
+.referral-tree-node.is-child {
+  border-left: 2px solid rgba(103, 232, 249, 0.28);
+  padding-bottom: 4px;
+  padding-top: 4px;
+}
+
+.referral-tree-node.is-child::before {
+  background: linear-gradient(90deg, rgba(103, 232, 249, 0.5), rgba(37, 246, 164, 0.14));
+  content: "";
+  height: 1px;
+  left: calc(var(--tree-indent, 0px) - 18px);
+  position: absolute;
+  top: 50%;
+  width: 18px;
+}
+
+.admin-app .referral-tree-toggle {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(103, 232, 249, 0.3);
+  border-radius: 8px;
+  color: #dff7ff;
+  cursor: pointer;
+  font-size: 12px;
+  min-width: 64px;
+  padding: 7px 10px;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.admin-app .referral-tree-toggle:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(103, 232, 249, 0.56);
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.16);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.admin-app .referral-tree-toggle:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
+.referral-tree-count {
+  background: rgba(37, 246, 164, 0.1);
+  border: 1px solid rgba(37, 246, 164, 0.22);
+  border-radius: 999px;
+  color: #bfffe3;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 9px;
+}
+
+.referral-tree-count.is-empty {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.16);
+  color: #8ea5bb;
+}
+
+.referral-tree-spacer {
+  display: inline-block;
+  min-width: 64px;
+}
+
+.referral-tree-name {
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.referral-account-link {
+  font-size: 12px;
+  padding: 7px 10px;
+}
+
+.admin-app tr.referral-child-row td {
+  background: rgba(3, 10, 20, 0.28);
+  border-bottom-color: rgba(103, 232, 249, 0.12);
+}
+
+.admin-app tr.referral-child-row:hover td {
+  background: rgba(56, 189, 248, 0.07);
+}
+
+.referral-loading-row td,
+.referral-error-row td,
+.referral-empty-row td {
+  color: #a8bbcf;
+  font-weight: 900;
+  text-align: center;
+}
+
+.referral-loading-row td {
+  color: #67e8f9;
+}
+
+.referral-error-row td {
+  color: #fecaca;
+}
+
 .admin-user-detail-shell {
   display: grid;
   gap: 18px;

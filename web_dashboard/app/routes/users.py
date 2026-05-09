@@ -2,8 +2,9 @@ from decimal import Decimal
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -51,9 +52,61 @@ def get_admin_user(db: Session, user_id: int) -> User:
     return user
 
 
+def get_user_label(user: User) -> str:
+    return user.username or user.name or user.email or f"User #{user.id}"
+
+
+def format_admin_datetime(value, fmt: str) -> str:
+    return value.strftime(fmt) if value else "-"
+
+
+def get_direct_referral_counts(db: Session, user_ids: list[int]) -> dict[int, int]:
+    if not user_ids:
+        return {}
+
+    counts: dict[int, int] = {}
+    for index in range(0, len(user_ids), 500):
+        batch = user_ids[index : index + 500]
+        rows = (
+            db.query(User.referred_by_id, func.count(User.id))
+            .filter(User.referred_by_id.in_(batch))
+            .group_by(User.referred_by_id)
+            .all()
+        )
+        counts.update({int(parent_id): int(count) for parent_id, count in rows if parent_id is not None})
+    return counts
+
+
+def serialize_user_tree_node(user: User, children_count: int, admin: Admin, referrer_label: str = "-") -> dict:
+    rank_info = get_referral_rank_info(children_count)
+    return {
+        "id": user.id,
+        "name": user.name or "-",
+        "username": get_user_label(user),
+        "email": user.email or "-",
+        "status": user.status or "active",
+        "plan": user.plan or "none",
+        "profits": f"{Decimal(user.profits or 0):.4f}",
+        "capital": f"{Decimal(user.capital or 0):.2f}",
+        "rank": rank_info["rank"],
+        "referrals_count": children_count,
+        "has_children": children_count > 0,
+        "children_count": children_count,
+        "referrer": referrer_label,
+        "last_start_at": format_admin_datetime(user.last_start_at, "%Y-%m-%d %H:%M"),
+        "created_at": format_admin_datetime(user.created_at, "%Y-%m-%d"),
+        "detail_url": f"/users/{user.id}",
+        "message_url": f"/users/{user.id}/message",
+        "delete_url": f"/users/{user.id}/delete",
+        "delete_label": get_user_label(user),
+        "delete_protected": is_protected_admin_user(user, admin),
+    }
+
+
 @router.get("", response_class=HTMLResponse)
 def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
-    users = db.query(User).order_by(User.created_at.desc()).all()
+    users = db.query(User).filter(User.referred_by_id.is_(None)).order_by(User.created_at.desc()).all()
+    referral_counts = get_direct_referral_counts(db, [user.id for user in users])
     protected_user_ids = [user.id for user in users if is_protected_admin_user(user, admin)]
     return templates.TemplateResponse(
         "users.html",
@@ -62,10 +115,38 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
             "admin": admin,
             "active_page": "users",
             "users": users,
+            "referral_counts": referral_counts,
             "protected_user_ids": protected_user_ids,
             "get_referral_rank_info": get_referral_rank_info,
             **get_admin_notifications_context(db),
         },
+    )
+
+
+@router.get("/{user_id}/children")
+def user_children(user_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    parent = get_admin_user(db, user_id)
+    children = (
+        db.query(User)
+        .filter(User.referred_by_id == parent.id)
+        .order_by(User.created_at.desc())
+        .all()
+    )
+    child_counts = get_direct_referral_counts(db, [child.id for child in children])
+    parent_label = get_user_label(parent)
+    return JSONResponse(
+        {
+            "parent_id": parent.id,
+            "children": [
+                serialize_user_tree_node(
+                    child,
+                    child_counts.get(child.id, 0),
+                    admin,
+                    parent_label,
+                )
+                for child in children
+            ],
+        }
     )
 
 
