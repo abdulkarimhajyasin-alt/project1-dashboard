@@ -97,6 +97,7 @@
         <dt>البريد</dt>
         <dd>{{ item.user.email if item.user else "-" }}</dd>
       </div>
+      {% if request_type != 'deposit' %}
       <div>
         <dt>{{ section.amount_label }}</dt>
         <dd>
@@ -107,6 +108,7 @@
           {% endif %}
         </dd>
       </div>
+      {% endif %}
       {% if request_type == 'verification' %}
       <div>
         <dt>الدولة</dt>
@@ -131,7 +133,8 @@
       </div>
       {% for detail in item.details_rows %}
       {% set skip_verification_detail = request_type == 'verification' and detail.label in ['الدولة', 'المنطقة الزمنية', 'نوع الوثيقة'] %}
-      {% if not skip_verification_detail %}
+      {% set skip_deposit_detail = request_type == 'deposit' and detail.label in ['الباقة النهائية', 'Final plan', 'Activated plan'] %}
+      {% if not skip_verification_detail and not skip_deposit_detail %}
       <div>
         <dt>{{ detail.label }}</dt>
         <dd>{{ detail.value }}</dd>
