@@ -158,6 +158,33 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
     }
 
 
+def wants_json_response(request: Request) -> bool:
+    return (
+        request.headers.get("x-requested-with") == "fetch"
+        or "application/json" in request.headers.get("accept", "")
+    )
+
+
+def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
+    return {
+        "cycle_id": status["cycle_id"],
+        "status": status["status"],
+        "can_start": status["can_start"],
+        "progress_percent": status["progress_percent"],
+        "remaining_seconds": status["remaining_seconds"],
+        "start_time": status["start_time"],
+        "end_time": status["end_time"],
+        "start_time_iso": status["start_time_iso"],
+        "end_time_iso": status["end_time_iso"],
+        "timezone": status["timezone"],
+        "active_capital": str(status["active_capital"]),
+        "referral_income": str(status["referral_income"]),
+        "current_daily_income": str(status["current_daily_income"]),
+        "completed": completed_cycle is not None,
+        "completed_income": str(completed_cycle.final_income) if completed_cycle else "0.0000",
+    }
+
+
 def get_support_notification_message(support_message) -> str:
     if support_message.has_attachment_data:
         return "صورة" if support_message.is_image else "ملف"
@@ -561,10 +588,23 @@ def submit_account_verification(
 
 
 @router.post("/start")
-def start_daily_cycle(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def start_daily_cycle(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     cycle, error = start_mining_cycle(user, db)
     if error:
+        if wants_json_response(request):
+            return JSONResponse(
+                {"ok": False, "error": error, "status": serialize_mining_status(build_mining_status(user, db))},
+                status_code=409,
+            )
         return RedirectResponse(url=f"/user/dashboard?{urlencode({'mining_error': error})}", status_code=303)
+    if wants_json_response(request):
+        return JSONResponse(
+            {
+                "ok": True,
+                "message": "Mining cycle started successfully.",
+                "status": serialize_mining_status(build_mining_status(user, db)),
+            }
+        )
     return RedirectResponse(url="/user/dashboard?cycle_started=1", status_code=303)
 
 
@@ -572,24 +612,7 @@ def start_daily_cycle(user: User = Depends(get_current_user), db: Session = Depe
 def mining_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     completed_cycle = settle_due_mining_cycle(user, db)
     status = build_mining_status(user, db)
-    return JSONResponse(
-        {
-            "cycle_id": status["cycle_id"],
-            "status": status["status"],
-            "can_start": status["can_start"],
-            "progress_percent": status["progress_percent"],
-            "remaining_seconds": status["remaining_seconds"],
-            "start_time": status["start_time"],
-            "end_time": status["end_time"],
-            "start_time_iso": status["start_time_iso"],
-            "end_time_iso": status["end_time_iso"],
-            "active_capital": str(status["active_capital"]),
-            "referral_income": str(status["referral_income"]),
-            "current_daily_income": str(status["current_daily_income"]),
-            "completed": completed_cycle is not None,
-            "completed_income": str(completed_cycle.final_income) if completed_cycle else "0.0000",
-        }
-    )
+    return JSONResponse(serialize_mining_status(status, completed_cycle))
 
 
 @router.post("/mining/complete")

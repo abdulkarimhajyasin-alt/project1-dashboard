@@ -51,21 +51,24 @@
       <div class="ring-center">
         <span class="ring-label">Daily Mining</span>
         <strong id="ringPercent">{{ mining_status.progress_percent }}%</strong>
-        <form method="post" action="/user/start">
-          <button class="start-core-button" type="submit" {% if not mining_status.can_start %}disabled{% endif %}>Start</button>
+        <form class="mining-start-form" method="post" action="/user/start" data-mining-start-form>
+          <button class="start-core-button" type="submit" data-start-mining-button {% if not mining_status.can_start %}disabled{% endif %}>
+            {{ "Start" if mining_status.can_start else "Mining Active" }}
+          </button>
         </form>
+        <p class="support-chat-error mining-start-error" data-mining-start-error hidden></p>
         <small id="miningCountdown">{{ 'Ready to start' if mining_status.can_start else 'Remaining ' ~ mining_status.remaining_seconds ~ 's' }}</small>
       </div>
     </div>
     <div class="mining-cycle-meta">
       <span>Mining Status <strong data-mining-status-label>{{ mining_status.status|title }}</strong></span>
-      <span>Cycle ID <strong>{{ mining_status.cycle_id or "-" }}</strong></span>
-      <span>Start Time <strong>{{ mining_status.start_time }}</strong></span>
-      <span>End Time <strong>{{ mining_status.end_time }}</strong></span>
+      <span>Cycle ID <strong data-cycle-id>{{ mining_status.cycle_id or "-" }}</strong></span>
+      <span>Start Time <strong data-start-time>{{ mining_status.start_time }}</strong></span>
+      <span>End Time <strong data-end-time>{{ mining_status.end_time }}</strong></span>
       <span>Timezone <strong>{{ mining_status.timezone }}</strong></span>
       <span>Remaining Time <strong data-remaining-time>{{ mining_status.remaining_seconds }}</strong></span>
     </div>
-    <p class="mining-core-note">
+    <p class="mining-core-note" data-mining-core-note>
       {% if mining_status.can_start %}Press Start to run a manual 24-hour mining cycle. No income is counted while you are stopped.{% else %}Your current mining cycle is active. A new cycle can start only after completion.{% endif %}
     </p>
   </article>

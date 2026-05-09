@@ -1275,6 +1275,7 @@ th {
 .mining-ring svg {
   filter: drop-shadow(0 0 24px rgba(56, 189, 248, 0.24));
   height: 100%;
+  pointer-events: none;
   transform: rotate(-90deg);
   width: 100%;
 }
@@ -1308,6 +1309,7 @@ th {
   position: absolute;
   text-align: center;
   width: 62%;
+  z-index: 2;
 }
 
 .ring-label {
@@ -1328,17 +1330,31 @@ th {
   min-height: 20px;
 }
 
+.mining-start-form {
+  margin: 0;
+  position: relative;
+  z-index: 3;
+}
+
 .start-core-button,
 .mining-primary-button {
   background: linear-gradient(135deg, #25f6a4, #38bdf8);
+  border: 0;
   border-radius: 999px;
   box-shadow: 0 0 30px rgba(56, 189, 248, 0.36);
   color: #03111b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 16px;
   font-weight: 900;
+  line-height: 1;
   min-width: 118px;
   padding: 13px 24px;
+  position: relative;
   transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  z-index: 3;
 }
 
 .start-core-button:hover,
@@ -1354,6 +1370,31 @@ th {
   color: #94a3b8;
   cursor: not-allowed;
   opacity: 0.82;
+}
+
+.start-core-button.is-loading {
+  cursor: wait;
+  opacity: 0.9;
+}
+
+.start-core-button:disabled:hover {
+  background: #334155;
+  box-shadow: none;
+  transform: none;
+}
+
+.mining-start-error {
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 86%;
+  padding: 8px 10px;
+  position: relative;
+  z-index: 3;
+}
+
+.mining-start-error[hidden] {
+  display: none;
 }
 
 .mining-core-note {

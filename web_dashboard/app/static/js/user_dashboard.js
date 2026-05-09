@@ -338,9 +338,15 @@
   const progressCircle = document.querySelector(".ring-progress");
   const percentText = document.getElementById("ringPercent");
   const countdownText = document.getElementById("miningCountdown");
+  const startForm = document.querySelector("[data-mining-start-form]");
   const remainingText = document.querySelector("[data-remaining-time]");
   const miningStatusLabel = document.querySelector("[data-mining-status-label]");
-  const startButton = document.querySelector(".start-core-button");
+  const cycleIdText = document.querySelector("[data-cycle-id]");
+  const startTimeText = document.querySelector("[data-start-time]");
+  const endTimeText = document.querySelector("[data-end-time]");
+  const miningCoreNote = document.querySelector("[data-mining-core-note]");
+  const startError = document.querySelector("[data-mining-start-error]");
+  const startButton = document.querySelector("[data-start-mining-button]");
   const radius = 150;
   const circumference = 2 * Math.PI * radius;
 
@@ -365,56 +371,178 @@
     return `${hours}:${minutes}:${secs}`;
   }
 
+  function titleCase(value) {
+    return String(value || "ready").replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
+    });
+  }
+
+  function showMiningError(message) {
+    if (!startError) return;
+    startError.textContent = message || "Could not start mining cycle. Please try again.";
+    startError.hidden = false;
+  }
+
+  function clearMiningError() {
+    if (!startError) return;
+    startError.textContent = "";
+    startError.hidden = true;
+  }
+
   if (ring) {
-    const initialProgress = Number(ring.dataset.progress || 0);
-    const canStart = ring.dataset.canStart === "true";
-    const duration = Number(ring.dataset.duration || 86400);
-    const startAt = ring.dataset.startAt ? Date.parse(ring.dataset.startAt) : 0;
-    const endAt = ring.dataset.endAt ? Date.parse(ring.dataset.endAt) : 0;
+    let currentProgress = Number(ring.dataset.progress || 0);
+    let currentCanStart = ring.dataset.canStart === "true";
+    let currentDuration = Number(ring.dataset.duration || 86400);
+    let currentStartAt = ring.dataset.startAt ? Date.parse(ring.dataset.startAt) : 0;
+    let currentEndAt = ring.dataset.endAt ? Date.parse(ring.dataset.endAt) : 0;
     let completionChecked = false;
     let animatedProgress = 0;
-    const introTimer = window.setInterval(function () {
-      animatedProgress += Math.max(1, initialProgress / 24);
-      if (animatedProgress >= initialProgress) {
-        animatedProgress = initialProgress;
+    let introTimer = window.setInterval(function () {
+      animatedProgress += Math.max(1, currentProgress / 24);
+      if (animatedProgress >= currentProgress) {
+        animatedProgress = currentProgress;
         window.clearInterval(introTimer);
+        introTimer = null;
       }
       setRingProgress(animatedProgress);
     }, 18);
 
-    if (canStart) {
-      countdownText.textContent = "Ready to start";
-      if (remainingText) remainingText.textContent = "00:00:00";
-    } else {
-      window.setInterval(function () {
-        const now = Date.now();
-        const elapsed = startAt && endAt ? (now - startAt) / 1000 : (initialProgress / 100) * duration;
-        const remaining = endAt ? (endAt - now) / 1000 : duration - elapsed;
-        const liveProgress = clamp((elapsed / duration) * 100, initialProgress, 100);
-        setRingProgress(liveProgress);
-        const remainingLabel = formatRemaining(remaining);
-        if (remainingText) remainingText.textContent = remainingLabel;
-        countdownText.textContent = liveProgress >= 100 ? "Completing cycle..." : `Remaining ${remainingLabel}`;
+    function updateStartButton(isLoading) {
+      if (!startButton) return;
+      startButton.classList.toggle("is-loading", Boolean(isLoading));
+      if (isLoading) {
+        startButton.disabled = true;
+        startButton.textContent = "Starting...";
+        return;
+      }
+      startButton.disabled = !currentCanStart;
+      startButton.textContent = currentCanStart ? "Start" : "Mining Active";
+    }
 
-        if (liveProgress >= 100 && !completionChecked) {
-          completionChecked = true;
-          fetch("/user/mining/status", { headers: { Accept: "application/json" } })
-            .then(function (response) {
-              return response.ok ? response.json() : null;
-            })
-            .then(function (data) {
-              if (!data) return;
-              if (data.completed) {
-                countdownText.textContent = `Completed. Added $${data.completed_income}`;
-                if (miningStatusLabel) miningStatusLabel.textContent = "Completed";
-                if (startButton) startButton.disabled = false;
-              }
-            })
-            .catch(function () {
-              countdownText.textContent = "Cycle complete. Refresh to claim status.";
-            });
+    function applyMiningStatus(status) {
+      if (!status) return;
+      if (introTimer) {
+        window.clearInterval(introTimer);
+        introTimer = null;
+      }
+
+      currentCanStart = Boolean(status.can_start);
+      currentProgress = Number(status.completed ? 100 : status.progress_percent || 0);
+      currentDuration = Number(status.duration || ring.dataset.duration || 86400);
+      currentStartAt = status.start_time_iso ? Date.parse(status.start_time_iso) : 0;
+      currentEndAt = status.end_time_iso ? Date.parse(status.end_time_iso) : 0;
+      completionChecked = Boolean(status.completed);
+
+      ring.dataset.progress = String(currentProgress);
+      ring.dataset.canStart = currentCanStart ? "true" : "false";
+      ring.dataset.startAt = status.start_time_iso || "";
+      ring.dataset.endAt = status.end_time_iso || "";
+      ring.dataset.status = status.status || "ready";
+
+      setRingProgress(currentProgress);
+      if (miningStatusLabel) miningStatusLabel.textContent = status.completed ? "Completed" : titleCase(status.status);
+      if (cycleIdText) cycleIdText.textContent = status.cycle_id || "-";
+      if (startTimeText) startTimeText.textContent = status.start_time || "-";
+      if (endTimeText) endTimeText.textContent = status.end_time || "-";
+
+      const remainingLabel = formatRemaining(Number(status.remaining_seconds || 0));
+      if (remainingText) remainingText.textContent = currentCanStart ? "00:00:00" : remainingLabel;
+      if (countdownText) {
+        if (status.completed) {
+          countdownText.textContent = `Completed. Added $${status.completed_income || "0.0000"}`;
+        } else {
+          countdownText.textContent = currentCanStart ? "Ready to start" : `Remaining ${remainingLabel}`;
         }
-      }, 1000);
+      }
+      if (miningCoreNote) {
+        miningCoreNote.textContent = currentCanStart
+          ? "Press Start to run a manual 24-hour mining cycle. No income is counted while you are stopped."
+          : "Your current mining cycle is active. A new cycle can start only after completion.";
+      }
+      updateStartButton(false);
+    }
+
+    function refreshMiningStatus() {
+      return fetch("/user/mining/status", {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      })
+        .then(function (response) {
+          return response.ok ? response.json() : null;
+        })
+        .then(function (data) {
+          if (!data) return null;
+          applyMiningStatus(data);
+          return data;
+        });
+    }
+
+    function tickMiningCycle() {
+      if (currentCanStart) return;
+      const now = Date.now();
+      const elapsed = currentStartAt && currentEndAt ? (now - currentStartAt) / 1000 : (currentProgress / 100) * currentDuration;
+      const remaining = currentEndAt ? (currentEndAt - now) / 1000 : currentDuration - elapsed;
+      const liveProgress = clamp((elapsed / currentDuration) * 100, currentProgress, 100);
+      setRingProgress(liveProgress);
+
+      const remainingLabel = formatRemaining(remaining);
+      if (remainingText) remainingText.textContent = remainingLabel;
+      if (countdownText) countdownText.textContent = liveProgress >= 100 ? "Completing cycle..." : `Remaining ${remainingLabel}`;
+
+      if (liveProgress >= 100 && !completionChecked) {
+        completionChecked = true;
+        refreshMiningStatus().catch(function () {
+          if (countdownText) countdownText.textContent = "Cycle complete. Refresh to claim status.";
+        });
+      }
+    }
+
+    updateStartButton(false);
+    if (currentCanStart) {
+      if (countdownText) countdownText.textContent = "Ready to start";
+      if (remainingText) remainingText.textContent = "00:00:00";
+    }
+    tickMiningCycle();
+    window.setInterval(tickMiningCycle, 1000);
+
+    if (startForm) {
+      startForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        if (!currentCanStart || !startButton) return;
+
+        clearMiningError();
+        updateStartButton(true);
+
+        fetch(startForm.action, {
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            "X-Requested-With": "fetch",
+          },
+          method: "POST",
+        })
+          .then(function (response) {
+            return response.json().catch(function () {
+              return null;
+            }).then(function (data) {
+              if (!response.ok || (data && data.ok === false)) {
+                if (data && data.status) applyMiningStatus(data.status);
+                throw new Error((data && data.error) || "Could not start mining cycle. Please try again.");
+              }
+              return data;
+            });
+          })
+          .then(function (data) {
+            if (!data) {
+              throw new Error("Could not read mining status. Please refresh and try again.");
+            }
+            applyMiningStatus(data && data.status ? data.status : data);
+          })
+          .catch(function (error) {
+            showMiningError(error.message);
+            updateStartButton(false);
+          });
+      });
     }
   }
 
