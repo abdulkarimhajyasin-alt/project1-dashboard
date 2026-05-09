@@ -7,7 +7,7 @@ from urllib.parse import quote, urlencode
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, AppSetting, Notification, Record, SupportMessage, SupportThread, User
+from app.models import Admin, AppSetting, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
 
@@ -19,6 +19,33 @@ DEFAULT_SETTINGS = {
     "site_name": "",
     "support_email": "",
     "maintenance_mode": "off",
+}
+
+PENDING_REQUEST_SECTIONS = {
+    "deposit": {
+        "title": "طلبات الإيداع",
+        "badge": "إيداع",
+        "amount_label": "المبلغ",
+        "empty": "لا توجد طلبات إيداع معلقة.",
+    },
+    "withdraw": {
+        "title": "طلبات السحب",
+        "badge": "سحب",
+        "amount_label": "المبلغ",
+        "empty": "لا توجد طلبات سحب معلقة.",
+    },
+    "capital_withdraw": {
+        "title": "طلبات سحب رأس المال",
+        "badge": "رأس المال",
+        "amount_label": "رأس المال",
+        "empty": "لا توجد طلبات سحب رأس مال معلقة.",
+    },
+    "verification": {
+        "title": "طلبات توثيق الحساب",
+        "badge": "توثيق",
+        "amount_label": "الاسم الكامل",
+        "empty": "لا توجد طلبات توثيق معلقة.",
+    },
 }
 
 
@@ -50,6 +77,24 @@ def get_admin_metrics(db: Session) -> dict:
 
 def get_support_threads(db: Session) -> list[SupportThread]:
     return db.query(SupportThread).order_by(SupportThread.updated_at.desc()).all()
+
+
+def get_pending_requests_context(db: Session) -> dict:
+    pending_requests = (
+        db.query(PendingRequest)
+        .filter(PendingRequest.status == "pending")
+        .order_by(PendingRequest.created_at.desc())
+        .all()
+    )
+    grouped_requests = {request_type: [] for request_type in PENDING_REQUEST_SECTIONS}
+    for pending_request in pending_requests:
+        grouped_requests.setdefault(pending_request.request_type, []).append(pending_request)
+
+    return {
+        "pending_request_sections": PENDING_REQUEST_SECTIONS,
+        "pending_requests_by_type": grouped_requests,
+        "pending_requests_total": len(pending_requests),
+    }
 
 
 def get_support_notification_message(support_message: SupportMessage) -> str:
@@ -123,6 +168,7 @@ def dashboard(request: Request, admin: Admin = Depends(get_current_admin), db: S
 @router.get("/notifications", response_class=HTMLResponse)
 def notifications(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     context = get_admin_metrics(db)
+    pending_context = get_pending_requests_context(db)
     return templates.TemplateResponse(
         "notifications.html",
         {
@@ -130,8 +176,27 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
             "admin": admin,
             "active_page": "notifications",
             **context,
+            **pending_context,
         },
     )
+
+
+@router.post("/pending-requests/{request_id}/accept")
+def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    if pending_request:
+        pending_request.status = "accepted"
+        db.commit()
+    return RedirectResponse(url="/notifications", status_code=303)
+
+
+@router.post("/pending-requests/{request_id}/reject")
+def reject_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    if pending_request:
+        pending_request.status = "rejected"
+        db.commit()
+    return RedirectResponse(url="/notifications", status_code=303)
 
 
 @router.get("/notifications/{notification_id}/open")

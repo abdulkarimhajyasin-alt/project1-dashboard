@@ -57,6 +57,34 @@ class Record(Base):
     user: Mapped[User] = relationship(back_populates="records")
 
 
+class PendingRequest(Base):
+    __tablename__ = "pending_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    request_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
+    full_name: Mapped[str] = mapped_column(String(160), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False, index=True)
+    details_json: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user: Mapped[User | None] = relationship()
+
+    @property
+    def details_rows(self) -> list[dict[str, str]]:
+        if not self.details_json:
+            return []
+        try:
+            data = json.loads(self.details_json)
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(data, dict):
+            return []
+        return [{"label": str(key), "value": str(value)} for key, value in data.items()]
+
+
 class AppSetting(Base):
     __tablename__ = "app_settings"
 

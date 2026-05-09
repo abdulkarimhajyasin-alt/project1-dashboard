@@ -1,26 +1,135 @@
 {% extends "base.html" %}
 
-{% block page_title %}الإشعارات{% endblock %}
+{% block page_title %}الطلبات المعلقة{% endblock %}
 
 {% block content %}
-<section class="admin-insight-grid">
-  <article class="admin-insight-card">
-    <span class="admin-alert-dot"></span>
-    <p class="mining-kicker">System Pulse</p>
-    <h2>حالة الشبكة مستقرة</h2>
-    <p>يوجد {{ active_cycles }} دورة تعدين نشطة و{{ active_users_count }} حساب نشط حالياً.</p>
+<section class="pending-requests-page">
+  <article class="pending-summary-card">
+    <div>
+      <p class="mining-kicker">Pending Requests</p>
+      <h2>الطلبات المعلقة: {{ pending_requests_total }}</h2>
+      <p>مركز مراجعة طلبات المستخدمين قبل تنفيذ أي إجراء إداري أو مالي.</p>
+    </div>
+    <div class="pending-summary-meter" aria-hidden="true">
+      <span>{{ pending_requests_total }}</span>
+    </div>
   </article>
-  <article class="admin-insight-card">
-    <span class="admin-alert-dot warning"></span>
-    <p class="mining-kicker">Capital Watch</p>
-    <h2>مراقبة رأس المال</h2>
-    <p>إجمالي رأس المال الحالي هو ${{ "%.2f"|format(total_capital or 0) }} مع أرباح قدرها ${{ "%.4f"|format(total_profits or 0) }}.</p>
-  </article>
-  <article class="admin-insight-card">
-    <span class="admin-alert-dot info"></span>
-    <p class="mining-kicker">Latest Ledger</p>
-    <h2>آخر تحديث للسجلات</h2>
-    <p>{% if latest_records %}آخر سجل هو "{{ latest_records[0].title }}" بتاريخ {{ latest_records[0].created_at.strftime("%Y-%m-%d") }}.{% else %}لا توجد سجلات بعد لعرض تنبيه مرتبط بها.{% endif %}</p>
-  </article>
+
+  <div class="pending-request-grid">
+    {% for request_type, section in pending_request_sections.items() %}
+    {% set requests = pending_requests_by_type.get(request_type, []) %}
+    <article class="pending-request-card {{ request_type }}">
+      <header class="pending-card-header">
+        <div>
+          <p class="mining-kicker">{{ section.badge }}</p>
+          <h3>{{ section.title }}</h3>
+        </div>
+        <span class="pending-type-badge">{{ requests|length }} معلق</span>
+      </header>
+
+      {% if requests %}
+      <div class="pending-table-wrap">
+        <table class="pending-table">
+          <thead>
+            <tr>
+              <th>المستخدم</th>
+              <th>{{ section.amount_label }}</th>
+              <th>التاريخ</th>
+              <th>الحالة</th>
+              <th>إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in requests %}
+            <tr>
+              <td>{{ item.user.username if item.user and item.user.username else item.user.name if item.user else "-" }}</td>
+              <td>
+                {% if request_type == 'verification' %}
+                {% if item.full_name %}{{ item.full_name }}{% elif item.user %}{{ item.user.name }}{% else %}-{% endif %}
+                {% else %}
+                ${{ "%.2f"|format(item.amount or 0) }}
+                {% endif %}
+              </td>
+              <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td><span class="pending-status">{{ item.status }}</span></td>
+              <td>
+                <div class="pending-actions">
+                  <button type="button" class="pending-view" data-admin-modal-open="pendingRequest{{ item.id }}">عرض</button>
+                  <form method="post" action="/pending-requests/{{ item.id }}/accept">
+                    <button class="pending-accept" type="submit">قبول</button>
+                  </form>
+                  <form method="post" action="/pending-requests/{{ item.id }}/reject">
+                    <button class="pending-reject" type="submit">رفض</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="pending-empty-state">
+        <strong>{{ section.empty }}</strong>
+        <p>عند وصول طلب جديد سيظهر هنا مع أزرار المراجعة.</p>
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
 </section>
+
+{% for request_type, section in pending_request_sections.items() %}
+{% for item in pending_requests_by_type.get(request_type, []) %}
+<div class="admin-command-modal" id="pendingRequest{{ item.id }}" data-admin-modal aria-hidden="true">
+  <section class="admin-command-dialog pending-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="pendingRequestTitle{{ item.id }}">
+    <button class="admin-command-close" type="button" data-admin-modal-close aria-label="إغلاق">X</button>
+    <p class="mining-kicker">{{ section.badge }}</p>
+    <h2 id="pendingRequestTitle{{ item.id }}">{{ section.title }}</h2>
+    <dl class="pending-detail-list">
+      <div>
+        <dt>المستخدم</dt>
+        <dd>{{ item.user.username if item.user and item.user.username else item.user.name if item.user else "-" }}</dd>
+      </div>
+      <div>
+        <dt>البريد</dt>
+        <dd>{{ item.user.email if item.user else "-" }}</dd>
+      </div>
+      <div>
+        <dt>{{ section.amount_label }}</dt>
+        <dd>
+          {% if request_type == 'verification' %}
+          {% if item.full_name %}{{ item.full_name }}{% elif item.user %}{{ item.user.name }}{% else %}-{% endif %}
+          {% else %}
+          ${{ "%.2f"|format(item.amount or 0) }}
+          {% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt>الحالة</dt>
+        <dd>{{ item.status }}</dd>
+      </div>
+      <div>
+        <dt>التاريخ</dt>
+        <dd>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</dd>
+      </div>
+      {% for detail in item.details_rows %}
+      <div>
+        <dt>{{ detail.label }}</dt>
+        <dd>{{ detail.value }}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+    <div class="pending-modal-actions">
+      <form method="post" action="/pending-requests/{{ item.id }}/accept">
+        <button class="pending-accept" type="submit">قبول الطلب</button>
+      </form>
+      <form method="post" action="/pending-requests/{{ item.id }}/reject">
+        <button class="pending-reject" type="submit">رفض الطلب</button>
+      </form>
+    </div>
+  </section>
+</div>
+{% endfor %}
+{% endfor %}
 {% endblock %}

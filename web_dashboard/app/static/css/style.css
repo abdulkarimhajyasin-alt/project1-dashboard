@@ -2330,10 +2330,230 @@ body.admin-modal-open {
   overflow: hidden;
 }
 
+.pending-requests-page {
+  display: grid;
+  gap: 18px;
+}
+
+.pending-summary-card,
+.pending-request-card {
+  background:
+    linear-gradient(145deg, rgba(15, 31, 51, 0.94), rgba(7, 14, 28, 0.92)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.08), transparent 54%, rgba(56, 189, 248, 0.1));
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.pending-summary-card {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+}
+
+.pending-summary-card h2 {
+  color: #ffffff;
+  font-size: 32px;
+  margin: 8px 0;
+}
+
+.pending-summary-card p {
+  color: #a8bbcf;
+  margin: 0;
+}
+
+.pending-summary-meter {
+  align-items: center;
+  aspect-ratio: 1;
+  background: rgba(37, 246, 164, 0.1);
+  border: 1px solid rgba(37, 246, 164, 0.28);
+  border-radius: 50%;
+  box-shadow: 0 0 38px rgba(37, 246, 164, 0.18);
+  color: #ffffff;
+  display: grid;
+  flex: 0 0 98px;
+  font-size: 34px;
+  font-weight: 900;
+  place-items: center;
+}
+
+.pending-request-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pending-request-card {
+  border-top: 3px solid #38bdf8;
+}
+
+.pending-request-card.deposit {
+  border-top-color: #25f6a4;
+}
+
+.pending-request-card.withdraw {
+  border-top-color: #38bdf8;
+}
+
+.pending-request-card.capital_withdraw {
+  border-top-color: #facc15;
+}
+
+.pending-request-card.verification {
+  border-top-color: #a78bfa;
+}
+
+.pending-card-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+}
+
+.pending-card-header h3 {
+  color: #ffffff;
+  margin: 6px 0 0;
+}
+
+.pending-type-badge {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  border-radius: 999px;
+  color: #dff7ff;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.pending-table-wrap {
+  overflow-x: auto;
+}
+
+.pending-table {
+  min-width: 720px;
+}
+
+.pending-table th,
+.pending-table td {
+  border-bottom-color: rgba(148, 163, 184, 0.12);
+  color: #e5eef8;
+  text-align: right;
+}
+
+.pending-table th {
+  color: #8ea5bb;
+}
+
+.pending-status {
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.26);
+  border-radius: 999px;
+  color: #fde68a;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 9px;
+}
+
+.pending-actions,
+.pending-modal-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pending-actions form,
+.pending-modal-actions form {
+  margin: 0;
+}
+
+.pending-view,
+.pending-accept,
+.pending-reject {
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 10px !important;
+}
+
+.pending-view {
+  background: rgba(103, 232, 249, 0.14) !important;
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  color: #dff7ff !important;
+}
+
+.pending-accept {
+  background: rgba(37, 246, 164, 0.16) !important;
+  border: 1px solid rgba(37, 246, 164, 0.3);
+  color: #dfffea !important;
+}
+
+.pending-reject {
+  background: rgba(248, 113, 113, 0.16) !important;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  color: #fecaca !important;
+}
+
+.pending-empty-state {
+  color: #9fb1c7;
+  display: grid;
+  gap: 8px;
+  min-height: 180px;
+  padding: 28px 18px;
+  place-items: center;
+  text-align: center;
+}
+
+.pending-empty-state strong {
+  color: #ffffff;
+}
+
+.pending-empty-state p {
+  margin: 0;
+}
+
+.pending-detail-dialog {
+  max-width: 640px;
+}
+
+.pending-detail-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.pending-detail-list div {
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+}
+
+.pending-detail-list dt {
+  color: #8ea5bb;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pending-detail-list dd {
+  color: #ffffff;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1100px) {
   .admin-command-grid,
   .admin-stats-grid,
-  .settings-command-center {
+  .settings-command-center,
+  .pending-request-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -2342,7 +2562,8 @@ body.admin-modal-open {
   .admin-mining-shell,
   .admin-command-grid,
   .admin-stats-grid,
-  .settings-command-center {
+  .settings-command-center,
+  .pending-request-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2365,6 +2586,11 @@ body.admin-modal-open {
 
   .settings-action-card {
     min-height: auto;
+  }
+
+  .pending-summary-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
