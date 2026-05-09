@@ -40,7 +40,7 @@
     <div class="support-chat-error">{{ verification_error }}</div>
     {% endif %}
     {% if verification_sent %}
-    <div class="verification-success-message">تم إرسال طلب التوثيق بنجاح، وسيتم مراجعته من الإدارة.</div>
+    <div class="verification-success-message" data-verification-flash>تم إرسال طلب التوثيق بنجاح، وسيتم مراجعته من الإدارة.</div>
     {% endif %}
     <form method="post" action="/user/account/verification" enctype="multipart/form-data" class="verification-form" data-verification-form>
       <label>

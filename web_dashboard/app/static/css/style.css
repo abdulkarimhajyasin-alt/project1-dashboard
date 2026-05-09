@@ -1619,6 +1619,11 @@ th {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.verification-upload-grid[hidden],
+.verification-upload-grid.is-hidden {
+  display: none !important;
+}
+
 .verification-upload-card {
   background: rgba(15, 23, 42, 0.58);
   border: 1px dashed rgba(103, 232, 249, 0.24);
@@ -1633,6 +1638,10 @@ th {
   max-height: 170px;
   object-fit: contain;
   width: 100%;
+}
+
+.verification-upload-card img[hidden] {
+  display: none !important;
 }
 
 .verification-success-message {

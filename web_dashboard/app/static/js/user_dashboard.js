@@ -18,6 +18,7 @@
   const verificationConfirmModal = document.querySelector("[data-verification-confirm-modal]");
   const verificationConfirmSubmit = document.querySelector("[data-verification-confirm-submit]");
   const verificationConfirmBack = document.querySelector("[data-verification-confirm-back]");
+  const verificationFlash = document.querySelector("[data-verification-flash]");
   const documentTypeSelect = document.querySelector("[data-document-type]");
   const dualDocumentFields = document.querySelector("[data-dual-document-fields]");
   const passportDocumentField = document.querySelector("[data-passport-document-field]");
@@ -125,6 +126,25 @@
     modal.classList.toggle("is-open", isOpen);
     modal.setAttribute("aria-hidden", String(!isOpen));
     body.classList.toggle("verification-modal-open", Boolean(document.querySelector(".user-verification-modal.is-open")));
+    if (modal === verificationModal && !isOpen) {
+      dismissVerificationFlash();
+    }
+  }
+
+  function clearVerificationSentParam() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("verification_sent")) return;
+    url.searchParams.delete("verification_sent");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  function dismissVerificationFlash() {
+    if (!verificationFlash || !verificationFlash.isConnected) {
+      clearVerificationSentParam();
+      return;
+    }
+    verificationFlash.remove();
+    clearVerificationSentParam();
   }
 
   function clearVerificationFileInput(input) {
@@ -144,6 +164,8 @@
   function setVerificationGroupActive(group, isActive) {
     if (!group) return;
     group.hidden = !isActive;
+    group.classList.toggle("is-hidden", !isActive);
+    group.setAttribute("aria-hidden", String(!isActive));
     group.querySelectorAll("input[type='file']").forEach(function (input) {
       input.disabled = !isActive;
       input.required = isActive;
@@ -448,7 +470,10 @@
   updateVerificationDocumentFields();
   setupVerificationPreviews();
 
-  if (verificationModal?.querySelector(".support-chat-error, .verification-success-message")) {
+  if (verificationFlash) {
+    setVerificationModalOpen(verificationModal, true);
+    window.setTimeout(dismissVerificationFlash, 4000);
+  } else if (verificationModal?.querySelector(".support-chat-error")) {
     setVerificationModalOpen(verificationModal, true);
   }
 
