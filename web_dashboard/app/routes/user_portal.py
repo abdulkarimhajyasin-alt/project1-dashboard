@@ -94,6 +94,8 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "referral_rank_info": rank_info,
         "rank_progress_percent": rank_progress_percent,
         "total_referral_earnings": total_referral_earnings or Decimal("0"),
+        "user_is_verified": bool(user.verified),
+        "verification_status": user.verification_status,
         "maintenance_enabled": is_maintenance_enabled(db),
         "user_notification_modal": request.session.pop("user_notification_modal", None),
         **get_user_notifications_context(db, user.id),

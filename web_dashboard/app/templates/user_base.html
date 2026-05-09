@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='/icons/favicon.svg') }}?v=novahash-2">
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=settings-control-panel">
 </head>
-<body class="user-app mining-app {{ 'maintenance-active' if maintenance_enabled|default(false) else '' }}">
+<body class="user-app mining-app {{ 'maintenance-active' if maintenance_enabled|default(false) else '' }}" data-user-verified="{{ 'true' if user_is_verified else 'false' }}">
   <div class="mining-bg" aria-hidden="true"></div>
   <div class="user-drawer-overlay" data-user-drawer-overlay aria-hidden="true"></div>
   <div class="mining-shell">
@@ -88,6 +88,25 @@
       {% endif %}
       <h2 id="userNoticeTitle">{{ user_notification_modal.title }}</h2>
       <p>{{ user_notification_modal.message }}</p>
+    </section>
+  </div>
+  {% endif %}
+  {% if not user_is_verified %}
+  <div class="user-system-modal unverified-warning-modal" data-unverified-warning-modal role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="unverifiedWarningTitle" aria-describedby="unverifiedWarningDescription">
+    <section class="user-system-dialog unverified-warning-dialog">
+      <button class="user-system-close" type="button" data-unverified-warning-close aria-label="إغلاق">X</button>
+      <div class="unverified-warning-icon" aria-hidden="true">!</div>
+      <p class="mining-kicker">Verification Required</p>
+      <h2 id="unverifiedWarningTitle">تنبيه مهم</h2>
+      <div class="unverified-warning-copy" id="unverifiedWarningDescription">
+        <p>حسابك غير موثق حالياً.</p>
+        <p>لن تتمكن من سحب أرباحك قبل إكمال توثيق الحساب.</p>
+        <p>يرجى توثيق حسابك الآن لضمان إمكانية السحب وحماية حسابك.</p>
+      </div>
+      <div class="unverified-warning-actions">
+        <a class="unverified-warning-primary" href="/user/account" data-unverified-warning-verify>توثيق الحساب</a>
+        <button class="unverified-warning-secondary" type="button" data-unverified-warning-close>إغلاق</button>
+      </div>
     </section>
   </div>
   {% endif %}

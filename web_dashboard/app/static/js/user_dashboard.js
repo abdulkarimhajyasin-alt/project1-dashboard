@@ -11,6 +11,9 @@
   const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
   const userMessageModal = document.querySelector("[data-user-message-modal]");
+  const unverifiedWarningModal = document.querySelector("[data-unverified-warning-modal]");
+  const unverifiedWarningCloseButtons = document.querySelectorAll("[data-unverified-warning-close]");
+  const unverifiedWarningVerifyButton = document.querySelector("[data-unverified-warning-verify]");
   const verificationModal = document.querySelector("[data-user-verification-modal]");
   const verificationOpenButton = document.querySelector("[data-user-verification-open]");
   const verificationCloseButtons = document.querySelectorAll("[data-user-verification-close]");
@@ -24,11 +27,14 @@
   const passportDocumentField = document.querySelector("[data-passport-document-field]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
   const maxVerificationImageSize = 5 * 1024 * 1024;
+  const unverifiedWarningStorageKey = "novahash_unverified_warning_last_seen";
+  const unverifiedWarningIntervalMs = 60 * 60 * 1000;
   const verificationImageLabels = {
     front: "صورة الوجه الأمامي",
     back: "صورة الوجه الخلفي",
     passport: "صورة جواز السفر",
   };
+  let unverifiedWarningTimer = null;
 
   function formatFileSize(size) {
     if (!Number.isFinite(size)) return "";
@@ -119,6 +125,63 @@
     if (!userMessageModal) return;
     userMessageModal.classList.remove("is-open");
     userMessageModal.setAttribute("aria-hidden", "true");
+  }
+
+  function getStoredUnverifiedWarningTime() {
+    try {
+      return Number(window.localStorage.getItem(unverifiedWarningStorageKey) || 0);
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function rememberUnverifiedWarningTime() {
+    const now = Date.now();
+    try {
+      window.localStorage.setItem(unverifiedWarningStorageKey, String(now));
+    } catch (error) {
+      // localStorage can be unavailable in private or restricted browsers.
+    }
+    return now;
+  }
+
+  function clearUnverifiedWarningTimer() {
+    if (!unverifiedWarningTimer) return;
+    window.clearTimeout(unverifiedWarningTimer);
+    unverifiedWarningTimer = null;
+  }
+
+  function scheduleUnverifiedWarning(delayMs) {
+    if (!unverifiedWarningModal || body.dataset.userVerified === "true") return;
+    clearUnverifiedWarningTimer();
+    unverifiedWarningTimer = window.setTimeout(function () {
+      setUnverifiedWarningOpen(true, false);
+    }, Math.max(0, delayMs));
+  }
+
+  function setUnverifiedWarningOpen(isOpen, shouldRemember) {
+    if (!unverifiedWarningModal) return;
+    const wasOpen = unverifiedWarningModal.classList.contains("is-open");
+    unverifiedWarningModal.classList.toggle("is-open", isOpen);
+    unverifiedWarningModal.setAttribute("aria-hidden", String(!isOpen));
+    if (isOpen) {
+      clearUnverifiedWarningTimer();
+    }
+    if (!isOpen && shouldRemember && wasOpen) {
+      rememberUnverifiedWarningTime();
+      scheduleUnverifiedWarning(unverifiedWarningIntervalMs);
+    }
+  }
+
+  function maybeShowUnverifiedWarning() {
+    if (!unverifiedWarningModal || body.dataset.userVerified === "true") return;
+    const lastSeenAt = getStoredUnverifiedWarningTime();
+    const elapsedMs = lastSeenAt ? Date.now() - lastSeenAt : unverifiedWarningIntervalMs;
+    if (elapsedMs >= unverifiedWarningIntervalMs) {
+      scheduleUnverifiedWarning(700);
+      return;
+    }
+    scheduleUnverifiedWarning(unverifiedWarningIntervalMs - elapsedMs);
   }
 
   function setVerificationModalOpen(modal, isOpen) {
@@ -318,6 +381,7 @@
       closeNotifications();
       setSupportChatOpen(false);
       closeUserMessageModal();
+      setUnverifiedWarningOpen(false, true);
       setVerificationModalOpen(verificationModal, false);
       setVerificationModalOpen(verificationConfirmModal, false);
     }
@@ -798,6 +862,22 @@
       closeUserMessageModal();
     }
   });
+
+  unverifiedWarningCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setUnverifiedWarningOpen(false, true);
+    });
+  });
+
+  unverifiedWarningVerifyButton?.addEventListener("click", rememberUnverifiedWarningTime);
+
+  unverifiedWarningModal?.addEventListener("click", function (event) {
+    if (event.target === unverifiedWarningModal) {
+      setUnverifiedWarningOpen(false, true);
+    }
+  });
+
+  maybeShowUnverifiedWarning();
 
   verificationOpenButton?.addEventListener("click", function () {
     setVerificationModalOpen(verificationModal, true);

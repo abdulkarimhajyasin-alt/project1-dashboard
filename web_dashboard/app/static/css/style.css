@@ -5110,6 +5110,96 @@ body.user-menu-open .user-drawer-overlay,
   margin: 0;
 }
 
+.unverified-warning-modal {
+  backdrop-filter: blur(14px);
+  background:
+    linear-gradient(135deg, rgba(2, 6, 23, 0.84), rgba(7, 14, 28, 0.9)),
+    radial-gradient(circle at 50% 20%, rgba(250, 204, 21, 0.12), transparent 34%),
+    radial-gradient(circle at 16% 82%, rgba(56, 189, 248, 0.12), transparent 28%);
+}
+
+.unverified-warning-dialog {
+  background:
+    linear-gradient(145deg, rgba(18, 28, 48, 0.98), rgba(7, 14, 28, 0.98)),
+    linear-gradient(90deg, rgba(250, 204, 21, 0.11), transparent 46%, rgba(56, 189, 248, 0.14));
+  border-color: rgba(250, 204, 21, 0.38);
+  box-shadow:
+    0 34px 110px rgba(0, 0, 0, 0.58),
+    0 0 52px rgba(250, 204, 21, 0.13),
+    0 0 46px rgba(56, 189, 248, 0.1);
+  overflow: hidden;
+}
+
+.unverified-warning-dialog::before {
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.36), rgba(56, 189, 248, 0.26), transparent);
+  content: "";
+  height: 3px;
+  inset: 0 0 auto;
+  position: absolute;
+}
+
+.unverified-warning-icon {
+  align-items: center;
+  background:
+    linear-gradient(145deg, rgba(250, 204, 21, 0.22), rgba(56, 189, 248, 0.14)),
+    rgba(3, 10, 20, 0.72);
+  border: 1px solid rgba(250, 204, 21, 0.38);
+  border-radius: 8px;
+  box-shadow: 0 0 28px rgba(250, 204, 21, 0.16), inset 0 0 22px rgba(56, 189, 248, 0.08);
+  color: #fde68a;
+  display: grid;
+  font-size: 30px;
+  font-weight: 900;
+  height: 58px;
+  margin-bottom: 16px;
+  place-items: center;
+  width: 58px;
+}
+
+.unverified-warning-copy {
+  display: grid;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+.unverified-warning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.unverified-warning-primary,
+.unverified-warning-secondary {
+  align-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.unverified-warning-primary {
+  background: linear-gradient(135deg, #25f6a4, #38bdf8);
+  border: 0;
+  box-shadow: 0 16px 34px rgba(37, 246, 164, 0.2), 0 0 24px rgba(56, 189, 248, 0.14);
+  color: #03121f;
+}
+
+.unverified-warning-secondary {
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #d7e8f8;
+}
+
+.unverified-warning-primary:hover,
+.unverified-warning-secondary:hover {
+  transform: translateY(-1px);
+}
+
 .maintenance-active .mining-shell {
   filter: blur(1.5px);
   pointer-events: none;
@@ -5130,6 +5220,19 @@ body.user-menu-open .user-drawer-overlay,
 
   .maintenance-copy {
     gap: 10px;
+  }
+
+  .unverified-warning-dialog {
+    padding: 28px 20px;
+  }
+
+  .unverified-warning-actions {
+    flex-direction: column;
+  }
+
+  .unverified-warning-primary,
+  .unverified-warning-secondary {
+    width: 100%;
   }
 }
 
