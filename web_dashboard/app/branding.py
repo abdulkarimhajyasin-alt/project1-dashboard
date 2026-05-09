@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from app.config import get_settings
 
 
@@ -5,30 +7,30 @@ PLATFORM_NAME = get_settings().app_name or "NovaHash"
 PLATFORM_TAGLINE = "Daily Mining Network"
 
 
-def build_referral_messages(referral_url: str) -> dict[str, str]:
-    full_message = f"""🚀 انضم إلى {PLATFORM_NAME} وابدأ دورة التعدين اليومية الخاصة بك الآن.
+def build_referral_share_context(referral_url: str) -> dict[str, str]:
+    telegram_text = f"""🚀 بدأت الآن على {PLATFORM_NAME}
 
-💎 احصل على أرباح يومية من التعدين النشط.
-👥 ابنِ شبكتك الخاصة واربح من نشاط فريقك عبر نظام الإحالات متعدد المستويات.
-⚡ كل شخص تدعوه يزيد من قوة شبكتك ودخلك اليومي.
+منصة تعدين يومي بنظام إحالات ذكي متعدد المستويات.
 
-🔗 رابط الدعوة الخاص بي:
-{referral_url}
+💎 ابدأ دورة التعدين اليومية الخاصة بك.
+👥 ابنِ شبكتك واربح من نشاط فريقك.
+📈 كلما كبر فريقك، ارتفعت رتبتك وزادت قوة شبكتك.
 
-⏳ كلما بدأت مبكراً، بنيت شبكة أكبر ووصلت إلى رتب أعلى داخل المنصة."""
+ابدأ الآن من رابط الدعوة الخاص بي 👇"""
 
-    short_message = f"""🔥 بدأت الآن على {PLATFORM_NAME}.
+    invite_message = f"{telegram_text}\n{referral_url}"
 
-المنصة تعتمد على التعدين اليومي وبناء شبكة إحالات ذكية متعددة المستويات ⚡
-
-💰 كل شخص ينضم من خلالك ويبدأ التعدين يضيف دخلاً متراكماً لشبكتك.
-📈 كلما كبر فريقك، ارتفعت رتبتك وزادت قوة أرباحك.
-
-ابدأ الآن وابنِ شبكتك قبل الجميع 👇
-
-🔗 {referral_url}"""
+    encoded_message = quote(invite_message, safe="")
+    encoded_referral_url = quote(referral_url, safe="")
+    encoded_telegram_text = quote(telegram_text, safe="")
+    encoded_facebook_quote = quote(invite_message, safe="")
 
     return {
-        "full": full_message,
-        "short": short_message,
+        "invite_message": invite_message,
+        "whatsapp_share_url": f"https://wa.me/?text={encoded_message}",
+        "telegram_share_url": f"https://t.me/share/url?url={encoded_referral_url}&text={encoded_telegram_text}",
+        "facebook_share_url": (
+            f"https://www.facebook.com/sharer/sharer.php?u={encoded_referral_url}"
+            f"&quote={encoded_facebook_quote}"
+        ),
     }

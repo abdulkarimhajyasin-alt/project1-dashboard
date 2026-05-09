@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.branding import PLATFORM_NAME, PLATFORM_TAGLINE, build_referral_messages
+from app.branding import PLATFORM_NAME, PLATFORM_TAGLINE, build_referral_share_context
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
 from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
@@ -147,7 +147,7 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         Record.record_type == "referral_reward",
     ).scalar()
     referral_url = get_referral_url(request, user)
-    referral_messages = build_referral_messages(referral_url)
+    referral_share = build_referral_share_context(referral_url)
     next_rank_target = referrals_count + int(rank_info.get("remaining") or 0)
     rank_progress_percent = 100 if not rank_info.get("next_rank") else min(100, int((referrals_count / max(1, next_rank_target)) * 100))
     return {
@@ -162,8 +162,10 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "withdraw_percent": withdraw_percent,
         "min_withdrawal": MIN_WITHDRAWAL,
         "referral_url": referral_url,
-        "referral_message": referral_messages["full"],
-        "short_referral_message": referral_messages["short"],
+        "invite_message": referral_share["invite_message"],
+        "whatsapp_share_url": referral_share["whatsapp_share_url"],
+        "telegram_share_url": referral_share["telegram_share_url"],
+        "facebook_share_url": referral_share["facebook_share_url"],
         "referrals_count": referrals_count,
         "referral_rank_info": rank_info,
         "rank_progress_percent": rank_progress_percent,

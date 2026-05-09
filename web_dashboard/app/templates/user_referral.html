@@ -2,7 +2,7 @@
 
 {% block title %}{{ platform_name }} - Referral Network{% endblock %}
 {% block page_title %}Build Your Network{% endblock %}
-{% block page_description %}شارك رابطك، تابع قوة شبكتك، وانسخ رسالة جاهزة لدعوة فريقك إلى {{ platform_name }}.{% endblock %}
+{% block page_description %}شارك رابطك مباشرة عبر قنواتك المفضلة وتابع قوة شبكتك داخل {{ platform_name }}.{% endblock %}
 
 {% block content %}
 <section class="referral-command">
@@ -12,9 +12,7 @@
     <p>كل دعوة ناجحة تضيف عقدة جديدة لشبكتك. عندما يبدأ فريقك التعدين اليومي، تظهر أرباح الإحالات متعددة المستويات في رصيدك وسجلك.</p>
     <div class="referral-actions-strip">
       <button type="button" data-copy-target="#referralLink">Copy Referral Link</button>
-      <button type="button" data-copy-target="#referralFullMessage">Copy Message</button>
-      <button type="button" data-copy-target="#referralShortMessage">Copy Short Message</button>
-      <button type="button" data-share-message data-share-target="#referralFullMessage">Share Message</button>
+      <button type="button" data-copy-target="#inviteMessage">Copy Invite Message</button>
     </div>
     <p class="copy-toast" data-copy-toast hidden></p>
   </article>
@@ -50,29 +48,22 @@
     <div class="referral-link-control">
       <input id="referralLink" value="{{ referral_url }}" readonly>
       <button type="button" data-copy-target="#referralLink">Copy Referral Link</button>
+      <button type="button" data-copy-target="#inviteMessage">Copy Invite Message</button>
     </div>
     <small>هذا الرابط خاص بحسابك الحالي داخل {{ platform_name }}.</small>
   </article>
 
-  <article class="referral-message-card">
-    <div>
-      <p class="mining-kicker">Ready Message</p>
-      <h2>رسالة مشاركة جاهزة</h2>
-    </div>
-    <textarea id="referralFullMessage" readonly>{{ referral_message }}</textarea>
-    <div class="mining-share-row">
-      <button type="button" data-copy-target="#referralFullMessage">Copy Full Message</button>
-    </div>
-  </article>
-
-  <article class="referral-message-card compact-message-card">
+  <article class="referral-share-card">
     <div>
       <p class="mining-kicker">Quick Share</p>
-      <h2>نسخة قصيرة</h2>
+      <h2>Share your invite</h2>
+      <p>اختر قناة المشاركة وسيتم إدراج رسالة الدعوة مع رابطك تلقائياً.</p>
     </div>
-    <textarea id="referralShortMessage" readonly>{{ short_referral_message }}</textarea>
-    <div class="mining-share-row">
-      <button type="button" data-copy-target="#referralShortMessage">Copy Short Message</button>
+    <span id="inviteMessage" hidden>{{ invite_message }}</span>
+    <div class="referral-social-actions">
+      <a class="referral-social-link whatsapp" href="{{ whatsapp_share_url }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+      <a class="referral-social-link telegram" href="{{ telegram_share_url }}" target="_blank" rel="noopener">Share on Telegram</a>
+      <a class="referral-social-link facebook" href="{{ facebook_share_url }}" target="_blank" rel="noopener">Share on Facebook</a>
     </div>
   </article>
 </section>

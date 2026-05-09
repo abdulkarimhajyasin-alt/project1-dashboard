@@ -1680,7 +1680,7 @@ th {
 .referral-hero-panel,
 .network-power-card,
 .enhanced-referral-card,
-.referral-message-card {
+.referral-share-card {
   background:
     linear-gradient(145deg, rgba(15, 31, 51, 0.92), rgba(7, 14, 28, 0.86)),
     linear-gradient(90deg, rgba(37, 246, 164, 0.08), transparent 54%, rgba(56, 189, 248, 0.10));
@@ -1714,7 +1714,7 @@ th {
 
 .referral-hero-panel h2,
 .network-power-card h2,
-.referral-message-card h2 {
+.referral-share-card h2 {
   color: #ffffff;
   margin: 8px 0 12px;
 }
@@ -1738,19 +1738,23 @@ th {
 
 .referral-actions-strip button,
 .referral-link-control button,
-.referral-message-card button {
+.referral-social-link {
   background: rgba(18, 52, 82, 0.72);
   border: 1px solid rgba(103, 232, 249, 0.20);
   border-radius: 8px;
   color: #e0faff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 900;
   min-height: 44px;
   padding: 11px 13px;
+  text-align: center;
 }
 
 .referral-actions-strip button:hover,
 .referral-link-control button:hover,
-.referral-message-card button:hover {
+.referral-social-link:hover {
   background: rgba(56, 189, 248, 0.16);
   border-color: rgba(37, 246, 164, 0.42);
   transform: translateY(-1px);
@@ -1851,7 +1855,7 @@ th {
 }
 
 .enhanced-referral-card label,
-.referral-message-card .mining-kicker {
+.referral-share-card .mining-kicker {
   font-weight: 900;
 }
 
@@ -1867,24 +1871,33 @@ th {
   min-width: 0;
 }
 
-.referral-message-card {
+.referral-share-card {
   display: grid;
   gap: 14px;
 }
 
-.referral-message-card textarea {
-  background: rgba(3, 10, 20, 0.72);
-  border: 1px solid rgba(103, 232, 249, 0.18);
-  border-radius: 8px;
-  color: #dff7ff;
-  line-height: 1.8;
-  min-height: 240px;
-  padding: 14px;
-  resize: vertical;
+.referral-share-card p {
+  color: #9fb1c7;
+  line-height: 1.7;
+  margin: 0;
 }
 
-.compact-message-card textarea {
-  min-height: 190px;
+.referral-social-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.referral-social-link.whatsapp {
+  border-color: rgba(37, 211, 102, 0.36);
+}
+
+.referral-social-link.telegram {
+  border-color: rgba(56, 189, 248, 0.36);
+}
+
+.referral-social-link.facebook {
+  border-color: rgba(96, 165, 250, 0.36);
 }
 
 @media (max-width: 900px) {
@@ -1898,9 +1911,13 @@ th {
     flex-direction: column;
   }
 
+  .referral-social-actions {
+    grid-template-columns: 1fr;
+  }
+
   .referral-actions-strip button,
   .referral-link-control button,
-  .referral-message-card button {
+  .referral-social-link {
     width: 100%;
   }
 }
