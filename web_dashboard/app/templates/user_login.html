@@ -19,8 +19,13 @@
           </div>
         </div>
         <p class="auth-kicker">منصة التعدين</p>
-        <h2>{{ platform_name|default("NovaHash") }} بوابتك اليومية للأرباح والإحالات</h2>
-        <p>تابع رأس المال، الأرباح، وسجل العمليات من لوحة واحدة مصممة للوضوح والسرعة.</p>
+        <h2>{{ platform_name|default("NovaHash") }} بوابتك اليومية للنمو الذكي</h2>
+        <p>ادخل إلى مركزك اليومي لمتابعة التعدين، الرصيد الحي، شبكة الإحالات، وحالة الحساب من تجربة واحدة مصممة للوضوح والسرعة.</p>
+        <div class="login-benefits" aria-label="NovaHash highlights">
+          <span>Daily Mining</span>
+          <span>Live Yield</span>
+          <span>Referral Network</span>
+        </div>
       </div>
       <div class="login-visual" aria-hidden="true">
         <div class="login-visual-header">
@@ -53,8 +58,8 @@
       {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
       <form method="post" action="/user/login" class="form-stack login-form" data-login-form>
         <label class="auth-field">
-          <span>اسم المستخدم أو البريد</span>
-          <input type="text" name="username" autocomplete="username" placeholder="username@example.com" required>
+          <span>اسم المستخدم</span>
+          <input type="text" name="username" autocomplete="username" placeholder="username" required>
         </label>
         <label class="auth-field">
           <span>كلمة المرور</span>
@@ -68,8 +73,8 @@
         </button>
       </form>
       <div class="login-card-links">
-        <a class="auth-link" href="/user/register">إنشاء حساب جديد</a>
-        <a class="auth-link muted-link" href="/login">دخول الأدمن</a>
+        <a class="auth-link register-link" href="/user/register">إنشاء حساب جديد</a>
+        <a class="hidden-admin-access" href="/login" aria-label="Admin login"><span aria-hidden="true"></span></a>
       </div>
     </section>
   </main>

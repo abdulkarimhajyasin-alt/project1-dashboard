@@ -332,7 +332,7 @@ def login_page(request: Request):
 @router.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     login_value = username.strip().lower()
-    user = db.query(User).filter(or_(User.username == login_value, User.email == login_value), User.status == "active").first()
+    user = db.query(User).filter(User.username == login_value, User.status == "active").first()
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
             "user_login.html",
