@@ -130,8 +130,39 @@ def ensure_record_amount_precision() -> None:
     if not engine.dialect.name.startswith("postgresql"):
         return
 
+    amount_column = next(
+        (column for column in inspector.get_columns("records") if column["name"] == "amount"),
+        None,
+    )
+    if not amount_column:
+        return
+    column_type = amount_column["type"]
+    if getattr(column_type, "precision", None) == 12 and getattr(column_type, "scale", None) == 4:
+        return
+
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE records ALTER COLUMN amount TYPE NUMERIC(12, 4)"))
+
+
+def ensure_user_financial_defaults() -> None:
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    updates = []
+    if "capital" in existing_columns:
+        updates.append("capital = COALESCE(capital, 0)")
+    if "profits" in existing_columns:
+        updates.append("profits = COALESCE(profits, 0)")
+    if "daily_earnings" in existing_columns:
+        updates.append("daily_earnings = COALESCE(daily_earnings, 0)")
+
+    if not updates:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text(f"UPDATE users SET {', '.join(updates)}"))
 
 
 def init_db() -> None:
@@ -139,6 +170,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     ensure_user_columns()
+    ensure_user_financial_defaults()
     ensure_notification_columns()
     ensure_support_message_columns()
     ensure_pending_request_columns()
