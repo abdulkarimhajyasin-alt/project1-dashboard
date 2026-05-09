@@ -10,7 +10,10 @@
     <p>نظرة سريعة على المستخدمين، رأس المال، الأرباح، ودورات التعدين النشطة.</p>
     <div class="admin-signal-row">
       <span>المستخدمون النشطون: <strong>{{ active_users_count }}</strong></span>
-      <span>الدورات النشطة: <strong>{{ active_cycles }}</strong></span>
+      <button class="admin-active-cycles-button" type="button" data-active-mining-open>
+        <span>الدورات النشطة:</span>
+        <strong data-active-mining-count>{{ active_cycles }}</strong>
+      </button>
       <span>حجم العمليات: <strong>${{ "%.2f"|format(total_amount or 0) }}</strong></span>
     </div>
   </article>
@@ -109,4 +112,14 @@
     </table>
   </div>
 </section>
+
+<div class="admin-command-modal" data-admin-modal data-active-mining-modal aria-hidden="true">
+  <div class="admin-command-dialog active-cycles-dialog" role="dialog" aria-modal="true" aria-labelledby="activeCyclesTitle">
+    <button class="admin-command-close" type="button" data-admin-modal-close aria-label="Close">×</button>
+    <p class="mining-kicker">Live Mining Monitor</p>
+    <h2 id="activeCyclesTitle">Active Mining Cycles</h2>
+    <div class="active-cycles-state" data-active-mining-state>Loading active mining cycles...</div>
+    <div class="active-cycles-list" data-active-mining-list></div>
+  </div>
+</div>
 {% endblock %}

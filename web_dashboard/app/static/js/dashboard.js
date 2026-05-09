@@ -17,6 +17,11 @@
   const deleteUserConfirm = deleteUserModal?.querySelector("[data-delete-user-confirm]");
   const deleteUserError = deleteUserModal?.querySelector("[data-delete-user-error]");
   const deleteUserCancelButtons = Array.from(deleteUserModal?.querySelectorAll("[data-delete-user-cancel]") || []);
+  const activeMiningOpen = document.querySelector("[data-active-mining-open]");
+  const activeMiningModal = document.querySelector("[data-active-mining-modal]");
+  const activeMiningState = activeMiningModal?.querySelector("[data-active-mining-state]");
+  const activeMiningList = activeMiningModal?.querySelector("[data-active-mining-list]");
+  const activeMiningCount = document.querySelector("[data-active-mining-count]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
   let pendingDeleteUserForm = null;
 
@@ -150,6 +155,131 @@
     }
   };
 
+  const setActiveMiningState = (message, type = "loading") => {
+    if (!activeMiningState) {
+      return;
+    }
+    activeMiningState.hidden = !message;
+    activeMiningState.textContent = message || "";
+    activeMiningState.dataset.state = type;
+  };
+
+  const makeActiveCycleMetric = (label, value) => {
+    const item = document.createElement("div");
+    item.className = "active-cycle-metric";
+
+    const labelNode = document.createElement("span");
+    labelNode.textContent = label;
+
+    const valueNode = document.createElement("strong");
+    valueNode.textContent = value || "-";
+
+    item.append(labelNode, valueNode);
+    return item;
+  };
+
+  const makeActiveCycleCard = (cycle) => {
+    const card = document.createElement("article");
+    card.className = "active-cycle-user-card";
+
+    const header = document.createElement("div");
+    header.className = "active-cycle-card-header";
+
+    const titleGroup = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = cycle.name || "-";
+    const meta = document.createElement("p");
+    meta.textContent = `${cycle.username || "-"} • ${cycle.email || "-"}`;
+    titleGroup.append(title, meta);
+
+    const details = document.createElement("a");
+    details.className = "admin-user-link active-cycle-details";
+    details.href = cycle.detail_url || `/users/${cycle.user_id}`;
+    details.textContent = "Details";
+
+    header.append(titleGroup, details);
+
+    const metrics = document.createElement("div");
+    metrics.className = "active-cycle-metrics";
+    [
+      ["Active Capital", `$${cycle.active_capital || "0.00"}`],
+      ["Current Daily Income", `$${cycle.current_daily_income || "0.0000"}`],
+      ["Expected Earned Income", `$${cycle.expected_earned_income || "0.0000"}`],
+      ["Cycle Start Time", cycle.cycle_start_time],
+      ["Actual Start Time", cycle.actual_start_time],
+      ["End Time", cycle.end_time],
+      ["Remaining Time", cycle.remaining_time],
+      ["Missed Time", cycle.missed_time],
+      ["Timezone", cycle.timezone],
+    ].forEach(([label, value]) => metrics.append(makeActiveCycleMetric(label, value)));
+
+    const progressValue = Number.parseFloat(cycle.progress_percent ?? 0);
+    const progressText = Number.isFinite(progressValue) ? progressValue.toFixed(2) : "0.00";
+    const progress = document.createElement("div");
+    progress.className = "active-cycle-progress";
+    progress.innerHTML = `
+      <div class="active-cycle-progress-label">
+        <span>Progress</span>
+        <strong>${progressText}%</strong>
+      </div>
+      <div class="active-cycle-progress-track">
+        <span style="width: ${progressText}%"></span>
+      </div>
+    `;
+
+    card.append(header, metrics, progress);
+    return card;
+  };
+
+  const renderActiveMiningCycles = (cycles) => {
+    if (!activeMiningList) {
+      return;
+    }
+
+    activeMiningList.innerHTML = "";
+    if (!Array.isArray(cycles) || cycles.length === 0) {
+      setActiveMiningState("No active mining cycles.", "empty");
+      return;
+    }
+
+    setActiveMiningState("", "ready");
+    cycles.forEach((cycle) => activeMiningList.append(makeActiveCycleCard(cycle)));
+  };
+
+  const loadActiveMiningCycles = async () => {
+    if (!activeMiningModal || !activeMiningList) {
+      return;
+    }
+
+    setAdminModalOpen(activeMiningModal, true);
+    setActiveMiningState("Loading active mining cycles...", "loading");
+    activeMiningList.innerHTML = "";
+    if (activeMiningOpen) {
+      activeMiningOpen.disabled = true;
+    }
+
+    try {
+      const response = await fetch("/dashboard/active-mining-cycles", {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error("Unable to load active mining cycles.");
+      }
+      const data = await response.json();
+      if (activeMiningCount) {
+        activeMiningCount.textContent = String(data.count ?? 0);
+      }
+      renderActiveMiningCycles(data.cycles || []);
+    } catch (error) {
+      setActiveMiningState(error.message || "Unable to load active mining cycles.", "error");
+    } finally {
+      if (activeMiningOpen) {
+        activeMiningOpen.disabled = false;
+      }
+    }
+  };
+
   document.addEventListener("submit", (event) => {
     const form = event.target.closest("[data-delete-user-form]");
     if (!form) {
@@ -235,6 +365,8 @@
       }
     });
   });
+
+  activeMiningOpen?.addEventListener("click", loadActiveMiningCycles);
 
   adminImageButtons.forEach((button) => {
     button.addEventListener("click", () => {

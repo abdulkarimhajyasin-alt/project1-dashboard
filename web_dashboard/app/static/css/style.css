@@ -2120,12 +2120,41 @@ body.verification-modal-open {
   margin-top: 18px;
 }
 
-.admin-signal-row span {
+.admin-signal-row span,
+.admin-active-cycles-button {
   background: rgba(56, 189, 248, 0.10);
   border: 1px solid rgba(103, 232, 249, 0.18);
   border-radius: 999px;
   color: #dff7ff;
   padding: 10px 13px;
+}
+
+.admin-active-cycles-button {
+  align-items: center;
+  box-shadow: 0 0 0 rgba(56, 189, 248, 0);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+  line-height: 1.2;
+  min-height: 42px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.admin-active-cycles-button:hover,
+.admin-active-cycles-button:focus-visible {
+  border-color: rgba(37, 246, 164, 0.44);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.18);
+  transform: translateY(-1px);
+}
+
+.admin-active-cycles-button:disabled {
+  cursor: progress;
+  opacity: 0.72;
+  transform: none;
+}
+
+.admin-active-cycles-button strong {
+  color: #ffffff;
 }
 
 .admin-orbit-card {
@@ -2304,6 +2333,12 @@ body.verification-modal-open {
   border-radius: 8px;
   color: #03111b;
   font-weight: 900;
+}
+
+.admin-app .admin-active-cycles-button:not(.danger-button):not(.mining-ghost-button):not(.admin-menu-button):not(.admin-message-button) {
+  background: rgba(56, 189, 248, 0.10);
+  border-radius: 999px;
+  color: #dff7ff;
 }
 
 .admin-app .danger-button {
@@ -2565,6 +2600,146 @@ body.verification-modal-open {
   .admin-delete-modal-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+.active-cycles-dialog {
+  max-height: min(86vh, 820px);
+  max-width: 1020px;
+  overflow-y: auto;
+  width: min(100%, 1020px);
+}
+
+.active-cycles-state {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 8px;
+  color: #c9d8ea;
+  margin-bottom: 14px;
+  padding: 13px 14px;
+}
+
+.active-cycles-state[data-state="error"] {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(248, 113, 113, 0.34);
+  color: #fecaca;
+}
+
+.active-cycles-state[data-state="empty"] {
+  background: rgba(56, 189, 248, 0.10);
+  color: #dff7ff;
+}
+
+.active-cycles-list {
+  display: grid;
+  gap: 14px;
+}
+
+.active-cycle-user-card {
+  background:
+    linear-gradient(145deg, rgba(15, 31, 51, 0.78), rgba(7, 14, 28, 0.84)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.07), transparent 55%, rgba(56, 189, 248, 0.08));
+  border: 1px solid rgba(103, 232, 249, 0.20);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.20);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.active-cycle-card-header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.active-cycle-card-header h3 {
+  color: #ffffff;
+  font-size: 18px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.active-cycle-card-header p {
+  color: #8ea5bb;
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.active-cycle-details {
+  white-space: nowrap;
+}
+
+.active-cycle-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.active-cycle-metric {
+  background: rgba(3, 10, 20, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.active-cycle-metric span {
+  color: #8ea5bb;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.active-cycle-metric strong {
+  color: #f8fbff;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.active-cycle-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.active-cycle-progress-label {
+  align-items: center;
+  color: #c9d8ea;
+  display: flex;
+  justify-content: space-between;
+}
+
+.active-cycle-progress-label strong {
+  color: #25f6a4;
+}
+
+.active-cycle-progress-track {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(103, 232, 249, 0.14);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.active-cycle-progress-track span {
+  background: linear-gradient(90deg, #25f6a4, #38bdf8);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.48);
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .active-cycle-card-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .active-cycle-metrics {
+    grid-template-columns: 1fr;
   }
 }
 

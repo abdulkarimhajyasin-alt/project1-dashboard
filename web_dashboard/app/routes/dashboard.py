@@ -3,15 +3,26 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from urllib.parse import quote, urlencode
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.mining import get_referral_rank_info, money, utc_now
+from app.mining import (
+    calculate_cycle_income,
+    cycle_actual_start,
+    cycle_earning_ratio,
+    cycle_window_end,
+    cycle_window_start,
+    get_referral_rank_info,
+    money,
+    progress_percent,
+    remaining_seconds,
+    utc_now,
+)
 from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
@@ -65,7 +76,11 @@ def get_admin_metrics(db: Session) -> dict:
     total_profits = db.query(func.coalesce(func.sum(User.profits), 0)).scalar()
     active_cycles = (
         db.query(MiningCycle)
-        .filter(MiningCycle.status == "active", MiningCycle.end_at > now)
+        .filter(
+            MiningCycle.status == "active",
+            MiningCycle.completed_at.is_(None),
+            func.coalesce(MiningCycle.cycle_window_end, MiningCycle.end_at) > now,
+        )
         .count()
     )
     latest_records = db.query(Record).order_by(Record.created_at.desc()).limit(5).all()
@@ -87,6 +102,57 @@ def get_admin_metrics(db: Session) -> dict:
         "settings": settings,
         **get_admin_notifications_context(db),
     }
+
+
+def format_seconds(total_seconds: int | None) -> str:
+    safe_seconds = max(0, int(total_seconds or 0))
+    hours = safe_seconds // 3600
+    minutes = (safe_seconds % 3600) // 60
+    seconds = safe_seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def serialize_active_mining_cycle(cycle: MiningCycle) -> dict:
+    user = cycle.user
+    timezone_name = user.timezone or "UTC"
+    income = calculate_cycle_income(cycle.active_capital, cycle.referral_income)
+    earning_ratio = cycle_earning_ratio(cycle)
+    expected_earned_income = money(income["final_income"] * earning_ratio)
+    cycle_remaining_seconds = remaining_seconds(cycle)
+    return {
+        "cycle_id": cycle.cycle_uuid,
+        "user_id": user.id,
+        "name": user.name or "-",
+        "username": user.username or user.name or "-",
+        "email": user.email or "-",
+        "active_capital": f"{money(cycle.active_capital):.2f}",
+        "current_daily_income": f"{income['final_income']:.4f}",
+        "expected_earned_income": f"{expected_earned_income:.4f}",
+        "cycle_start_time": format_datetime_for_timezone(cycle_window_start(cycle), timezone_name),
+        "actual_start_time": format_datetime_for_timezone(cycle_actual_start(cycle), timezone_name),
+        "end_time": format_datetime_for_timezone(cycle_window_end(cycle), timezone_name),
+        "remaining_time": format_seconds(cycle_remaining_seconds),
+        "missed_time": format_seconds(cycle.missed_seconds or 0),
+        "progress_percent": progress_percent(cycle),
+        "timezone": timezone_name,
+        "detail_url": f"/users/{user.id}",
+    }
+
+
+def get_active_mining_cycles(db: Session) -> list[MiningCycle]:
+    now = utc_now()
+    return (
+        db.query(MiningCycle)
+        .options(joinedload(MiningCycle.user))
+        .join(User, MiningCycle.user_id == User.id)
+        .filter(
+            MiningCycle.status == "active",
+            MiningCycle.completed_at.is_(None),
+            func.coalesce(MiningCycle.cycle_window_end, MiningCycle.end_at) > now,
+        )
+        .order_by(MiningCycle.start_at.desc(), MiningCycle.created_at.desc())
+        .all()
+    )
 
 
 def get_support_threads(db: Session) -> list[SupportThread]:
@@ -190,6 +256,17 @@ def dashboard(request: Request, admin: Admin = Depends(get_current_admin), db: S
             "active_page": "dashboard",
             **context,
         },
+    )
+
+
+@router.get("/dashboard/active-mining-cycles")
+def active_mining_cycles(admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    cycles = get_active_mining_cycles(db)
+    return JSONResponse(
+        {
+            "count": len(cycles),
+            "cycles": [serialize_active_mining_cycle(cycle) for cycle in cycles],
+        }
     )
 
 
