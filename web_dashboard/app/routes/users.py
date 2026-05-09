@@ -60,6 +60,36 @@ def format_admin_datetime(value, fmt: str) -> str:
     return value.strftime(fmt) if value else "-"
 
 
+def user_initials(user: User) -> str:
+    label = get_user_label(user)
+    parts = [part for part in label.replace("_", " ").split() if part]
+    if not parts:
+        return "U"
+    return "".join(part[0].upper() for part in parts[:2])
+
+
+def get_active_miner_ids(db: Session) -> set[int]:
+    rows = (
+        db.query(MiningCycle.user_id)
+        .filter(MiningCycle.status == "active", MiningCycle.completed_at.is_(None))
+        .distinct()
+        .all()
+    )
+    return {int(user_id) for (user_id,) in rows if user_id is not None}
+
+
+def get_users_metrics(db: Session) -> dict:
+    active_miner_ids = get_active_miner_ids(db)
+    return {
+        "total_users": db.query(User).count(),
+        "active_users": db.query(User).filter(User.status == "active").count(),
+        "verified_users": db.query(User).filter(User.verified.is_(True)).count(),
+        "active_miners": len(active_miner_ids),
+        "total_capital": db.query(func.coalesce(func.sum(User.capital), 0)).scalar() or Decimal("0"),
+        "total_profits": db.query(func.coalesce(func.sum(User.profits), 0)).scalar() or Decimal("0"),
+    }
+
+
 def get_direct_referral_counts(db: Session, user_ids: list[int]) -> dict[int, int]:
     if not user_ids:
         return {}
@@ -77,14 +107,24 @@ def get_direct_referral_counts(db: Session, user_ids: list[int]) -> dict[int, in
     return counts
 
 
-def serialize_user_tree_node(user: User, children_count: int, admin: Admin, referrer_label: str = "-") -> dict:
+def serialize_user_tree_node(
+    user: User,
+    children_count: int,
+    admin: Admin,
+    referrer_label: str = "-",
+    active_miner_ids: set[int] | None = None,
+) -> dict:
     rank_info = get_referral_rank_info(children_count)
+    active_miner_ids = active_miner_ids or set()
     return {
         "id": user.id,
         "name": user.name or "-",
         "username": get_user_label(user),
         "email": user.email or "-",
+        "initials": user_initials(user),
         "status": user.status or "active",
+        "verified": bool(user.verified),
+        "is_mining": user.id in active_miner_ids,
         "plan": user.plan or "none",
         "profits": f"{Decimal(user.profits or 0):.4f}",
         "capital": f"{Decimal(user.capital or 0):.2f}",
@@ -105,9 +145,66 @@ def serialize_user_tree_node(user: User, children_count: int, admin: Admin, refe
 
 @router.get("", response_class=HTMLResponse)
 def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
-    users = db.query(User).filter(User.referred_by_id.is_(None)).order_by(User.created_at.desc()).all()
-    referral_counts = get_direct_referral_counts(db, [user.id for user in users])
+    username = normalize_identifier(request.query_params.get("username"))
+    email = normalize_identifier(request.query_params.get("email"))
+    user_filter = normalize_identifier(request.query_params.get("filter")) or "all"
+    sort_by = normalize_identifier(request.query_params.get("sort")) or "newest"
+
+    child_counts_subquery = (
+        db.query(User.referred_by_id.label("parent_id"), func.count(User.id).label("referral_count"))
+        .filter(User.referred_by_id.isnot(None))
+        .group_by(User.referred_by_id)
+        .subquery()
+    )
+    referral_count_column = func.coalesce(child_counts_subquery.c.referral_count, 0)
+    active_miner_ids = get_active_miner_ids(db)
+
+    query = (
+        db.query(User, referral_count_column.label("referral_count"))
+        .outerjoin(child_counts_subquery, child_counts_subquery.c.parent_id == User.id)
+        .filter(User.referred_by_id.is_(None))
+    )
+
+    if username:
+        query = query.filter(func.lower(func.coalesce(User.username, User.name, "")).like(f"%{username}%"))
+    if email:
+        query = query.filter(func.lower(User.email).like(f"%{email}%"))
+    if user_filter == "active":
+        query = query.filter(User.status == "active")
+    elif user_filter == "verified":
+        query = query.filter(User.verified.is_(True))
+    elif user_filter == "miner":
+        query = query.filter(User.id.in_(list(active_miner_ids) or [-1]))
+    elif user_filter == "vip":
+        query = query.filter(User.plan == "vip")
+    elif user_filter == "referrals":
+        query = query.filter(referral_count_column > 0)
+
+    if sort_by == "capital":
+        query = query.order_by(User.capital.desc(), User.created_at.desc())
+    elif sort_by == "profits":
+        query = query.order_by(User.profits.desc(), User.created_at.desc())
+    elif sort_by == "referrals":
+        query = query.order_by(referral_count_column.desc(), User.created_at.desc())
+    else:
+        query = query.order_by(User.created_at.desc())
+
+    rows = query.all()
+    users = [user for user, _ in rows]
+    referral_counts = {user.id: int(referral_count or 0) for user, referral_count in rows}
     protected_user_ids = [user.id for user in users if is_protected_admin_user(user, admin)]
+    user_cards = [
+        {
+            "user": user,
+            "referral_count": referral_counts.get(user.id, 0),
+            "rank_info": get_referral_rank_info(referral_counts.get(user.id, 0)),
+            "delete_label": get_user_label(user),
+            "delete_protected": user.id in protected_user_ids,
+            "initials": user_initials(user),
+            "is_mining": user.id in active_miner_ids,
+        }
+        for user in users
+    ]
     return templates.TemplateResponse(
         "users.html",
         {
@@ -115,9 +212,15 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
             "admin": admin,
             "active_page": "users",
             "users": users,
+            "user_cards": user_cards,
             "referral_counts": referral_counts,
             "protected_user_ids": protected_user_ids,
             "get_referral_rank_info": get_referral_rank_info,
+            "users_metrics": get_users_metrics(db),
+            "active_filter": user_filter,
+            "active_sort": sort_by,
+            "search_username": username,
+            "search_email": email,
             **get_admin_notifications_context(db),
         },
     )
@@ -134,6 +237,7 @@ def user_children(user_id: int, admin: Admin = Depends(get_current_admin), db: S
     )
     child_counts = get_direct_referral_counts(db, [child.id for child in children])
     parent_label = get_user_label(parent)
+    active_miner_ids = get_active_miner_ids(db)
     return JSONResponse(
         {
             "parent_id": parent.id,
@@ -143,6 +247,7 @@ def user_children(user_id: int, admin: Admin = Depends(get_current_admin), db: S
                     child_counts.get(child.id, 0),
                     admin,
                     parent_label,
+                    active_miner_ids,
                 )
                 for child in children
             ],
