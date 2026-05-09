@@ -21,6 +21,7 @@ from app.mining import (
     money,
     progress_percent,
     remaining_seconds,
+    sync_active_cycle_with_user_capital,
     utc_now,
 )
 from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
@@ -297,6 +298,7 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
             final_plan = determine_plan_for_amount(amount)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) + amount)
             pending_request.user.plan = final_plan
+            sync_active_cycle_with_user_capital(pending_request.user, db)
             db.add(
                 Record(
                     user_id=pending_request.user.id,
@@ -343,7 +345,7 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                     kind="verification",
                     data={"Status": "approved", "Reviewed by": admin.username},
                 )
-        pending_request.status = "accepted"
+        pending_request.status = "approved"
         db.commit()
     return RedirectResponse(url="/notifications", status_code=303)
 

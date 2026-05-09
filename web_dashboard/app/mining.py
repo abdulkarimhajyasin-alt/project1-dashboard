@@ -129,6 +129,33 @@ def calculate_cycle_income(active_capital: Decimal, referral_income: Decimal = D
     }
 
 
+def apply_income_to_cycle(cycle: MiningCycle, active_capital: Decimal | None = None) -> dict[str, Decimal]:
+    if active_capital is not None:
+        cycle.active_capital = capital_money(active_capital)
+    income = calculate_cycle_income(cycle.active_capital, cycle.referral_income)
+    earned_income = money(income["final_income"] * cycle_earning_ratio(cycle))
+    cycle.active_capital = income["active_capital"]
+    cycle.mining_income = income["mining_income"]
+    cycle.referral_income = income["referral_income"]
+    cycle.capital_bonus = income["capital_bonus"]
+    cycle.full_daily_income = income["final_income"]
+    cycle.final_income = earned_income
+    cycle.final_income_after_time_deduction = earned_income
+    return income
+
+
+def sync_active_cycle_with_user_capital(user: User, db: Session) -> MiningCycle | None:
+    cycle = get_active_mining_cycle(db, user.id)
+    if not cycle:
+        return None
+
+    user_capital = capital_money(user.capital)
+    if capital_money(cycle.active_capital) != user_capital:
+        apply_income_to_cycle(cycle, user_capital)
+        db.add(cycle)
+    return cycle
+
+
 def get_referral_rank_info(referrals_count: int) -> dict[str, int | str | None]:
     if referrals_count > 100:
         return {
@@ -390,15 +417,8 @@ def complete_mining_cycle(db: Session, user: User, cycle: MiningCycle, now: date
     if cycle.status != "active" or cycle.completed_at is not None or window_end > normalize_utc(now):
         return None
 
-    income = calculate_cycle_income(cycle.active_capital, cycle.referral_income)
-    full_daily_income = income["final_income"]
-    earned_income = money(full_daily_income * cycle_earning_ratio(cycle))
-    cycle.mining_income = income["mining_income"]
-    cycle.referral_income = income["referral_income"]
-    cycle.capital_bonus = income["capital_bonus"]
-    cycle.full_daily_income = full_daily_income
-    cycle.final_income = earned_income
-    cycle.final_income_after_time_deduction = earned_income
+    income = apply_income_to_cycle(cycle)
+    earned_income = money(income["final_income"] * cycle_earning_ratio(cycle))
     cycle.status = "completed"
     cycle.completed_at = normalize_utc(now)
     user.profits = money(as_decimal(user.profits) + earned_income)
@@ -412,7 +432,7 @@ def complete_mining_cycle(db: Session, user: User, cycle: MiningCycle, now: date
 
 def settle_due_mining_cycle(user: User, db: Session, now: datetime | None = None) -> MiningCycle | None:
     now = now or utc_now()
-    cycle = get_active_mining_cycle(db, user.id)
+    cycle = sync_active_cycle_with_user_capital(user, db)
     completed_cycle = complete_mining_cycle(db, user, cycle, now) if cycle else None
     if completed_cycle:
         db.commit()
@@ -470,7 +490,7 @@ def cycle_to_iso(dt: datetime | None) -> str:
 
 def build_mining_status(user: User, db: Session, now: datetime | None = None) -> dict:
     now = normalize_utc(now or utc_now())
-    cycle = get_active_mining_cycle(db, user.id)
+    cycle = sync_active_cycle_with_user_capital(user, db)
     income = calculate_cycle_income(cycle.active_capital if cycle else user.capital, cycle.referral_income if cycle else Decimal("0"))
     earning_ratio = cycle_earning_ratio(cycle) if cycle else Decimal("0")
     expected_earned_income = money(income["final_income"] * earning_ratio) if cycle else Decimal("0")
