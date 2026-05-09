@@ -17,7 +17,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
 from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
 from app.models import Notification, PendingRequest, Record, User
-from app.notifications import create_admin_notification, get_user_notifications_context
+from app.notifications import build_notifications_poll_payload, create_admin_notification, get_user_notifications_context
 from app.config import get_settings
 from app.plans import MIN_DEPOSIT_AMOUNT, determine_plan_for_amount, parse_deposit_amount, plan_label
 from app.security import hash_password, verify_password
@@ -204,6 +204,28 @@ def get_support_notification_message(support_message) -> str:
     if support_message.has_attachment_data:
         return "صورة" if support_message.is_image else "ملف"
     return support_message.body or "رسالة جديدة"
+
+
+def serialize_user_support_message(message, thread) -> dict:
+    sender_label = "الدعم" if message.sender_type == "admin" else thread.user.username or thread.user.name
+    return {
+        "id": message.id,
+        "sender_type": message.sender_type,
+        "sender_label": sender_label,
+        "body": message.body or "",
+        "created_at": message.created_at.isoformat(),
+        "created_label": message.created_at.strftime("%Y-%m-%d %H:%M"),
+        "has_attachment": message.has_attachment_data,
+        "is_image": bool(message.is_image),
+        "attachment_url": f"/support/attachments/{message.id}" if message.has_attachment_data else "",
+    }
+
+
+def get_user_poll_messages(db: Session, user: User, thread_id: int | None) -> list[dict]:
+    thread = get_or_create_support_thread(db, user)
+    if thread_id and thread.id != thread_id:
+        return []
+    return [serialize_user_support_message(message, thread) for message in get_thread_messages(db, thread)]
 
 
 def get_user_display_name(user: User) -> str:
@@ -449,6 +471,23 @@ def clear_user_notifications(user: User = Depends(get_current_user), db: Session
     return RedirectResponse(url="/user/dashboard", status_code=303)
 
 
+@router.get("/notifications/poll")
+def user_notifications_poll(
+    thread_id: int | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return JSONResponse(
+        build_notifications_poll_payload(
+            db,
+            recipient_type="user",
+            recipient_user_id=user.id,
+            open_prefix="/user/notifications",
+            messages=get_user_poll_messages(db, user, thread_id),
+        )
+    )
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     completed_cycle = settle_due_mining_cycle(user, db)
@@ -603,6 +642,7 @@ def support_page(
 
 @router.post("/support/messages")
 def send_support_message(
+    request: Request,
     message: str = Form(""),
     attachment: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
@@ -610,6 +650,8 @@ def send_support_message(
 ):
     thread = get_or_create_support_thread(db, user)
     if not can_user_send_support_message(db, thread):
+        if request.headers.get("x-requested-with") == "fetch":
+            return JSONResponse({"ok": False, "error": "Please wait for support to reply before sending another message."}, status_code=409)
         return RedirectResponse(url="/user/support?chat=open&locked=1", status_code=303)
 
     try:
@@ -621,6 +663,8 @@ def send_support_message(
             attachment=attachment,
         )
     except SupportAttachmentError as exc:
+        if request.headers.get("x-requested-with") == "fetch":
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
         return RedirectResponse(url=f"/user/support?chat=open&{urlencode({'error': str(exc)})}", status_code=303)
     if support_message:
         create_admin_notification(
@@ -631,6 +675,15 @@ def send_support_message(
             kind="support",
         )
         db.commit()
+        if request.headers.get("x-requested-with") == "fetch":
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "messages": [serialize_user_support_message(item, thread) for item in get_thread_messages(db, thread)],
+                }
+            )
+    elif request.headers.get("x-requested-with") == "fetch":
+        return JSONResponse({"ok": False, "error": "Message is empty."}, status_code=400)
 
     return RedirectResponse(url="/user/support?chat=open", status_code=303)
 

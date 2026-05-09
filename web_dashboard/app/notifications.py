@@ -51,6 +51,44 @@ def create_user_notification(
     return notification
 
 
+def serialize_notification(notification: Notification, open_prefix: str) -> dict:
+    return {
+        "id": notification.id,
+        "title": notification.display_title,
+        "message": notification.display_message,
+        "created_at": notification.created_at.isoformat(),
+        "created_label": notification.created_at.strftime("%Y-%m-%d %H:%M"),
+        "target_url": notification.target_url or "",
+        "open_url": f"{open_prefix}/{notification.id}/open",
+        "kind": notification.kind or "system",
+        "is_read": bool(notification.is_read),
+        "data_rows": notification.data_rows if notification.kind != "support" else [],
+    }
+
+
+def build_notifications_poll_payload(
+    db: Session,
+    *,
+    recipient_type: str,
+    open_prefix: str,
+    recipient_user_id: int | None = None,
+    limit: int = 10,
+    messages: list[dict] | None = None,
+) -> dict:
+    query = db.query(Notification).filter(Notification.recipient_type == recipient_type)
+    if recipient_type == "user":
+        query = query.filter(Notification.recipient_user_id == recipient_user_id)
+    unread_count = query.filter(Notification.is_read.is_(False)).count()
+    notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
+    latest_notification_id = notifications[0].id if notifications else 0
+    return {
+        "unread_count": unread_count,
+        "notifications": [serialize_notification(item, open_prefix) for item in notifications],
+        "messages": messages or [],
+        "latest_notification_id": latest_notification_id,
+    }
+
+
 def get_admin_notifications_context(db: Session, limit: int = 10) -> dict:
     notifications = (
         db.query(Notification)

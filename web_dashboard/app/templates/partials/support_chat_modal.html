@@ -1,5 +1,5 @@
 {% if support_thread %}
-<div class="support-chat-backdrop {{ 'is-open' if support_chat_open else '' }}" data-support-chat-modal aria-hidden="{{ 'false' if support_chat_open else 'true' }}">
+<div class="support-chat-backdrop {{ 'is-open' if support_chat_open else '' }}" data-support-chat-modal data-support-thread-id="{{ support_thread.id }}" aria-hidden="{{ 'false' if support_chat_open else 'true' }}">
   <section class="support-chat-window" role="dialog" aria-modal="true" aria-label="محادثة الدعم">
     <header class="support-chat-header">
       <div>
@@ -17,9 +17,9 @@
       </div>
     </header>
 
-    <div class="support-chat-body">
+    <div class="support-chat-body" data-support-chat-body>
       {% for chat_message in support_messages %}
-      <article class="support-bubble {{ 'from-admin' if chat_message.sender_type == 'admin' else 'from-user' }}">
+      <article class="support-bubble {{ 'from-admin' if chat_message.sender_type == 'admin' else 'from-user' }}" data-support-message-id="{{ chat_message.id }}">
         <div class="support-bubble-meta">
           <strong>{{ 'الدعم' if chat_message.sender_type == 'admin' else support_thread.user.username or support_thread.user.name }}</strong>
           <small>{{ chat_message.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
@@ -44,7 +44,7 @@
     </div>
 
     {% set user_locked = support_chat_mode == 'user' and not can_user_send_support %}
-    <form class="support-chat-compose" method="post" action="{{ support_chat_post_url }}" enctype="multipart/form-data">
+    <form class="support-chat-compose" method="post" action="{{ support_chat_post_url }}" enctype="multipart/form-data" data-support-compose>
       {% if user_locked %}
       <div class="support-chat-locked">
         لا يمكنك إرسال رسالة جديدة حتى يرد الدعم على رسالتك السابقة.

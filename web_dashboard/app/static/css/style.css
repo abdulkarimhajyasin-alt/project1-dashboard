@@ -5476,6 +5476,27 @@ body.user-menu-open .user-drawer-overlay,
   top: -7px;
 }
 
+.realtime-toast {
+  background:
+    linear-gradient(145deg, rgba(15, 31, 51, 0.96), rgba(7, 14, 28, 0.94)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.12), rgba(56, 189, 248, 0.12));
+  border: 1px solid rgba(103, 232, 249, 0.32);
+  border-radius: 8px;
+  bottom: 22px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.38), 0 0 28px rgba(56, 189, 248, 0.16);
+  color: #dff7ff;
+  font-weight: 900;
+  left: 22px;
+  max-width: min(360px, calc(100vw - 44px));
+  padding: 13px 15px;
+  position: fixed;
+  z-index: 10000;
+}
+
+.realtime-toast[hidden] {
+  display: none;
+}
+
 .notification-panel {
   background:
     linear-gradient(145deg, rgba(15, 31, 51, 0.98), rgba(7, 14, 28, 0.94)),

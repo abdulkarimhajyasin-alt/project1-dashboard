@@ -25,7 +25,7 @@ from app.mining import (
     utc_now,
 )
 from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
-from app.notifications import create_user_notification, get_admin_notifications_context
+from app.notifications import build_notifications_poll_payload, create_user_notification, get_admin_notifications_context
 from app.plans import determine_plan_for_amount, plan_label
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
 from app.utils import format_datetime_for_timezone
@@ -217,6 +217,30 @@ def get_support_notification_message(support_message: SupportMessage) -> str:
     return support_message.body or "رسالة جديدة"
 
 
+def serialize_support_message(message: SupportMessage, thread: SupportThread) -> dict:
+    sender_label = "الدعم" if message.sender_type == "admin" else thread.user.username or thread.user.name
+    return {
+        "id": message.id,
+        "sender_type": message.sender_type,
+        "sender_label": sender_label,
+        "body": message.body or "",
+        "created_at": message.created_at.isoformat(),
+        "created_label": message.created_at.strftime("%Y-%m-%d %H:%M"),
+        "has_attachment": message.has_attachment_data,
+        "is_image": bool(message.is_image),
+        "attachment_url": f"/support/attachments/{message.id}" if message.has_attachment_data else "",
+    }
+
+
+def get_admin_poll_messages(db: Session, thread_id: int | None) -> list[dict]:
+    if not thread_id:
+        return []
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if not thread:
+        return []
+    return [serialize_support_message(message, thread) for message in get_thread_messages(db, thread)]
+
+
 @router.get("/support/attachments/{message_id}")
 def support_attachment(message_id: int, request: Request, db: Session = Depends(get_db)):
     admin_id = request.session.get("admin_id")
@@ -286,6 +310,22 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
             **context,
             **pending_context,
         },
+    )
+
+
+@router.get("/dashboard/notifications/poll")
+def admin_notifications_poll(
+    thread_id: int | None = None,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    return JSONResponse(
+        build_notifications_poll_payload(
+            db,
+            recipient_type="admin",
+            open_prefix="/notifications",
+            messages=get_admin_poll_messages(db, thread_id),
+        )
     )
 
 
@@ -514,6 +554,7 @@ def support_chat(
 @router.post("/support/chat/{thread_id}/reply")
 def support_chat_reply(
     thread_id: int,
+    request: Request,
     message: str = Form(""),
     attachment: UploadFile | None = File(None),
     admin: Admin = Depends(get_current_admin),
@@ -532,6 +573,8 @@ def support_chat_reply(
             attachment=attachment,
         )
     except SupportAttachmentError as exc:
+        if request.headers.get("x-requested-with") == "fetch":
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
         return RedirectResponse(url=f"/support/chat/{thread.id}?{urlencode({'error': str(exc)})}", status_code=303)
     if support_message:
         create_user_notification(
@@ -543,6 +586,15 @@ def support_chat_reply(
             kind="support",
         )
         db.commit()
+        if request.headers.get("x-requested-with") == "fetch":
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "messages": [serialize_support_message(item, thread) for item in get_thread_messages(db, thread)],
+                }
+            )
+    elif request.headers.get("x-requested-with") == "fetch":
+        return JSONResponse({"ok": False, "error": "Message is empty."}, status_code=400)
     return RedirectResponse(url=f"/support/chat/{thread.id}", status_code=303)
 
 

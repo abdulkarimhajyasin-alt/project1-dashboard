@@ -424,6 +424,167 @@
     });
   });
 
+  const realtimeToast = (() => {
+    const toast = document.createElement("div");
+    toast.className = "realtime-toast";
+    toast.hidden = true;
+    document.body.append(toast);
+    let timer = null;
+    return (message) => {
+      toast.textContent = message;
+      toast.hidden = false;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        toast.hidden = true;
+      }, 3200);
+    };
+  })();
+
+  const escapeHtml = (value = "") => String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  }[char]));
+
+  const latestNotificationIdFromDom = () => {
+    const first = document.querySelector(".notification-item[href*='/open']");
+    const match = first?.getAttribute("href")?.match(/\/(\d+)\/open/);
+    return match ? Number(match[1]) : 0;
+  };
+
+  let latestRealtimeNotificationId = latestNotificationIdFromDom();
+  let notificationPollTimer = null;
+  let notificationPollInFlight = false;
+
+  const renderNotifications = (payload) => {
+    notificationRoots.forEach((root) => {
+      const count = Number(payload.unread_count || 0);
+      const bell = root.querySelector("[data-notification-toggle]");
+      const oldBadge = root.querySelector(".notification-badge");
+      oldBadge?.remove();
+      if (count > 0 && bell) {
+        const badge = document.createElement("span");
+        badge.className = "notification-badge";
+        badge.textContent = String(count);
+        bell.append(badge);
+      }
+      const tools = root.querySelector(".notification-panel-tools span");
+      if (tools) tools.textContent = `${count} جديد`;
+      const list = root.querySelector(".notification-list");
+      if (!list) return;
+      const notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
+      if (!notifications.length) {
+        list.innerHTML = '<article class="notification-empty"><strong>لا توجد إشعارات حالياً</strong><p>سيظهر هنا لاحقاً كل تنبيه جديد.</p></article>';
+        return;
+      }
+      list.innerHTML = notifications.map((item) => `
+        <a class="notification-item ${escapeHtml(item.kind || "system")}" href="${escapeHtml(item.open_url || "/notifications")}">
+          <strong>${escapeHtml(item.title)}</strong>
+          <p>${escapeHtml(item.message)}</p>
+          <small>${escapeHtml(item.created_label || "")}</small>
+        </a>
+      `).join("");
+    });
+  };
+
+  const renderSupportMessages = (messages) => {
+    const bodyEl = supportChatModal?.querySelector("[data-support-chat-body]");
+    if (!bodyEl || !Array.isArray(messages)) return;
+    const previousLast = Number(bodyEl.querySelector("[data-support-message-id]:last-child")?.dataset.supportMessageId || 0);
+    bodyEl.innerHTML = messages.map((message) => `
+      <article class="support-bubble ${message.sender_type === "admin" ? "from-admin" : "from-user"}" data-support-message-id="${message.id}">
+        <div class="support-bubble-meta">
+          <strong>${escapeHtml(message.sender_label || "")}</strong>
+          <small>${escapeHtml(message.created_label || "")}</small>
+        </div>
+        ${message.body ? `<p>${escapeHtml(message.body)}</p>` : ""}
+        ${message.has_attachment ? (message.is_image ? `<img src="${escapeHtml(message.attachment_url)}" class="chat-image" alt="attachment">` : `<a href="${escapeHtml(message.attachment_url)}">تحميل الملف</a>`) : ""}
+      </article>
+    `).join("") || '<div class="support-chat-empty"><strong>لا توجد رسائل بعد</strong><p>ابدأ المحادثة برسالة واضحة.</p></div>';
+    const nextLast = Number(messages[messages.length - 1]?.id || 0);
+    if (nextLast > previousLast) bodyEl.scrollTop = bodyEl.scrollHeight;
+  };
+
+  const pollNotifications = (forceToast = false) => {
+    if (notificationPollInFlight) return Promise.resolve();
+    notificationPollInFlight = true;
+    const threadId = supportChatModal?.classList.contains("is-open") ? supportChatModal.dataset.supportThreadId : "";
+    const query = threadId ? `?thread_id=${encodeURIComponent(threadId)}` : "";
+    return fetch(`/dashboard/notifications/poll${query}`, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (!payload) return;
+        renderNotifications(payload);
+        renderSupportMessages(payload.messages);
+        const latest = Number(payload.latest_notification_id || 0);
+        if (latest > latestRealtimeNotificationId && (latestRealtimeNotificationId || forceToast)) {
+          realtimeToast(payload.notifications?.[0]?.title || "New notification");
+        }
+        latestRealtimeNotificationId = Math.max(latestRealtimeNotificationId, latest);
+      })
+      .finally(() => {
+        notificationPollInFlight = false;
+      });
+  };
+
+  const scheduleNotificationPoll = () => {
+    window.clearTimeout(notificationPollTimer);
+    const delay = document.hidden ? 15000 : 3000;
+    notificationPollTimer = window.setTimeout(() => {
+      pollNotifications().finally(scheduleNotificationPoll);
+    }, delay);
+  };
+
+  if (!window.__novaAdminNotificationPollingStarted) {
+    window.__novaAdminNotificationPollingStarted = true;
+    scheduleNotificationPoll();
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) pollNotifications(true);
+      scheduleNotificationPoll();
+    });
+    window.addEventListener("beforeunload", () => window.clearTimeout(notificationPollTimer));
+  }
+
+  document.addEventListener("click", (event) => {
+    const notificationLink = event.target.closest(".notification-item[href*='/open']");
+    if (!notificationLink) return;
+    const badge = notificationLink.closest("[data-notification-root]")?.querySelector(".notification-badge");
+    if (badge) {
+      const next = Math.max(0, Number(badge.textContent || 0) - 1);
+      badge.textContent = String(next);
+      if (!next) badge.remove();
+    }
+  });
+
+  supportChatModal?.querySelector("[data-support-compose]")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type='submit']");
+    button.disabled = true;
+    fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "fetch", Accept: "application/json" },
+    })
+      .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok || data.ok === false) throw new Error(data.error || "Could not send message.");
+        form.reset();
+        renderSupportMessages(data.messages);
+        pollNotifications(true);
+      })
+      .catch((error) => realtimeToast(error.message || "Could not send message."))
+      .finally(() => {
+        button.disabled = false;
+      });
+  });
+
   const setDrawerOpen = (isOpen) => {
     if (!drawer) {
       return;
