@@ -59,16 +59,19 @@
     </main>
   </div>
   {% if maintenance_enabled|default(false) %}
-  <div class="user-system-modal maintenance-modal is-open" role="dialog" aria-modal="true" aria-labelledby="maintenanceTitle">
-    <section class="user-system-dialog">
-      <p class="mining-kicker">Platform Maintenance</p>
-      <h2 id="maintenanceTitle">عميلنا العزيز:</h2>
-      <p>
-        المنصة تحت الصيانة.<br><br>
-        لا تقلق، حسابك يعمل بشكل طبيعي،<br>
-        وسنعود قريباً.<br><br>
-        شكراً على صبرك.
-      </p>
+  <div class="user-system-modal maintenance-modal is-open" role="dialog" aria-modal="true" aria-labelledby="maintenanceTitle" aria-describedby="maintenanceDescription">
+    <section class="user-system-dialog maintenance-card">
+      <div class="maintenance-icon" aria-hidden="true">
+        <span></span>
+      </div>
+      <p class="maintenance-eyebrow">PLATFORM MAINTENANCE</p>
+      <h2 id="maintenanceTitle">عميلنا العزيز</h2>
+      <div class="maintenance-copy" id="maintenanceDescription">
+        <p>المنصة تحت الصيانة حالياً لتحسين الأداء وتجربة الاستخدام.</p>
+        <p>جميع بياناتك وأموالك وحسابك آمنة وتعمل بشكل طبيعي.</p>
+        <p>سنعود للعمل خلال وقت قريب.</p>
+        <p>شكراً لصبرك وتفهمك.</p>
+      </div>
     </section>
   </div>
   {% endif %}

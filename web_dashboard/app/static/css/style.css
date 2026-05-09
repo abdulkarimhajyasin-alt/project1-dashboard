@@ -4011,6 +4011,148 @@ body.user-menu-open .user-drawer-overlay,
   border-color: rgba(250, 204, 21, 0.34);
 }
 
+.maintenance-modal {
+  backdrop-filter: blur(16px);
+  background:
+    linear-gradient(135deg, rgba(2, 6, 23, 0.86), rgba(5, 12, 25, 0.9)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.08), transparent 48%, rgba(56, 189, 248, 0.1));
+  padding: clamp(18px, 4vw, 34px);
+  place-items: center;
+}
+
+.maintenance-card {
+  align-items: center;
+  background:
+    linear-gradient(160deg, rgba(15, 31, 51, 0.96), rgba(5, 12, 25, 0.98)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.1), transparent 50%, rgba(56, 189, 248, 0.12));
+  border: 1px solid rgba(103, 232, 249, 0.34) !important;
+  box-shadow:
+    0 34px 110px rgba(0, 0, 0, 0.58),
+    0 0 58px rgba(56, 189, 248, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 580px;
+  min-height: min(520px, calc(100vh - 48px));
+  overflow: hidden;
+  padding: clamp(30px, 6vw, 56px);
+  text-align: center;
+}
+
+.maintenance-card::before {
+  background:
+    linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.48), transparent),
+    linear-gradient(0deg, transparent, rgba(37, 246, 164, 0.16), transparent);
+  content: "";
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+}
+
+.maintenance-card::after {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: 34px 34px;
+  content: "";
+  inset: 0;
+  mask-image: linear-gradient(to bottom, #000, transparent 84%);
+  pointer-events: none;
+  position: absolute;
+}
+
+.maintenance-icon,
+.maintenance-eyebrow,
+.maintenance-card h2,
+.maintenance-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.maintenance-icon {
+  align-items: center;
+  background:
+    linear-gradient(145deg, rgba(37, 246, 164, 0.18), rgba(56, 189, 248, 0.16)),
+    rgba(3, 10, 20, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.36);
+  border-radius: 8px;
+  box-shadow: 0 0 34px rgba(56, 189, 248, 0.22), inset 0 0 24px rgba(37, 246, 164, 0.08);
+  display: grid;
+  height: 82px;
+  margin-bottom: 22px;
+  place-items: center;
+  width: 82px;
+}
+
+.maintenance-icon::before,
+.maintenance-icon::after,
+.maintenance-icon span {
+  background: #dff7ff;
+  content: "";
+  display: block;
+  position: absolute;
+}
+
+.maintenance-icon::before {
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.58);
+  height: 12px;
+  top: 22px;
+  transform: rotate(45deg);
+  width: 42px;
+}
+
+.maintenance-icon::after {
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(37, 246, 164, 0.48);
+  height: 42px;
+  left: 33px;
+  top: 20px;
+  transform: rotate(45deg);
+  width: 12px;
+}
+
+.maintenance-icon span {
+  background: #25f6a4;
+  border-radius: 999px;
+  bottom: 18px;
+  box-shadow: 0 0 20px rgba(37, 246, 164, 0.54);
+  height: 10px;
+  right: 22px;
+  width: 34px;
+}
+
+.maintenance-eyebrow {
+  color: #67e8f9;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.maintenance-modal .maintenance-card h2 {
+  color: #ffffff;
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1.2;
+  margin: 0 0 18px;
+}
+
+.maintenance-copy {
+  display: grid;
+  gap: 12px;
+  max-width: 470px;
+}
+
+.maintenance-modal .maintenance-copy p {
+  color: #c9d8ea;
+  font-size: clamp(15px, 2.2vw, 18px);
+  line-height: 1.9;
+  margin: 0;
+}
+
 .user-system-dialog h2 {
   color: #ffffff;
   font-size: 28px;
@@ -4028,6 +4170,23 @@ body.user-menu-open .user-drawer-overlay,
   filter: blur(1.5px);
   pointer-events: none;
   user-select: none;
+}
+
+@media (max-width: 520px) {
+  .maintenance-card {
+    min-height: min(560px, calc(100vh - 28px));
+    padding: 28px 20px;
+  }
+
+  .maintenance-icon {
+    height: 72px;
+    margin-bottom: 18px;
+    width: 72px;
+  }
+
+  .maintenance-copy {
+    gap: 10px;
+  }
 }
 
 .user-topbar-actions {
