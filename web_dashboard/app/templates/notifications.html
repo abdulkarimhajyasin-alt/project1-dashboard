@@ -128,10 +128,13 @@
         <dd>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</dd>
       </div>
       {% for detail in item.details_rows %}
+      {% set skip_verification_detail = request_type == 'verification' and detail.label in ['الدولة', 'المنطقة الزمنية', 'نوع الوثيقة'] %}
+      {% if not skip_verification_detail %}
       <div>
         <dt>{{ detail.label }}</dt>
         <dd>{{ detail.value }}</dd>
       </div>
+      {% endif %}
       {% endfor %}
     </dl>
     {% if request_type == 'verification' and item.verification_images %}
