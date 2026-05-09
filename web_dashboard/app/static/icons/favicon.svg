@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NovaHash">
+  <defs>
+    <radialGradient id="novaGlow" cx="32%" cy="24%" r="72%">
+      <stop offset="0%" stop-color="#dff7ff"/>
+      <stop offset="28%" stop-color="#67e8f9"/>
+      <stop offset="58%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#081222"/>
+    </radialGradient>
+    <linearGradient id="novaStroke" x1="12" y1="10" x2="52" y2="54">
+      <stop offset="0%" stop-color="#25f6a4"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0f2742"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.22 0 0 0 0 0.74 0 0 0 0 0.97 0 0 0 0.95 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#020617"/>
+  <circle cx="32" cy="32" r="23" fill="url(#novaGlow)" filter="url(#softGlow)"/>
+  <circle cx="32" cy="32" r="26" fill="none" stroke="url(#novaStroke)" stroke-width="3" opacity="0.9"/>
+  <circle cx="32" cy="32" r="18" fill="none" stroke="#dff7ff" stroke-width="1.5" opacity="0.36"/>
+  <path d="M21 45V19h6l10 15V19h7v26h-6L28 30v15z" fill="#03111b"/>
+  <path d="M21 45V19h6l10 15V19h7v26h-6L28 30v15z" fill="none" stroke="#dff7ff" stroke-width="1" opacity="0.45"/>
+</svg>

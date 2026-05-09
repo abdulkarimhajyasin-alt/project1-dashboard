@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ platform_name|default("NovaHash") }} - لوحة التعدين{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='/icons/favicon.svg') }}?v=novahash-2">
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=settings-control-panel">
 </head>
 <body class="user-app mining-app {{ 'maintenance-active' if maintenance_enabled|default(false) else '' }}">
