@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -11,7 +11,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, is_maintenance_enabled
 from app.models import Notification, Record, User
 from app.notifications import create_admin_notification, get_user_notifications_context
 from app.security import hash_password, verify_password
@@ -91,6 +91,8 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "min_withdrawal": MIN_WITHDRAWAL,
         "referral_url": get_referral_url(request, user),
         "referrals_count": len(user.referrals),
+        "maintenance_enabled": is_maintenance_enabled(db),
+        "user_notification_modal": request.session.pop("user_notification_modal", None),
         **get_user_notifications_context(db, user.id),
     }
 
@@ -99,6 +101,17 @@ def get_support_notification_message(support_message) -> str:
     if support_message.has_attachment_data:
         return "صورة" if support_message.is_image else "ملف"
     return support_message.body or "رسالة جديدة"
+
+
+def get_safe_user_redirect(request: Request, fallback: str = "/user/dashboard") -> str:
+    referer = request.headers.get("referer", "")
+    if not referer:
+        return fallback
+
+    parsed = urlsplit(referer)
+    if parsed.path.startswith("/user/"):
+        return parsed.path + (f"?{parsed.query}" if parsed.query else "")
+    return fallback
 
 
 @router.get("/register", response_class=HTMLResponse, name="user_register")
@@ -193,6 +206,7 @@ def logout(request: Request):
 @router.get("/notifications/{notification_id}/open")
 def open_user_notification(
     notification_id: int,
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -209,7 +223,15 @@ def open_user_notification(
         return RedirectResponse(url="/user/dashboard", status_code=303)
 
     notification.is_read = True
-    target_url = notification.target_url or "/user/dashboard"
+    if notification.is_user_modal_notification:
+        request.session["user_notification_modal"] = {
+            "title": notification.display_title,
+            "message": notification.display_message,
+            "subtitle": notification.modal_subtitle,
+        }
+        target_url = get_safe_user_redirect(request)
+    else:
+        target_url = notification.target_url or "/user/dashboard"
     db.commit()
     return RedirectResponse(url=target_url, status_code=303)
 

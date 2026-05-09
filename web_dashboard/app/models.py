@@ -76,6 +76,7 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(String(180), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     target_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    target_plan: Mapped[str] = mapped_column(String(30), nullable=True)
     data_json: Mapped[str] = mapped_column(Text, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -126,6 +127,25 @@ class Notification(Base):
                 image_extensions = (".gif", ".jpeg", ".jpg", ".png", ".webp")
                 return "صورة" if attachment.lower().endswith(image_extensions) else "ملف"
         return self.message
+
+    @property
+    def is_user_modal_notification(self) -> bool:
+        return self.recipient_type == "user" and self.kind in {"broadcast", "plan_broadcast"}
+
+    @property
+    def target_plan_label(self) -> str:
+        plan_labels = {
+            "silver": "الفضية",
+            "gold": "الذهبية",
+            "vip": "VIP",
+        }
+        return plan_labels.get(self.target_plan or "", self.target_plan or "")
+
+    @property
+    def modal_subtitle(self) -> str:
+        if self.kind == "plan_broadcast" and self.target_plan_label:
+            return f"رسالة خاصة بمستخدمي باقة {self.target_plan_label}"
+        return ""
 
 
 class SupportThread(Base):

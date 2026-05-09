@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة التعدين{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=support-render-fix">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=settings-control-panel">
 </head>
-<body class="user-app mining-app">
+<body class="user-app mining-app {{ 'maintenance-active' if maintenance_enabled|default(false) else '' }}">
   <div class="mining-bg" aria-hidden="true"></div>
   <div class="user-drawer-overlay" data-user-drawer-overlay aria-hidden="true"></div>
   <div class="mining-shell">
@@ -58,6 +58,34 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=support-render-fix"></script>
+  {% if maintenance_enabled|default(false) %}
+  <div class="user-system-modal maintenance-modal is-open" role="dialog" aria-modal="true" aria-labelledby="maintenanceTitle">
+    <section class="user-system-dialog">
+      <p class="mining-kicker">Platform Maintenance</p>
+      <h2 id="maintenanceTitle">عميلنا العزيز:</h2>
+      <p>
+        المنصة تحت الصيانة.<br><br>
+        لا تقلق، حسابك يعمل بشكل طبيعي،<br>
+        وسنعود قريباً.<br><br>
+        شكراً على صبرك.
+      </p>
+    </section>
+  </div>
+  {% endif %}
+  {% if user_notification_modal %}
+  <div class="user-system-modal is-open" data-user-message-modal role="dialog" aria-modal="true" aria-labelledby="userNoticeTitle">
+    <section class="user-system-dialog">
+      <button class="user-system-close" type="button" data-user-modal-close aria-label="إغلاق">X</button>
+      {% if user_notification_modal.subtitle %}
+      <p class="mining-kicker">{{ user_notification_modal.subtitle }}</p>
+      {% else %}
+      <p class="mining-kicker">إشعار جديد</p>
+      {% endif %}
+      <h2 id="userNoticeTitle">{{ user_notification_modal.title }}</h2>
+      <p>{{ user_notification_modal.message }}</p>
+    </section>
+  </div>
+  {% endif %}
+  <script src="{{ url_for('static', path='/js/user_dashboard.js') }}?v=settings-control-panel"></script>
 </body>
 </html>

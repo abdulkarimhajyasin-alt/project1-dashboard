@@ -34,6 +34,7 @@ def create_user_notification(
     message: str,
     target_url: str,
     kind: str = "system",
+    target_plan: str | None = None,
     data: dict[str, str] | None = None,
 ) -> Notification:
     notification = Notification(
@@ -43,6 +44,7 @@ def create_user_notification(
         title=title,
         message=message,
         target_url=target_url,
+        target_plan=target_plan,
         data_json=json.dumps(data or {}, ensure_ascii=False),
     )
     db.add(notification)

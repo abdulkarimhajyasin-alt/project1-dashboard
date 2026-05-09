@@ -9,6 +9,8 @@
   const supportChatOpenButtons = Array.from(document.querySelectorAll("[data-support-chat-open]"));
   const supportChatCloseButtons = Array.from(document.querySelectorAll("[data-support-chat-close]"));
   const supportFileInputs = Array.from(document.querySelectorAll("[data-support-file-input]"));
+  const adminModalOpenButtons = Array.from(document.querySelectorAll("[data-admin-modal-open]"));
+  const adminModals = Array.from(document.querySelectorAll("[data-admin-modal]"));
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   const formatFileSize = (size) => {
@@ -103,6 +105,34 @@
     document.body.classList.toggle("support-chat-open", isOpen);
   };
 
+  const setAdminModalOpen = (modal, isOpen) => {
+    if (!modal) {
+      return;
+    }
+
+    modal.classList.toggle("is-open", isOpen);
+    modal.setAttribute("aria-hidden", String(!isOpen));
+    document.body.classList.toggle("admin-modal-open", adminModals.some((item) => item.classList.contains("is-open")));
+  };
+
+  adminModalOpenButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const modal = document.getElementById(button.dataset.adminModalOpen);
+      setAdminModalOpen(modal, true);
+    });
+  });
+
+  adminModals.forEach((modal) => {
+    modal.querySelectorAll("[data-admin-modal-close]").forEach((button) => {
+      button.addEventListener("click", () => setAdminModalOpen(modal, false));
+    });
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        setAdminModalOpen(modal, false);
+      }
+    });
+  });
+
   supportChatOpenButtons.forEach((button) => {
     button.addEventListener("click", () => setSupportChatOpen(true));
   });
@@ -174,6 +204,7 @@
       setDrawerOpen(false);
       closeNotifications();
       setSupportChatOpen(false);
+      adminModals.forEach((modal) => setAdminModalOpen(modal, false));
     }
   });
 

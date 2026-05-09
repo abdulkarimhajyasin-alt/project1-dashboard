@@ -4,21 +4,86 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>دخول المستخدم</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=user-login-pro">
 </head>
-<body class="user-auth-page">
-  <main class="auth-card">
-    <p class="auth-kicker">منصة التعدين</p>
-    <h1>تسجيل دخول المستخدم</h1>
-    <p>ادخل إلى لوحة أرباحك اليومية ورابط الإحالة الخاص بك.</p>
-    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
-    <form method="post" action="/user/login" class="form-stack">
-      <label>اسم المستخدم أو البريد<input type="text" name="username" autocomplete="username" required></label>
-      <label>كلمة المرور<input type="password" name="password" autocomplete="current-password" required></label>
-      <button type="submit">دخول</button>
-    </form>
-    <a class="auth-link" href="/user/register">إنشاء حساب جديد</a>
-    <a class="auth-link muted-link" href="/login">دخول الأدمن</a>
+<body class="user-auth-page user-login-page">
+  <main class="login-experience" aria-labelledby="login-title">
+    <section class="login-showcase">
+      <div class="login-showcase-copy">
+        <p class="auth-kicker">منصة التعدين</p>
+        <h2>بوابتك اليومية للأرباح والإحالات</h2>
+        <p>تابع رأس المال، الأرباح، وسجل العمليات من لوحة واحدة مصممة للوضوح والسرعة.</p>
+      </div>
+      <div class="login-visual" aria-hidden="true">
+        <div class="login-visual-header">
+          <span>Account Pulse</span>
+          <strong>Active</strong>
+        </div>
+        <div class="login-visual-rings">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="login-visual-grid">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="login-visual-footer">
+          <span>Daily Cycle</span>
+          <strong>24h</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-card login-card">
+      <div class="login-card-header">
+        <p class="auth-kicker">منصة التعدين</p>
+        <h1 id="login-title">تسجيل دخول المستخدم</h1>
+        <p>ادخل إلى لوحة أرباحك اليومية ورابط الإحالة الخاص بك.</p>
+      </div>
+      {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+      <form method="post" action="/user/login" class="form-stack login-form" data-login-form>
+        <label class="auth-field">
+          <span>اسم المستخدم أو البريد</span>
+          <input type="text" name="username" autocomplete="username" placeholder="username@example.com" required>
+        </label>
+        <label class="auth-field">
+          <span>كلمة المرور</span>
+          <div class="password-control">
+            <input id="userPassword" type="password" name="password" autocomplete="current-password" required>
+            <button type="button" data-password-toggle aria-controls="userPassword" aria-pressed="false">إظهار</button>
+          </div>
+        </label>
+        <button class="login-submit" type="submit" data-login-submit>
+          <span>دخول إلى اللوحة</span>
+        </button>
+      </form>
+      <div class="login-card-links">
+        <a class="auth-link" href="/user/register">إنشاء حساب جديد</a>
+        <a class="auth-link muted-link" href="/login">دخول الأدمن</a>
+      </div>
+    </section>
   </main>
+  <script>
+    (() => {
+      const passwordInput = document.getElementById("userPassword");
+      const toggleButton = document.querySelector("[data-password-toggle]");
+      const loginForm = document.querySelector("[data-login-form]");
+      const submitButton = document.querySelector("[data-login-submit]");
+
+      toggleButton?.addEventListener("click", () => {
+        const shouldShow = passwordInput.type === "password";
+        passwordInput.type = shouldShow ? "text" : "password";
+        toggleButton.textContent = shouldShow ? "إخفاء" : "إظهار";
+        toggleButton.setAttribute("aria-pressed", String(shouldShow));
+      });
+
+      loginForm?.addEventListener("submit", () => {
+        submitButton?.classList.add("is-loading");
+        submitButton?.setAttribute("disabled", "disabled");
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -10,6 +10,7 @@
   const supportChatOpenButtons = document.querySelectorAll("[data-support-chat-open]");
   const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
+  const userMessageModal = document.querySelector("[data-user-message-modal]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   function formatFileSize(size) {
@@ -97,6 +98,12 @@
     body.classList.toggle("support-chat-open", isOpen);
   }
 
+  function closeUserMessageModal() {
+    if (!userMessageModal) return;
+    userMessageModal.classList.remove("is-open");
+    userMessageModal.setAttribute("aria-hidden", "true");
+  }
+
   supportChatOpenButtons.forEach(function (button) {
     button.addEventListener("click", function () {
       setSupportChatOpen(true);
@@ -182,6 +189,7 @@
       setUserDrawerOpen(false);
       closeNotifications();
       setSupportChatOpen(false);
+      closeUserMessageModal();
     }
   });
 
@@ -300,5 +308,15 @@
         modal.remove();
       }, 260);
     });
+  });
+
+  document.querySelectorAll("[data-user-modal-close]").forEach(function (button) {
+    button.addEventListener("click", closeUserMessageModal);
+  });
+
+  userMessageModal?.addEventListener("click", function (event) {
+    if (event.target === userMessageModal) {
+      closeUserMessageModal();
+    }
   });
 })();

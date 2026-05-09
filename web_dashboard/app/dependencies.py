@@ -3,7 +3,12 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Admin, User
+from app.models import Admin, AppSetting, User
+
+
+def is_maintenance_enabled(db: Session) -> bool:
+    setting = db.query(AppSetting).filter(AppSetting.key == "maintenance_mode").first()
+    return bool(setting and setting.value == "on")
 
 
 def get_current_admin(request: Request, db: Session = Depends(get_db)) -> Admin:
@@ -28,6 +33,10 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     if not user:
         request.session.pop("user_id", None)
         raise_user_login_redirect()
+
+    if is_maintenance_enabled(db) and request.method not in {"GET", "HEAD"} and request.url.path != "/user/logout":
+        response = RedirectResponse(url="/user/dashboard", status_code=303)
+        raise LoginRedirect(response)
 
     return user
 

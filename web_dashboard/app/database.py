@@ -57,6 +57,7 @@ def ensure_notification_columns() -> None:
     existing_columns = {column["name"] for column in inspector.get_columns("notifications")}
     column_sql = {
         "recipient_user_id": "ALTER TABLE notifications ADD COLUMN recipient_user_id INTEGER REFERENCES users(id)",
+        "target_plan": "ALTER TABLE notifications ADD COLUMN target_plan VARCHAR(30)",
     }
 
     with engine.begin() as connection:
