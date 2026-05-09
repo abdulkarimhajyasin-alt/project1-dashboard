@@ -1757,21 +1757,17 @@ th {
 .plan-deposit-modal {
   align-items: center;
   background: rgba(2, 6, 23, 0.78);
-  display: grid;
+  backdrop-filter: blur(12px);
+  display: none;
   inset: 0;
-  opacity: 0;
+  justify-content: center;
   padding: 18px;
-  pointer-events: none;
-  position: fixed;
-  transition: opacity 180ms ease, visibility 180ms ease;
-  visibility: hidden;
-  z-index: 150;
+  position: fixed !important;
+  z-index: 9999;
 }
 
 .plan-deposit-modal.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
+  display: flex;
 }
 
 .plan-deposit-dialog {
@@ -1783,13 +1779,13 @@ th {
   box-shadow: 0 35px 110px rgba(0, 0, 0, 0.54);
   margin: auto;
   max-height: calc(100vh - 36px);
-  max-width: 620px;
+  max-width: 640px;
   overflow-y: auto;
   padding: 26px;
   position: relative;
   transform: translateY(14px) scale(0.98);
   transition: transform 180ms ease;
-  width: min(100%, 620px);
+  width: min(100%, 640px);
 }
 
 .plan-deposit-modal.is-open .plan-deposit-dialog {
@@ -1835,6 +1831,21 @@ th {
   padding: 11px 12px;
 }
 
+.plan-transfer-message,
+.plan-proof-instruction {
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(103, 232, 249, 0.14);
+  border-radius: 8px;
+  color: #c9d8ea;
+  line-height: 1.8;
+  margin: 0;
+  padding: 11px 12px;
+}
+
+.plan-transfer-message strong {
+  color: #25f6a4;
+}
+
 .plan-wallet-box {
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(103, 232, 249, 0.16);
@@ -1845,9 +1856,30 @@ th {
 }
 
 .plan-wallet-copy {
+  align-items: center;
   display: grid;
   gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.plan-wallet-label {
+  color: #dff7ff;
+  font-weight: 900;
+}
+
+.plan-wallet-copy code {
+  background: rgba(2, 6, 23, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  direction: ltr;
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  padding: 11px 12px;
+  text-align: left;
 }
 
 .plan-wallet-copy button,
@@ -1863,6 +1895,37 @@ th {
 .plan-wallet-box small,
 .plan-proof-preview span {
   color: #9fb1c7;
+}
+
+.plan-network-box {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(37, 246, 164, 0.18);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.plan-network-box span {
+  color: #dff7ff;
+  font-weight: 900;
+}
+
+.plan-network-box label {
+  align-items: center;
+  color: #25f6a4;
+  display: flex;
+  flex-direction: row;
+  font-weight: 900;
+  gap: 8px;
+}
+
+.plan-network-box input {
+  accent-color: #25f6a4;
+  background: transparent;
+  border: 0;
+  min-height: auto;
+  padding: 0;
 }
 
 .plan-switch-notice {
@@ -3824,7 +3887,7 @@ body.admin-modal-open {
 
 @media (max-width: 680px) {
   .plan-deposit-modal {
-    align-items: end;
+    align-items: center;
     padding: 10px;
   }
 

@@ -43,27 +43,48 @@
     <h2 id="planDepositTitle">طلب اشتراك <span data-plan-title>Silver</span></h2>
     <form method="post" action="/user/plans/deposit" enctype="multipart/form-data" class="plan-deposit-form" data-plan-form>
       <input type="hidden" name="selected_plan" value="silver" data-selected-plan>
-      <div class="plan-wallet-box">
-        <label for="depositWallet">عنوان محفظة USDT</label>
-        <div class="plan-wallet-copy">
-          <input id="depositWallet" type="text" value="{{ deposit_wallet_address }}" readonly data-wallet-address>
-          <button type="button" data-wallet-copy>نسخ</button>
-        </div>
-        <small data-wallet-copy-status>أرسل المبلغ إلى العنوان ثم ارفع صورة الإثبات.</small>
-      </div>
+      <input type="hidden" name="payment_network" value="TRC20">
+
       <label>
         مبلغ الإيداع USDT
         <input type="number" name="amount" min="{{ min_deposit_amount }}" step="0.01" inputmode="decimal" placeholder="10.00" required data-plan-amount>
       </label>
+
       <div class="plan-switch-notice" data-plan-switch-notice hidden></div>
+
+      <p class="plan-transfer-message">
+        قم بتحويل <strong data-plan-transfer-amount>0.00</strong> USDT إلى عنوان المحفظة التالي:
+      </p>
+
+      <div class="plan-wallet-box">
+        <span class="plan-wallet-label">عنوان محفظة USDT</span>
+        <div class="plan-wallet-copy">
+          <code data-wallet-address>{{ deposit_wallet_address }}</code>
+          <button type="button" data-wallet-copy>نسخ</button>
+        </div>
+        <small data-wallet-copy-status>العنوان ثابت وغير قابل للتعديل.</small>
+      </div>
+
+      <div class="plan-network-box">
+        <span>اختر شبكة التحويل:</span>
+        <label>
+          <input type="radio" checked>
+          TRC20
+        </label>
+      </div>
+
+      <p class="plan-proof-instruction">📸 بعد التحويل قم بأخذ لقطة شاشة لإشعار الإرسال وأرسل لنا إثبات الدفع.</p>
+
       <label>
         صورة إثبات التحويل
         <input type="file" name="proof_image" accept="image/*" required data-plan-proof>
       </label>
+
       <div class="plan-proof-preview" data-plan-proof-preview hidden>
         <img src="" alt="صورة إثبات التحويل" data-plan-proof-image>
         <span data-plan-proof-name></span>
       </div>
+
       <button class="plan-deposit-submit" type="submit">إرسال طلب الإيداع</button>
     </form>
   </section>

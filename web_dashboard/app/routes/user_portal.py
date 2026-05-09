@@ -492,6 +492,7 @@ def plans_page(
 def submit_deposit_request(
     amount: str = Form(""),
     selected_plan: str = Form(""),
+    payment_network: str = Form(""),
     proof_image: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -499,6 +500,8 @@ def submit_deposit_request(
     try:
         clean_amount = parse_deposit_amount(amount)
         final_plan = determine_plan_for_amount(clean_amount)
+        if payment_network.strip().upper() != "TRC20":
+            raise ValueError("شبكة التحويل المقبولة هي TRC20 فقط.")
         proof_data = read_deposit_proof_image(proof_image)
     except ValueError as exc:
         return RedirectResponse(url=f"/user/plans?{urlencode({'deposit_error': str(exc)})}", status_code=303)
@@ -524,6 +527,7 @@ def submit_deposit_request(
                 "الباقة النهائية": plan_label(final_plan),
                 "المبلغ": f"{clean_amount:.2f} USDT",
                 "عنوان المحفظة": app_settings.usdt_wallet_address,
+                "شبكة التحويل": "TRC20",
             },
             ensure_ascii=False,
         ),
@@ -541,6 +545,8 @@ def submit_deposit_request(
             "Amount": f"{clean_amount:.2f} USDT",
             "Final plan": plan_label(final_plan),
             "Selected plan": plan_label(selected_plan),
+            "Wallet address": app_settings.usdt_wallet_address,
+            "Payment network": "TRC20",
         },
     )
     db.commit()

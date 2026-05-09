@@ -934,8 +934,9 @@
   const selectedPlanInput = document.querySelector("[data-selected-plan]");
   const planTitle = document.querySelector("[data-plan-title]");
   const planAmountInput = document.querySelector("[data-plan-amount]");
+  const planTransferAmount = document.querySelector("[data-plan-transfer-amount]");
   const planSwitchNotice = document.querySelector("[data-plan-switch-notice]");
-  const walletInput = document.querySelector("[data-wallet-address]");
+  const walletAddressElement = document.querySelector("[data-wallet-address]");
   const walletCopyButton = document.querySelector("[data-wallet-copy]");
   const walletCopyStatus = document.querySelector("[data-wallet-copy-status]");
   const planProofInput = document.querySelector("[data-plan-proof]");
@@ -943,6 +944,10 @@
   const planProofImage = document.querySelector("[data-plan-proof-image]");
   const planProofName = document.querySelector("[data-plan-proof-name]");
   let planProofObjectUrl = "";
+
+  if (planModal && planModal.parentElement !== body) {
+    body.appendChild(planModal);
+  }
 
   function setPlanModalOpen(isOpen) {
     if (!planModal) return;
@@ -965,6 +970,9 @@
   function updatePlanSwitchNotice() {
     if (!selectedPlanInput || !planAmountInput || !planSwitchNotice) return;
     const amount = Number(planAmountInput.value);
+    if (planTransferAmount) {
+      planTransferAmount.textContent = Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : "0.00";
+    }
     const finalPlan = planForAmount(amount);
     if (finalPlan && finalPlan !== selectedPlanInput.value) {
       planSwitchNotice.hidden = false;
@@ -1010,7 +1018,7 @@
   planAmountInput?.addEventListener("input", updatePlanSwitchNotice);
 
   walletCopyButton?.addEventListener("click", function () {
-    const walletAddress = walletInput?.value || "";
+    const walletAddress = walletAddressElement?.textContent?.trim() || "";
     copyTextValue(walletAddress).then(function () {
       if (walletCopyStatus) walletCopyStatus.textContent = "تم نسخ عنوان المحفظة.";
       showCopyToast("Copied successfully");
