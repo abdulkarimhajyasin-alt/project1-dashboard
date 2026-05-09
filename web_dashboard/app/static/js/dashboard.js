@@ -11,6 +11,7 @@
   const supportFileInputs = Array.from(document.querySelectorAll("[data-support-file-input]"));
   const adminModalOpenButtons = Array.from(document.querySelectorAll("[data-admin-modal-open]"));
   const adminModals = Array.from(document.querySelectorAll("[data-admin-modal]"));
+  const adminImageButtons = Array.from(document.querySelectorAll("[data-admin-image-src]"));
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   const formatFileSize = (size) => {
@@ -130,6 +131,22 @@
       if (event.target === modal) {
         setAdminModalOpen(modal, false);
       }
+    });
+  });
+
+  adminImageButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const modal = document.getElementById("verificationImagePreview");
+      const image = modal?.querySelector("[data-admin-image-preview]");
+      const title = modal?.querySelector("[data-admin-image-title]");
+      if (!modal || !image) {
+        return;
+      }
+      image.src = button.dataset.adminImageSrc || "";
+      if (title) {
+        title.textContent = button.dataset.adminImageTitle || "صورة التوثيق";
+      }
+      setAdminModalOpen(modal, true);
     });
   });
 

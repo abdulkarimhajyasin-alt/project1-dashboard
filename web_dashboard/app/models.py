@@ -36,6 +36,14 @@ class User(Base):
     referral_code: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=True)
     referred_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     last_start_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verification_status: Mapped[str] = mapped_column(String(30), default="unverified", nullable=False)
+    legal_full_name: Mapped[str] = mapped_column(String(160), nullable=True)
+    residence_country: Mapped[str] = mapped_column(String(120), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(80), nullable=True)
+    document_type: Mapped[str] = mapped_column(String(40), nullable=True)
+    verification_requested_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    verification_approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     records: Mapped[list[Record]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -65,6 +73,19 @@ class PendingRequest(Base):
     request_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
     full_name: Mapped[str] = mapped_column(String(160), nullable=True)
+    legal_full_name: Mapped[str] = mapped_column(String(160), nullable=True)
+    country: Mapped[str] = mapped_column(String(120), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(80), nullable=True)
+    document_type: Mapped[str] = mapped_column(String(40), nullable=True)
+    front_image_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
+    front_image_mime_type: Mapped[str] = mapped_column(String(120), nullable=True)
+    front_image_size: Mapped[int] = mapped_column(Integer, nullable=True)
+    back_image_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
+    back_image_mime_type: Mapped[str] = mapped_column(String(120), nullable=True)
+    back_image_size: Mapped[int] = mapped_column(Integer, nullable=True)
+    passport_image_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=True)
+    passport_image_mime_type: Mapped[str] = mapped_column(String(120), nullable=True)
+    passport_image_size: Mapped[int] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False, index=True)
     details_json: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -83,6 +104,26 @@ class PendingRequest(Base):
         if not isinstance(data, dict):
             return []
         return [{"label": str(key), "value": str(value)} for key, value in data.items()]
+
+    @property
+    def document_type_label(self) -> str:
+        labels = {
+            "id_card": "بطاقة شخصية",
+            "driver_license": "رخصة قيادة",
+            "passport": "جواز سفر",
+        }
+        return labels.get(self.document_type or "", self.document_type or "-")
+
+    @property
+    def verification_images(self) -> list[dict[str, str]]:
+        images = []
+        if self.front_image_data:
+            images.append({"type": "front", "label": "صورة الوجه الأمامي"})
+        if self.back_image_data:
+            images.append({"type": "back", "label": "صورة الوجه الخلفي"})
+        if self.passport_image_data:
+            images.append({"type": "passport", "label": "صورة جواز السفر"})
+        return images
 
 
 class AppSetting(Base):

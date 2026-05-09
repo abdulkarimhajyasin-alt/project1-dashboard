@@ -105,6 +105,20 @@
           {% endif %}
         </dd>
       </div>
+      {% if request_type == 'verification' %}
+      <div>
+        <dt>الدولة</dt>
+        <dd>{{ item.country or "-" }}</dd>
+      </div>
+      <div>
+        <dt>المنطقة الزمنية</dt>
+        <dd>{{ item.timezone or "-" }}</dd>
+      </div>
+      <div>
+        <dt>نوع الوثيقة</dt>
+        <dd>{{ item.document_type_label }}</dd>
+      </div>
+      {% endif %}
       <div>
         <dt>الحالة</dt>
         <dd>{{ item.status }}</dd>
@@ -120,7 +134,22 @@
       </div>
       {% endfor %}
     </dl>
+    {% if request_type == 'verification' and item.verification_images %}
+    <div class="verification-proof-grid">
+      {% for image in item.verification_images %}
+      <button type="button" class="verification-proof-button" data-admin-image-src="/pending-requests/{{ item.id }}/image/{{ image.type }}" data-admin-image-title="{{ image.label }}">
+        <img src="/pending-requests/{{ item.id }}/image/{{ image.type }}" alt="{{ image.label }}">
+        <span>{{ image.label }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
     <div class="pending-modal-actions">
+      {% if request_type == 'verification' %}
+      <form method="post" action="/pending-requests/{{ item.id }}/save">
+        <button class="pending-view" type="submit">حفظ</button>
+      </form>
+      {% endif %}
       <form method="post" action="/pending-requests/{{ item.id }}/accept">
         <button class="pending-accept" type="submit">قبول الطلب</button>
       </form>
@@ -132,4 +161,13 @@
 </div>
 {% endfor %}
 {% endfor %}
+
+<div class="admin-command-modal" id="verificationImagePreview" data-admin-modal aria-hidden="true">
+  <section class="admin-command-dialog verification-image-dialog" role="dialog" aria-modal="true" aria-labelledby="verificationImageTitle">
+    <button class="admin-command-close" type="button" data-admin-modal-close aria-label="إغلاق">X</button>
+    <p class="mining-kicker">Verification Image</p>
+    <h2 id="verificationImageTitle" data-admin-image-title>صورة التوثيق</h2>
+    <img src="" alt="صورة التوثيق" data-admin-image-preview>
+  </section>
+</div>
 {% endblock %}

@@ -41,6 +41,14 @@ def ensure_user_columns() -> None:
         "referral_code": "ALTER TABLE users ADD COLUMN referral_code VARCHAR(64)",
         "referred_by_id": "ALTER TABLE users ADD COLUMN referred_by_id INTEGER REFERENCES users(id)",
         "last_start_at": "ALTER TABLE users ADD COLUMN last_start_at TIMESTAMP",
+        "verified": "ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT FALSE",
+        "verification_status": "ALTER TABLE users ADD COLUMN verification_status VARCHAR(30) NOT NULL DEFAULT 'unverified'",
+        "legal_full_name": "ALTER TABLE users ADD COLUMN legal_full_name VARCHAR(160)",
+        "residence_country": "ALTER TABLE users ADD COLUMN residence_country VARCHAR(120)",
+        "timezone": "ALTER TABLE users ADD COLUMN timezone VARCHAR(80)",
+        "document_type": "ALTER TABLE users ADD COLUMN document_type VARCHAR(40)",
+        "verification_requested_at": "ALTER TABLE users ADD COLUMN verification_requested_at TIMESTAMP",
+        "verification_approved_at": "ALTER TABLE users ADD COLUMN verification_approved_at TIMESTAMP",
     }
 
     with engine.begin() as connection:
@@ -86,6 +94,35 @@ def ensure_support_message_columns() -> None:
                 connection.execute(text(ddl))
 
 
+def ensure_pending_request_columns() -> None:
+    inspector = inspect(engine)
+    if "pending_requests" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("pending_requests")}
+    binary_type = "BYTEA" if engine.dialect.name.startswith("postgresql") else "BLOB"
+    column_sql = {
+        "legal_full_name": "ALTER TABLE pending_requests ADD COLUMN legal_full_name VARCHAR(160)",
+        "country": "ALTER TABLE pending_requests ADD COLUMN country VARCHAR(120)",
+        "timezone": "ALTER TABLE pending_requests ADD COLUMN timezone VARCHAR(80)",
+        "document_type": "ALTER TABLE pending_requests ADD COLUMN document_type VARCHAR(40)",
+        "front_image_data": f"ALTER TABLE pending_requests ADD COLUMN front_image_data {binary_type}",
+        "front_image_mime_type": "ALTER TABLE pending_requests ADD COLUMN front_image_mime_type VARCHAR(120)",
+        "front_image_size": "ALTER TABLE pending_requests ADD COLUMN front_image_size INTEGER",
+        "back_image_data": f"ALTER TABLE pending_requests ADD COLUMN back_image_data {binary_type}",
+        "back_image_mime_type": "ALTER TABLE pending_requests ADD COLUMN back_image_mime_type VARCHAR(120)",
+        "back_image_size": "ALTER TABLE pending_requests ADD COLUMN back_image_size INTEGER",
+        "passport_image_data": f"ALTER TABLE pending_requests ADD COLUMN passport_image_data {binary_type}",
+        "passport_image_mime_type": "ALTER TABLE pending_requests ADD COLUMN passport_image_mime_type VARCHAR(120)",
+        "passport_image_size": "ALTER TABLE pending_requests ADD COLUMN passport_image_size INTEGER",
+    }
+
+    with engine.begin() as connection:
+        for column_name, ddl in column_sql.items():
+            if column_name not in existing_columns:
+                connection.execute(text(ddl))
+
+
 def init_db() -> None:
     from app import models  # noqa: F401
 
@@ -93,6 +130,7 @@ def init_db() -> None:
     ensure_user_columns()
     ensure_notification_columns()
     ensure_support_message_columns()
+    ensure_pending_request_columns()
 
 
 def get_db():

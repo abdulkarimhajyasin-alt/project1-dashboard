@@ -1,4 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
-from app.models import Notification, Record, User
+from app.models import Notification, PendingRequest, Record, User
 from app.notifications import create_admin_notification, get_user_notifications_context
 from app.security import hash_password, verify_password
 from app.support_chat import (
@@ -30,6 +31,59 @@ DAILY_DURATION = timedelta(hours=24)
 MIN_WITHDRAWAL = Decimal("10.00")
 BASE_DAILY_REWARD = Decimal("0.001")
 REFERRAL_DAILY_REWARD = Decimal("0.0005")
+MAX_VERIFICATION_IMAGE_SIZE = 5 * 1024 * 1024
+DOCUMENT_TYPES = {
+    "id_card": "بطاقة شخصية",
+    "driver_license": "رخصة قيادة",
+    "passport": "جواز سفر",
+}
+COUNTRY_TIMEZONES = [
+    ("أذربيجان", "Asia/Baku"),
+    ("الأردن", "Asia/Amman"),
+    ("الإمارات العربية المتحدة", "Asia/Dubai"),
+    ("البحرين", "Asia/Bahrain"),
+    ("الجزائر", "Africa/Algiers"),
+    ("السعودية", "Asia/Riyadh"),
+    ("السودان", "Africa/Khartoum"),
+    ("الصومال", "Africa/Mogadishu"),
+    ("العراق", "Asia/Baghdad"),
+    ("الكويت", "Asia/Kuwait"),
+    ("المغرب", "Africa/Casablanca"),
+    ("المكسيك", "America/Mexico_City"),
+    ("المملكة المتحدة", "Europe/London"),
+    ("النرويج", "Europe/Oslo"),
+    ("النمسا", "Europe/Vienna"),
+    ("الولايات المتحدة", "America/New_York"),
+    ("اليابان", "Asia/Tokyo"),
+    ("اليمن", "Asia/Aden"),
+    ("إسبانيا", "Europe/Madrid"),
+    ("إستونيا", "Europe/Tallinn"),
+    ("إندونيسيا", "Asia/Jakarta"),
+    ("إيران", "Asia/Tehran"),
+    ("إيطاليا", "Europe/Rome"),
+    ("باكستان", "Asia/Karachi"),
+    ("بلجيكا", "Europe/Brussels"),
+    ("بنغلاديش", "Asia/Dhaka"),
+    ("تركيا", "Europe/Istanbul"),
+    ("تونس", "Africa/Tunis"),
+    ("روسيا", "Europe/Moscow"),
+    ("رومانيا", "Europe/Bucharest"),
+    ("سنغافورة", "Asia/Singapore"),
+    ("سوريا", "Asia/Damascus"),
+    ("سويسرا", "Europe/Zurich"),
+    ("عُمان", "Asia/Muscat"),
+    ("فرنسا", "Europe/Paris"),
+    ("فلسطين", "Asia/Gaza"),
+    ("قطر", "Asia/Qatar"),
+    ("كندا", "America/Toronto"),
+    ("كوريا الجنوبية", "Asia/Seoul"),
+    ("لبنان", "Asia/Beirut"),
+    ("ليبيا", "Africa/Tripoli"),
+    ("ماليزيا", "Asia/Kuala_Lumpur"),
+    ("مصر", "Africa/Cairo"),
+    ("هولندا", "Europe/Amsterdam"),
+]
+COUNTRY_TIMEZONE_MAP = dict(COUNTRY_TIMEZONES)
 
 
 def make_referral_code() -> str:
@@ -112,6 +166,29 @@ def get_safe_user_redirect(request: Request, fallback: str = "/user/dashboard") 
     if parsed.path.startswith("/user/"):
         return parsed.path + (f"?{parsed.query}" if parsed.query else "")
     return fallback
+
+
+def read_verification_image(upload: UploadFile | None, label: str) -> dict[str, object]:
+    if not upload or not upload.filename:
+        raise ValueError(f"يرجى رفع {label}.")
+
+    content_type = (upload.content_type or "application/octet-stream").lower()
+    if not content_type.startswith("image/"):
+        raise ValueError(f"{label} يجب أن تكون صورة.")
+
+    upload.file.seek(0)
+    content = upload.file.read()
+    size = len(content)
+    if size <= 0:
+        raise ValueError(f"{label} فارغة ولا يمكن رفعها.")
+    if size > MAX_VERIFICATION_IMAGE_SIZE:
+        raise ValueError(f"{label} أكبر من الحد المسموح 5MB.")
+
+    return {
+        "data": content,
+        "mime_type": content_type,
+        "size": size,
+    }
 
 
 @router.get("/register", response_class=HTMLResponse, name="user_register")
@@ -357,9 +434,102 @@ def history_page(request: Request, user: User = Depends(get_current_user), db: S
 
 
 @router.get("/account", response_class=HTMLResponse)
-def account_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def account_page(
+    request: Request,
+    verification_error: str = "",
+    verification_sent: str = "",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     settle_daily_cycle(user, db)
-    return templates.TemplateResponse("user_account.html", build_user_context(request, user, "account", db))
+    context = build_user_context(request, user, "account", db)
+    context.update(
+        {
+            "verification_error": verification_error,
+            "verification_sent": verification_sent == "1",
+            "country_timezones": COUNTRY_TIMEZONES,
+            "document_types": DOCUMENT_TYPES,
+        }
+    )
+    return templates.TemplateResponse("user_account.html", context)
+
+
+@router.post("/account/verification")
+def submit_account_verification(
+    legal_full_name: str = Form(...),
+    residence_country: str = Form(...),
+    document_type: str = Form(...),
+    front_image: UploadFile | None = File(None),
+    back_image: UploadFile | None = File(None),
+    passport_image: UploadFile | None = File(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    clean_name = legal_full_name.strip()
+    clean_country = residence_country.strip()
+    timezone = COUNTRY_TIMEZONE_MAP.get(clean_country)
+
+    try:
+        if not clean_name:
+            raise ValueError("يرجى كتابة الاسم والكنية كما في البطاقة الشخصية.")
+        if not timezone:
+            raise ValueError("يرجى اختيار دولة من القائمة.")
+        if document_type not in DOCUMENT_TYPES:
+            raise ValueError("يرجى اختيار نوع وثيقة صحيح.")
+
+        front_data = back_data = passport_data = None
+        if document_type in {"id_card", "driver_license"}:
+            front_data = read_verification_image(front_image, "صورة الوجه الأمامي")
+            back_data = read_verification_image(back_image, "صورة الوجه الخلفي")
+        else:
+            passport_data = read_verification_image(passport_image, "صورة جواز السفر")
+    except ValueError as exc:
+        return RedirectResponse(url=f"/user/account?{urlencode({'verification_error': str(exc)})}", status_code=303)
+
+    now = datetime.utcnow()
+    user.legal_full_name = clean_name
+    user.residence_country = clean_country
+    user.timezone = timezone
+    user.document_type = document_type
+    user.verification_status = "pending"
+    user.verified = False
+    user.verification_requested_at = now
+
+    pending_request = PendingRequest(
+        user_id=user.id,
+        request_type="verification",
+        status="pending",
+        full_name=clean_name,
+        legal_full_name=clean_name,
+        country=clean_country,
+        timezone=timezone,
+        document_type=document_type,
+        details_json=json.dumps(
+            {
+                "الدولة": clean_country,
+                "المنطقة الزمنية": timezone,
+                "نوع الوثيقة": DOCUMENT_TYPES[document_type],
+            },
+            ensure_ascii=False,
+        ),
+    )
+    if front_data:
+        pending_request.front_image_data = front_data["data"]
+        pending_request.front_image_mime_type = front_data["mime_type"]
+        pending_request.front_image_size = front_data["size"]
+    if back_data:
+        pending_request.back_image_data = back_data["data"]
+        pending_request.back_image_mime_type = back_data["mime_type"]
+        pending_request.back_image_size = back_data["size"]
+    if passport_data:
+        pending_request.passport_image_data = passport_data["data"]
+        pending_request.passport_image_mime_type = passport_data["mime_type"]
+        pending_request.passport_image_size = passport_data["size"]
+
+    db.add(pending_request)
+    db.add(user)
+    db.commit()
+    return RedirectResponse(url="/user/account?verification_sent=1", status_code=303)
 
 
 @router.post("/start")

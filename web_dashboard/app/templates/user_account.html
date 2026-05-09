@@ -11,6 +11,7 @@
   <article class="mining-stat-card"><span>البريد</span><strong>{{ user.email }}</strong><small>Email</small></article>
   <article class="mining-stat-card"><span>الحالة</span><strong>{{ user.status }}</strong><small>Account Status</small></article>
   <article class="mining-stat-card"><span>الباقة</span><strong>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</strong><small>Active Plan</small></article>
+  <article class="mining-stat-card"><span>حالة التوثيق</span><strong>{{ 'موثق' if user.verified else 'غير موثق' }}</strong><small>{{ user.verification_status }}</small></article>
   <article class="mining-stat-card"><span>تاريخ الإنشاء</span><strong>{{ user.created_at.strftime("%Y-%m-%d") }}</strong><small>Created</small></article>
 </section>
 
@@ -23,9 +24,78 @@
     <h2>إعدادات الملف الشخصي</h2>
     <p>يمكنك متابعة بياناتك الحالية هنا، وسيتم إضافة التعديل المباشر لاحقاً.</p>
   </article>
-  <article>
-    <h2>حالة العقدة</h2>
-    <p>{{ 'العقدة جاهزة للتشغيل' if can_start else 'الدورة تعمل الآن' }}</p>
+  <article class="verification-entry-card">
+    <h2>توثيق حسابي</h2>
+    <p>{{ 'حسابك موثق ويمكنك متابعة استخدام المنصة بثقة.' if user.verified else 'أرسل بياناتك الرسمية ليتمكن الأدمن من مراجعة طلب التوثيق.' }}</p>
+    <button type="button" class="verification-open-button" data-user-verification-open>فتح نموذج التوثيق</button>
   </article>
 </section>
+
+<div class="user-verification-modal" data-user-verification-modal aria-hidden="true">
+  <section class="user-verification-dialog" role="dialog" aria-modal="true" aria-labelledby="verificationTitle">
+    <button class="user-system-close" type="button" data-user-verification-close aria-label="إغلاق">X</button>
+    <p class="mining-kicker">Account Verification</p>
+    <h2 id="verificationTitle">توثيق حسابي</h2>
+    {% if verification_error %}
+    <div class="support-chat-error">{{ verification_error }}</div>
+    {% endif %}
+    {% if verification_sent %}
+    <div class="verification-success-message">تم إرسال طلب التوثيق بنجاح، وسيتم مراجعته من الإدارة.</div>
+    {% endif %}
+    <form method="post" action="/user/account/verification" enctype="multipart/form-data" class="verification-form" data-verification-form>
+      <label>
+        الاسم والكنية كما هو في البطاقة الشخصية
+        <input type="text" name="legal_full_name" value="{{ user.legal_full_name or user.name }}" required>
+      </label>
+      <label>
+        مكان الإقامة / الدولة
+        <select name="residence_country" required>
+          <option value="">اختر الدولة</option>
+          {% for country, timezone in country_timezones %}
+          <option value="{{ country }}" data-timezone="{{ timezone }}" {{ "selected" if user.residence_country == country else "" }}>{{ country }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        نوع الوثيقة
+        <select name="document_type" data-document-type required>
+          {% for value, label in document_types.items() %}
+          <option value="{{ value }}" {{ "selected" if user.document_type == value else "" }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="verification-upload-grid" data-dual-document-fields>
+        <label class="verification-upload-card">
+          صورة الوجه الأمامي
+          <input type="file" name="front_image" accept="image/*" data-verification-preview="front">
+          <img alt="معاينة الوجه الأمامي" data-verification-preview-image="front" hidden>
+        </label>
+        <label class="verification-upload-card">
+          صورة الوجه الخلفي
+          <input type="file" name="back_image" accept="image/*" data-verification-preview="back">
+          <img alt="معاينة الوجه الخلفي" data-verification-preview-image="back" hidden>
+        </label>
+      </div>
+      <div class="verification-upload-grid" data-passport-document-field hidden>
+        <label class="verification-upload-card">
+          صورة جواز السفر
+          <input type="file" name="passport_image" accept="image/*" data-verification-preview="passport">
+          <img alt="معاينة جواز السفر" data-verification-preview-image="passport" hidden>
+        </label>
+      </div>
+      <button class="mining-primary-button" type="submit">إرسال طلب التوثيق</button>
+    </form>
+  </section>
+</div>
+
+<div class="user-verification-modal" data-verification-confirm-modal aria-hidden="true">
+  <section class="user-verification-dialog compact" role="dialog" aria-modal="true" aria-labelledby="verificationConfirmTitle">
+    <p class="mining-kicker">تأكيد الإرسال</p>
+    <h2 id="verificationConfirmTitle">هل أنت متأكد من إرسال طلب التوثيق؟</h2>
+    <div class="verification-confirm-actions">
+      <button type="button" class="mining-primary-button" data-verification-confirm-submit>تأكيد الإرسال</button>
+      <button type="button" class="mining-ghost-button" data-verification-confirm-back>رجوع</button>
+    </div>
+  </section>
+</div>
 {% endblock %}

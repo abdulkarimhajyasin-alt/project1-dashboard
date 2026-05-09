@@ -11,6 +11,16 @@
   const supportChatCloseButtons = document.querySelectorAll("[data-support-chat-close]");
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
   const userMessageModal = document.querySelector("[data-user-message-modal]");
+  const verificationModal = document.querySelector("[data-user-verification-modal]");
+  const verificationOpenButton = document.querySelector("[data-user-verification-open]");
+  const verificationCloseButtons = document.querySelectorAll("[data-user-verification-close]");
+  const verificationForm = document.querySelector("[data-verification-form]");
+  const verificationConfirmModal = document.querySelector("[data-verification-confirm-modal]");
+  const verificationConfirmSubmit = document.querySelector("[data-verification-confirm-submit]");
+  const verificationConfirmBack = document.querySelector("[data-verification-confirm-back]");
+  const documentTypeSelect = document.querySelector("[data-document-type]");
+  const dualDocumentFields = document.querySelector("[data-dual-document-fields]");
+  const passportDocumentField = document.querySelector("[data-passport-document-field]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
 
   function formatFileSize(size) {
@@ -104,6 +114,38 @@
     userMessageModal.setAttribute("aria-hidden", "true");
   }
 
+  function setVerificationModalOpen(modal, isOpen) {
+    if (!modal) return;
+    modal.classList.toggle("is-open", isOpen);
+    modal.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("verification-modal-open", Boolean(document.querySelector(".user-verification-modal.is-open")));
+  }
+
+  function updateVerificationDocumentFields() {
+    if (!documentTypeSelect || !dualDocumentFields || !passportDocumentField) return;
+    const isPassport = documentTypeSelect.value === "passport";
+    dualDocumentFields.hidden = isPassport;
+    passportDocumentField.hidden = !isPassport;
+  }
+
+  function setupVerificationPreviews() {
+    document.querySelectorAll("[data-verification-preview]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        const key = input.dataset.verificationPreview;
+        const preview = document.querySelector(`[data-verification-preview-image="${key}"]`);
+        const file = input.files?.[0];
+        if (!preview) return;
+        if (!file) {
+          preview.src = "";
+          preview.hidden = true;
+          return;
+        }
+        preview.src = URL.createObjectURL(file);
+        preview.hidden = false;
+      });
+    });
+  }
+
   supportChatOpenButtons.forEach(function (button) {
     button.addEventListener("click", function () {
       setSupportChatOpen(true);
@@ -190,6 +232,8 @@
       closeNotifications();
       setSupportChatOpen(false);
       closeUserMessageModal();
+      setVerificationModalOpen(verificationModal, false);
+      setVerificationModalOpen(verificationConfirmModal, false);
     }
   });
 
@@ -318,5 +362,48 @@
     if (event.target === userMessageModal) {
       closeUserMessageModal();
     }
+  });
+
+  verificationOpenButton?.addEventListener("click", function () {
+    setVerificationModalOpen(verificationModal, true);
+  });
+
+  verificationCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setVerificationModalOpen(verificationModal, false);
+    });
+  });
+
+  verificationModal?.addEventListener("click", function (event) {
+    if (event.target === verificationModal) {
+      setVerificationModalOpen(verificationModal, false);
+    }
+  });
+
+  documentTypeSelect?.addEventListener("change", updateVerificationDocumentFields);
+  updateVerificationDocumentFields();
+  setupVerificationPreviews();
+
+  if (verificationModal?.querySelector(".support-chat-error, .verification-success-message")) {
+    setVerificationModalOpen(verificationModal, true);
+  }
+
+  verificationForm?.addEventListener("submit", function (event) {
+    if (verificationForm.dataset.confirmed === "true") {
+      return;
+    }
+    event.preventDefault();
+    setVerificationModalOpen(verificationConfirmModal, true);
+  });
+
+  verificationConfirmBack?.addEventListener("click", function () {
+    setVerificationModalOpen(verificationConfirmModal, false);
+  });
+
+  verificationConfirmSubmit?.addEventListener("click", function () {
+    if (!verificationForm) return;
+    verificationForm.dataset.confirmed = "true";
+    setVerificationModalOpen(verificationConfirmModal, false);
+    verificationForm.requestSubmit();
   });
 })();

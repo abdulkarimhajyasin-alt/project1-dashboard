@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -97,6 +99,25 @@ def get_pending_requests_context(db: Session) -> dict:
     }
 
 
+def apply_verification_request_to_user(pending_request: PendingRequest, *, approve: bool = False) -> None:
+    user = pending_request.user
+    if not user:
+        return
+
+    user.legal_full_name = pending_request.legal_full_name or pending_request.full_name
+    user.residence_country = pending_request.country
+    user.timezone = pending_request.timezone
+    user.document_type = pending_request.document_type
+    user.verification_requested_at = pending_request.created_at
+    if approve:
+        user.verified = True
+        user.verification_status = "verified"
+        user.verification_approved_at = datetime.utcnow()
+    elif user.verification_status != "verified":
+        user.verified = False
+        user.verification_status = pending_request.status
+
+
 def get_support_notification_message(support_message: SupportMessage) -> str:
     if support_message.has_attachment_data:
         return "صورة" if support_message.is_image else "ملف"
@@ -185,6 +206,8 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
 def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
     if pending_request:
+        if pending_request.request_type == "verification":
+            apply_verification_request_to_user(pending_request, approve=True)
         pending_request.status = "accepted"
         db.commit()
     return RedirectResponse(url="/notifications", status_code=303)
@@ -195,8 +218,44 @@ def reject_pending_request(request_id: int, admin: Admin = Depends(get_current_a
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
     if pending_request:
         pending_request.status = "rejected"
+        if pending_request.request_type == "verification" and pending_request.user:
+            pending_request.user.verified = False
+            pending_request.user.verification_status = "rejected"
+            pending_request.user.verification_approved_at = None
         db.commit()
     return RedirectResponse(url="/notifications", status_code=303)
+
+
+@router.post("/pending-requests/{request_id}/save")
+def save_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    if pending_request and pending_request.request_type == "verification":
+        apply_verification_request_to_user(pending_request, approve=False)
+        db.commit()
+    return RedirectResponse(url="/notifications", status_code=303)
+
+
+@router.get("/pending-requests/{request_id}/image/{image_type}")
+def pending_request_image(
+    request_id: int,
+    image_type: str,
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    if not pending_request or pending_request.request_type != "verification":
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    image_map = {
+        "front": (pending_request.front_image_data, pending_request.front_image_mime_type),
+        "back": (pending_request.back_image_data, pending_request.back_image_mime_type),
+        "passport": (pending_request.passport_image_data, pending_request.passport_image_mime_type),
+    }
+    image_data, mime_type = image_map.get(image_type, (None, None))
+    if not image_data:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return Response(content=bytes(image_data), media_type=mime_type or "image/jpeg")
 
 
 @router.get("/notifications/{notification_id}/open")

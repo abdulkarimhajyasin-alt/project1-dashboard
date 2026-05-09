@@ -48,9 +48,9 @@
         </div>
         <div class="user-topbar-actions">
           {% include "partials/notification_bell.html" %}
-          <div class="node-status">
+          <div class="node-status verification-chip {{ 'is-verified' if user.verified else 'is-unverified' }}">
             <span></span>
-            {{ 'العقدة جاهزة' if can_start|default(true) else 'الدورة تعمل الآن' }}
+            {{ 'موثق' if user.verified else 'غير موثق' }}
           </div>
         </div>
       </header>
