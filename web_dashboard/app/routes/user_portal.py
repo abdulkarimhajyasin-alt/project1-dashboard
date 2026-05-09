@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
-from app.mining import build_mining_status, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
+from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
 from app.models import Notification, PendingRequest, Record, User
 from app.notifications import create_admin_notification, get_user_notifications_context
 from app.security import hash_password, verify_password
@@ -24,6 +24,7 @@ from app.support_chat import (
     get_or_create_support_thread,
     get_thread_messages,
 )
+from app.utils import format_datetime_for_timezone
 
 
 router = APIRouter(prefix="/user")
@@ -166,22 +167,67 @@ def wants_json_response(request: Request) -> bool:
 
 
 def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
+    timezone_name = status["timezone"]
+    if completed_cycle is not None:
+        completed_window_start = completed_cycle.cycle_window_start or completed_cycle.start_at
+        completed_window_end = completed_cycle.cycle_window_end or completed_cycle.end_at
+        completed_actual_start = completed_cycle.actual_start_time or completed_cycle.start_at
+        duration_seconds = status["duration_seconds"]
+        earning_ratio = cycle_earning_ratio(completed_cycle)
+        active_seconds = completed_cycle.active_seconds or int(Decimal(duration_seconds) * earning_ratio)
+        missed_seconds = completed_cycle.missed_seconds or max(0, duration_seconds - active_seconds)
+        full_daily_income = completed_cycle.full_daily_income or completed_cycle.final_income or Decimal("0")
+        completed_income = completed_cycle.final_income_after_time_deduction or completed_cycle.final_income or Decimal("0")
+        return {
+            "cycle_id": completed_cycle.cycle_uuid,
+            "status": "completed",
+            "can_start": status["can_start"],
+            "progress_percent": 100,
+            "remaining_seconds": 0,
+            "duration_seconds": duration_seconds,
+            "start_time": format_datetime_for_timezone(completed_window_start, timezone_name),
+            "actual_start_time": format_datetime_for_timezone(completed_actual_start, timezone_name),
+            "end_time": format_datetime_for_timezone(completed_window_end, timezone_name),
+            "start_time_iso": completed_window_start.replace(tzinfo=None).isoformat() + "Z",
+            "actual_start_time_iso": completed_actual_start.replace(tzinfo=None).isoformat() + "Z",
+            "end_time_iso": completed_window_end.replace(tzinfo=None).isoformat() + "Z",
+            "active_seconds": active_seconds,
+            "missed_seconds": missed_seconds,
+            "earning_ratio": str(earning_ratio),
+            "timezone": timezone_name,
+            "active_capital": str(completed_cycle.active_capital),
+            "referral_income": str(completed_cycle.referral_income),
+            "current_daily_income": str(full_daily_income),
+            "full_daily_income": str(full_daily_income),
+            "expected_earned_income": str(completed_income),
+            "completed": True,
+            "completed_income": str(completed_income),
+        }
+
     return {
         "cycle_id": status["cycle_id"],
         "status": status["status"],
         "can_start": status["can_start"],
         "progress_percent": status["progress_percent"],
         "remaining_seconds": status["remaining_seconds"],
+        "duration_seconds": status["duration_seconds"],
         "start_time": status["start_time"],
+        "actual_start_time": status["actual_start_time"],
         "end_time": status["end_time"],
         "start_time_iso": status["start_time_iso"],
+        "actual_start_time_iso": status["actual_start_time_iso"],
         "end_time_iso": status["end_time_iso"],
+        "active_seconds": status["active_seconds"],
+        "missed_seconds": status["missed_seconds"],
+        "earning_ratio": str(status["earning_ratio"]),
         "timezone": status["timezone"],
         "active_capital": str(status["active_capital"]),
         "referral_income": str(status["referral_income"]),
         "current_daily_income": str(status["current_daily_income"]),
-        "completed": completed_cycle is not None,
-        "completed_income": str(completed_cycle.final_income) if completed_cycle else "0.0000",
+        "full_daily_income": str(status["full_daily_income"]),
+        "expected_earned_income": str(status["expected_earned_income"]),
+        "completed": False,
+        "completed_income": "0.0000",
     }
 
 

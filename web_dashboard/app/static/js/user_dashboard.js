@@ -343,7 +343,11 @@
   const miningStatusLabel = document.querySelector("[data-mining-status-label]");
   const cycleIdText = document.querySelector("[data-cycle-id]");
   const startTimeText = document.querySelector("[data-start-time]");
+  const actualStartTimeText = document.querySelector("[data-actual-start-time]");
   const endTimeText = document.querySelector("[data-end-time]");
+  const missedTimeText = document.querySelector("[data-missed-time]");
+  const earningRatioText = document.querySelector("[data-earning-ratio]");
+  const expectedEarnedIncomeText = document.querySelector("[data-expected-earned-income]");
   const miningCoreNote = document.querySelector("[data-mining-core-note]");
   const startError = document.querySelector("[data-mining-start-error]");
   const startButton = document.querySelector("[data-start-mining-button]");
@@ -369,6 +373,15 @@
     const minutes = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0");
     const secs = String(safeSeconds % 60).padStart(2, "0");
     return `${hours}:${minutes}:${secs}`;
+  }
+
+  function formatRatioPercent(value) {
+    const ratio = Number(value || 0);
+    return `${(ratio * 100).toFixed(2)}%`;
+  }
+
+  function formatMoney(value, decimals) {
+    return `$${Number(value || 0).toFixed(decimals)}`;
   }
 
   function titleCase(value) {
@@ -428,13 +441,14 @@
 
       currentCanStart = Boolean(status.can_start);
       currentProgress = Number(status.completed ? 100 : status.progress_percent || 0);
-      currentDuration = Number(status.duration || ring.dataset.duration || 86400);
+      currentDuration = Number(status.duration_seconds || status.duration || ring.dataset.duration || 86400);
       currentStartAt = status.start_time_iso ? Date.parse(status.start_time_iso) : 0;
       currentEndAt = status.end_time_iso ? Date.parse(status.end_time_iso) : 0;
       completionChecked = Boolean(status.completed);
 
       ring.dataset.progress = String(currentProgress);
       ring.dataset.canStart = currentCanStart ? "true" : "false";
+      ring.dataset.duration = String(currentDuration);
       ring.dataset.startAt = status.start_time_iso || "";
       ring.dataset.endAt = status.end_time_iso || "";
       ring.dataset.status = status.status || "ready";
@@ -443,10 +457,15 @@
       if (miningStatusLabel) miningStatusLabel.textContent = status.completed ? "Completed" : titleCase(status.status);
       if (cycleIdText) cycleIdText.textContent = status.cycle_id || "-";
       if (startTimeText) startTimeText.textContent = status.start_time || "-";
+      if (actualStartTimeText) actualStartTimeText.textContent = status.actual_start_time || "-";
       if (endTimeText) endTimeText.textContent = status.end_time || "-";
 
       const remainingLabel = formatRemaining(Number(status.remaining_seconds || 0));
+      const missedLabel = formatRemaining(Number(status.missed_seconds || 0));
       if (remainingText) remainingText.textContent = currentCanStart ? "00:00:00" : remainingLabel;
+      if (missedTimeText) missedTimeText.textContent = currentCanStart ? "00:00:00" : missedLabel;
+      if (earningRatioText) earningRatioText.textContent = formatRatioPercent(status.earning_ratio);
+      if (expectedEarnedIncomeText) expectedEarnedIncomeText.textContent = formatMoney(status.expected_earned_income, 4);
       if (countdownText) {
         if (status.completed) {
           countdownText.textContent = `Completed. Added $${status.completed_income || "0.0000"}`;
@@ -456,8 +475,8 @@
       }
       if (miningCoreNote) {
         miningCoreNote.textContent = currentCanStart
-          ? "Press Start to run a manual 24-hour mining cycle. No income is counted while you are stopped."
-          : "Your current mining cycle is active. A new cycle can start only after completion.";
+          ? "Press Start to join the current official 18:00 daily cycle. Late starts earn only the remaining active time."
+          : "Your current mining cycle is active until the next 18:00 in your timezone.";
       }
       updateStartButton(false);
     }

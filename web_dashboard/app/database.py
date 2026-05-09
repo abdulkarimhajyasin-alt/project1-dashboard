@@ -144,6 +144,61 @@ def ensure_record_amount_precision() -> None:
         connection.execute(text("ALTER TABLE records ALTER COLUMN amount TYPE NUMERIC(12, 4)"))
 
 
+def ensure_mining_cycle_columns() -> None:
+    inspector = inspect(engine)
+    if "mining_cycles" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("mining_cycles")}
+    column_sql = {
+        "cycle_window_start": "ALTER TABLE mining_cycles ADD COLUMN cycle_window_start TIMESTAMP",
+        "cycle_window_end": "ALTER TABLE mining_cycles ADD COLUMN cycle_window_end TIMESTAMP",
+        "actual_start_time": "ALTER TABLE mining_cycles ADD COLUMN actual_start_time TIMESTAMP",
+        "active_seconds": "ALTER TABLE mining_cycles ADD COLUMN active_seconds INTEGER NOT NULL DEFAULT 86400",
+        "missed_seconds": "ALTER TABLE mining_cycles ADD COLUMN missed_seconds INTEGER NOT NULL DEFAULT 0",
+        "earning_ratio": "ALTER TABLE mining_cycles ADD COLUMN earning_ratio NUMERIC(12, 6) NOT NULL DEFAULT 1",
+        "full_daily_income": "ALTER TABLE mining_cycles ADD COLUMN full_daily_income NUMERIC(12, 4) NOT NULL DEFAULT 0",
+        "final_income_after_time_deduction": (
+            "ALTER TABLE mining_cycles ADD COLUMN final_income_after_time_deduction NUMERIC(12, 4) NOT NULL DEFAULT 0"
+        ),
+    }
+
+    with engine.begin() as connection:
+        for column_name, ddl in column_sql.items():
+            if column_name not in existing_columns:
+                connection.execute(text(ddl))
+
+        connection.execute(
+            text(
+                """
+                UPDATE mining_cycles
+                SET
+                    status = CASE
+                        WHEN completed_at IS NOT NULL AND status = 'active'
+                        THEN 'completed'
+                        ELSE status
+                    END,
+                    cycle_window_start = COALESCE(cycle_window_start, start_at),
+                    cycle_window_end = COALESCE(cycle_window_end, end_at),
+                    actual_start_time = COALESCE(actual_start_time, start_at),
+                    active_seconds = COALESCE(active_seconds, 86400),
+                    missed_seconds = COALESCE(missed_seconds, 0),
+                    earning_ratio = COALESCE(earning_ratio, 1),
+                    full_daily_income = CASE
+                        WHEN COALESCE(full_daily_income, 0) = 0 AND COALESCE(final_income, 0) > 0
+                        THEN final_income
+                        ELSE COALESCE(full_daily_income, 0)
+                    END,
+                    final_income_after_time_deduction = CASE
+                        WHEN COALESCE(final_income_after_time_deduction, 0) = 0 AND COALESCE(final_income, 0) > 0
+                        THEN final_income
+                        ELSE COALESCE(final_income_after_time_deduction, 0)
+                    END
+                """
+            )
+        )
+
+
 def ensure_user_financial_defaults() -> None:
     inspector = inspect(engine)
     if "users" not in inspector.get_table_names():
@@ -174,6 +229,7 @@ def init_db() -> None:
     ensure_notification_columns()
     ensure_support_message_columns()
     ensure_pending_request_columns()
+    ensure_mining_cycle_columns()
     ensure_record_amount_precision()
 
 

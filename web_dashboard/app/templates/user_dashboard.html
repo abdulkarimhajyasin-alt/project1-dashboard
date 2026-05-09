@@ -32,7 +32,7 @@
       class="mining-ring"
       data-progress="{{ mining_status.progress_percent }}"
       data-can-start="{{ 'true' if mining_status.can_start else 'false' }}"
-      data-duration="86400"
+      data-duration="{{ mining_status.duration_seconds }}"
       data-start-at="{{ mining_status.start_time_iso }}"
       data-end-at="{{ mining_status.end_time_iso }}"
       data-status="{{ mining_status.status }}"
@@ -63,18 +63,22 @@
     <div class="mining-cycle-meta">
       <span>Mining Status <strong data-mining-status-label>{{ mining_status.status|title }}</strong></span>
       <span>Cycle ID <strong data-cycle-id>{{ mining_status.cycle_id or "-" }}</strong></span>
-      <span>Start Time <strong data-start-time>{{ mining_status.start_time }}</strong></span>
+      <span>Cycle Start Time <strong data-start-time>{{ mining_status.start_time }}</strong></span>
+      <span>Actual Start Time <strong data-actual-start-time>{{ mining_status.actual_start_time }}</strong></span>
       <span>End Time <strong data-end-time>{{ mining_status.end_time }}</strong></span>
       <span>Timezone <strong>{{ mining_status.timezone }}</strong></span>
       <span>Remaining Time <strong data-remaining-time>{{ mining_status.remaining_seconds }}</strong></span>
+      <span>Missed Time <strong data-missed-time>{{ mining_status.missed_seconds }}</strong></span>
+      <span>Earning Ratio <strong data-earning-ratio>{{ "%.2f"|format((mining_status.earning_ratio or 0) * 100) }}%</strong></span>
     </div>
     <p class="mining-core-note" data-mining-core-note>
-      {% if mining_status.can_start %}Press Start to run a manual 24-hour mining cycle. No income is counted while you are stopped.{% else %}Your current mining cycle is active. A new cycle can start only after completion.{% endif %}
+      {% if mining_status.can_start %}Press Start to join the current official 18:00 daily cycle. Late starts earn only the remaining active time.{% else %}Your current mining cycle is active until the next 18:00 in your timezone.{% endif %}
     </p>
   </article>
 
   <section class="mining-stats-grid">
-    <article class="mining-stat-card"><span>Current Daily Income</span><strong data-counter="{{ '%.4f'|format(mining_status.current_daily_income or 0) }}">${{ '%.4f'|format(mining_status.current_daily_income or 0) }}</strong><small>Backend Calculated</small></article>
+    <article class="mining-stat-card"><span>Full Daily Income</span><strong data-counter="{{ '%.4f'|format(mining_status.full_daily_income or 0) }}">${{ '%.4f'|format(mining_status.full_daily_income or 0) }}</strong><small>Before Time Deduction</small></article>
+    <article class="mining-stat-card"><span>Expected Earned Income</span><strong data-expected-earned-income data-counter="{{ '%.4f'|format(mining_status.expected_earned_income or 0) }}">${{ '%.4f'|format(mining_status.expected_earned_income or 0) }}</strong><small>After Time Deduction</small></article>
     <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
     <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.4f'|format(mining_status.referral_income or 0) }}">${{ '%.4f'|format(mining_status.referral_income or 0) }}</strong><small>Current Cycle</small></article>
     <article class="mining-stat-card"><span>Total Balance</span><strong data-counter="{{ '%.4f'|format(user.profits or 0) }}">${{ '%.4f'|format(user.profits or 0) }}</strong><small>Available Yield</small></article>
