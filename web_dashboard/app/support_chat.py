@@ -70,23 +70,7 @@ def get_or_create_support_thread(db: Session, user: User) -> SupportThread:
 
 
 def get_thread_messages(db: Session, thread: SupportThread) -> list[SupportMessage]:
-    messages = db.query(SupportMessage).filter(SupportMessage.thread_id == thread.id).order_by(SupportMessage.created_at.asc()).all()
-    print(f"Loaded support messages for thread #{thread.id}: {len(messages)}")
-    for message in messages:
-        print(
-            "Support message:",
-            {
-                "id": message.id,
-                "sender_type": message.sender_type,
-                "has_data": message.has_attachment_data,
-                "data_length": message.attachment_data_length,
-                "attachment_size": message.attachment_size,
-                "is_image": message.is_image,
-                "mime": message.attachment_type,
-                "name": message.attachment_name,
-            },
-        )
-    return messages
+    return db.query(SupportMessage).filter(SupportMessage.thread_id == thread.id).order_by(SupportMessage.created_at.asc()).all()
 
 
 def get_latest_thread_message(db: Session, thread: SupportThread) -> SupportMessage | None:
@@ -123,15 +107,6 @@ def save_support_attachment(upload: UploadFile | None) -> dict[str, object] | No
     stored_content_type = mimetypes.guess_type(f"attachment{suffix}")[0] or content_type or guessed_content_type
     stored_name = f"support_{uuid4().hex}{suffix}"
     is_image = is_image_attachment(content, stored_content_type or "", stored_name)
-    print(
-        "Saved support attachment to BYTEA:",
-        {
-            "filename": stored_name,
-            "mime_type": stored_content_type or "application/octet-stream",
-            "size": size,
-            "is_image": is_image,
-        },
-    )
 
     return {
         "name": stored_name,
@@ -173,18 +148,4 @@ def add_support_message(
     db.add(message)
     db.add(thread)
     db.flush()
-    print(
-        "Created support message:",
-        {
-            "id": message.id,
-            "thread_id": thread.id,
-            "sender_type": message.sender_type,
-            "has_data": message.has_attachment_data,
-            "data_length": message.attachment_data_length,
-            "attachment_size": message.attachment_size,
-            "is_image": message.is_image,
-            "mime": message.attachment_type,
-            "name": message.attachment_name,
-        },
-    )
     return message

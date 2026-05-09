@@ -128,9 +128,7 @@ def get_support_notification_message(support_message: SupportMessage) -> str:
 def support_attachment(message_id: int, request: Request, db: Session = Depends(get_db)):
     admin_id = request.session.get("admin_id")
     user_id = request.session.get("user_id")
-    print("Opening support attachment:", {"message_id": message_id, "admin_id": admin_id, "user_id": user_id})
     if not admin_id and not user_id:
-        print("Support attachment denied: no active session", {"message_id": message_id})
         raise HTTPException(status_code=404, detail="Attachment not found")
 
     query = (
@@ -143,25 +141,9 @@ def support_attachment(message_id: int, request: Request, db: Session = Depends(
 
     message = query.first()
     if not message:
-        print("Support attachment missing or unauthorized:", {"message_id": message_id, "admin_id": admin_id, "user_id": user_id})
         raise HTTPException(status_code=404, detail="Attachment not found")
 
-    print(
-        "Support attachment message found:",
-        {
-            "id": message.id,
-            "thread_id": message.thread_id,
-            "sender_type": message.sender_type,
-            "has_data": message.has_attachment_data,
-            "data_length": message.attachment_data_length,
-            "attachment_size": message.attachment_size,
-            "is_image": message.is_image,
-            "mime": message.attachment_type,
-            "name": message.attachment_name,
-        },
-    )
     if message.attachment_data_length <= 0:
-        print("Support attachment has no BYTEA data:", {"message_id": message_id, "attachment_size": message.attachment_size})
         raise HTTPException(status_code=404, detail="Attachment not found")
 
     headers = {}
