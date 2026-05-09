@@ -41,6 +41,7 @@
           </thead>
           <tbody>
             {% for item in requests %}
+            {% set request_timezone = item.timezone or (item.user.timezone if item.user else 'UTC') or 'UTC' %}
             <tr>
               <td>{{ item.user.username if item.user and item.user.username else item.user.name if item.user else "-" }}</td>
               <td>
@@ -50,7 +51,7 @@
                 ${{ "%.2f"|format(item.amount or 0) }}
                 {% endif %}
               </td>
-              <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td>{{ format_datetime_for_timezone(item.created_at, request_timezone) }}</td>
               <td><span class="pending-status">{{ item.status }}</span></td>
               <td>
                 <div class="pending-actions">
@@ -81,6 +82,7 @@
 
 {% for request_type, section in pending_request_sections.items() %}
 {% for item in pending_requests_by_type.get(request_type, []) %}
+{% set request_timezone = item.timezone or (item.user.timezone if item.user else 'UTC') or 'UTC' %}
 <div class="admin-command-modal" id="pendingRequest{{ item.id }}" data-admin-modal aria-hidden="true">
   <section class="admin-command-dialog pending-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="pendingRequestTitle{{ item.id }}">
     <button class="admin-command-close" type="button" data-admin-modal-close aria-label="إغلاق">X</button>
@@ -125,7 +127,7 @@
       </div>
       <div>
         <dt>التاريخ</dt>
-        <dd>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</dd>
+        <dd>{{ format_datetime_for_timezone(item.created_at, request_timezone) }}</dd>
       </div>
       {% for detail in item.details_rows %}
       {% set skip_verification_detail = request_type == 'verification' and detail.label in ['الدولة', 'المنطقة الزمنية', 'نوع الوثيقة'] %}

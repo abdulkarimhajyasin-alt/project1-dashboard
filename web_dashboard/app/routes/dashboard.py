@@ -12,6 +12,7 @@ from app.dependencies import get_current_admin
 from app.models import Admin, AppSetting, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
+from app.utils import format_datetime_for_timezone
 
 
 router = APIRouter()
@@ -178,6 +179,7 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
             "request": request,
             "admin": admin,
             "active_page": "notifications",
+            "format_datetime_for_timezone": format_datetime_for_timezone,
             **context,
             **pending_context,
         },
