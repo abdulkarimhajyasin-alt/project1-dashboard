@@ -10,10 +10,6 @@
     <p class="mining-kicker">{{ platform_name }} Referral Engine</p>
     <h2>Build Your Network</h2>
     <p>كل دعوة ناجحة تضيف عقدة جديدة لشبكتك. عندما يبدأ فريقك التعدين اليومي، تظهر أرباح الإحالات متعددة المستويات في رصيدك وسجلك.</p>
-    <div class="referral-actions-strip">
-      <button type="button" data-copy-target="#referralLink">Copy Referral Link</button>
-      <button type="button" data-copy-target="#inviteMessage">Copy Invite Message</button>
-    </div>
     <p class="copy-toast" data-copy-toast hidden></p>
   </article>
 
@@ -47,7 +43,6 @@
     <label for="referralLink">Referral Link</label>
     <div class="referral-link-control">
       <input id="referralLink" value="{{ referral_url }}" readonly>
-      <button type="button" data-copy-target="#referralLink">Copy Referral Link</button>
       <button type="button" data-copy-target="#inviteMessage">Copy Invite Message</button>
     </div>
     <small>هذا الرابط خاص بحسابك الحالي داخل {{ platform_name }}.</small>
