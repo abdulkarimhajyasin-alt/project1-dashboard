@@ -60,6 +60,22 @@
         <small id="miningCountdown">{{ 'Ready to start' if mining_status.can_start else 'Remaining ' ~ mining_status.remaining_seconds ~ 's' }}</small>
       </div>
     </div>
+    <article class="mining-stat-card live-balance-card mining-core-balance-card">
+      <span>Total Balance</span>
+      <strong
+        data-live-balance
+        data-current-total-balance="{{ '%.8f'|format(mining_status.current_total_balance or 0) }}"
+        data-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
+        data-active-seconds="{{ mining_status.active_seconds or 0 }}"
+        data-actual-start-at="{{ mining_status.actual_start_time_iso }}"
+        data-end-at="{{ mining_status.end_time_iso }}"
+        data-cycle-status="{{ mining_status.status }}"
+        data-can-start="{{ 'true' if mining_status.can_start else 'false' }}"
+      >
+        ${{ '%.8f'|format(mining_status.current_total_balance or 0) }}
+      </strong>
+      <small data-live-balance-mode>{{ "Live Available Yield" if not mining_status.can_start and (mining_status.expected_earned_income or 0) > 0 else "Available Yield" }}</small>
+    </article>
     <div class="mining-cycle-meta">
       <span>Mining Status <strong data-mining-status-label>{{ mining_status.status|title }}</strong></span>
       <span>Cycle ID <strong data-cycle-id>{{ mining_status.cycle_id or "-" }}</strong></span>
@@ -81,22 +97,6 @@
     <article class="mining-stat-card"><span>Expected Earned Income</span><strong data-expected-earned-income data-counter="{{ '%.4f'|format(mining_status.expected_earned_income or 0) }}">${{ '%.4f'|format(mining_status.expected_earned_income or 0) }}</strong><small>After Time Deduction</small></article>
     <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
     <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.8f'|format(total_referral_earnings or 0) }}">${{ '%.8f'|format(total_referral_earnings or 0) }}</strong><small>All Levels</small></article>
-    <article class="mining-stat-card live-balance-card">
-      <span>Total Balance</span>
-      <strong
-        data-live-balance
-        data-current-total-balance="{{ '%.8f'|format(mining_status.current_total_balance or 0) }}"
-        data-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
-        data-active-seconds="{{ mining_status.active_seconds or 0 }}"
-        data-actual-start-at="{{ mining_status.actual_start_time_iso }}"
-        data-end-at="{{ mining_status.end_time_iso }}"
-        data-cycle-status="{{ mining_status.status }}"
-        data-can-start="{{ 'true' if mining_status.can_start else 'false' }}"
-      >
-        ${{ '%.8f'|format(mining_status.current_total_balance or 0) }}
-      </strong>
-      <small data-live-balance-mode>{{ "Live Available Yield" if not mining_status.can_start and (mining_status.expected_earned_income or 0) > 0 else "Available Yield" }}</small>
-    </article>
     <article class="mining-stat-card"><span>Referral Rank</span><strong>{{ referral_rank_info.rank }}</strong><small>{{ referral_rank_info.remaining }} to {{ referral_rank_info.next_rank or "Max Rank" }}</small></article>
     <article class="mining-stat-card"><span>Number of Referrals</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Direct Referrals</small></article>
   </section>
