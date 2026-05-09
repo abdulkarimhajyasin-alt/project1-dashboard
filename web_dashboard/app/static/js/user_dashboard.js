@@ -22,6 +22,12 @@
   const dualDocumentFields = document.querySelector("[data-dual-document-fields]");
   const passportDocumentField = document.querySelector("[data-passport-document-field]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
+  const maxVerificationImageSize = 5 * 1024 * 1024;
+  const verificationImageLabels = {
+    front: "صورة الوجه الأمامي",
+    back: "صورة الوجه الخلفي",
+    passport: "صورة جواز السفر",
+  };
 
   function formatFileSize(size) {
     if (!Number.isFinite(size)) return "";
@@ -121,11 +127,38 @@
     body.classList.toggle("verification-modal-open", Boolean(document.querySelector(".user-verification-modal.is-open")));
   }
 
+  function clearVerificationFileInput(input) {
+    if (!input) return;
+    input.value = "";
+    const key = input.dataset.verificationPreview;
+    const preview = document.querySelector(`[data-verification-preview-image="${key}"]`);
+    if (!preview) return;
+    if (preview.dataset.objectUrl) {
+      URL.revokeObjectURL(preview.dataset.objectUrl);
+      delete preview.dataset.objectUrl;
+    }
+    preview.src = "";
+    preview.hidden = true;
+  }
+
+  function setVerificationGroupActive(group, isActive) {
+    if (!group) return;
+    group.hidden = !isActive;
+    group.querySelectorAll("input[type='file']").forEach(function (input) {
+      input.disabled = !isActive;
+      input.required = isActive;
+      input.setCustomValidity("");
+      if (!isActive) {
+        clearVerificationFileInput(input);
+      }
+    });
+  }
+
   function updateVerificationDocumentFields() {
     if (!documentTypeSelect || !dualDocumentFields || !passportDocumentField) return;
     const isPassport = documentTypeSelect.value === "passport";
-    dualDocumentFields.hidden = isPassport;
-    passportDocumentField.hidden = !isPassport;
+    setVerificationGroupActive(dualDocumentFields, !isPassport);
+    setVerificationGroupActive(passportDocumentField, isPassport);
   }
 
   function setupVerificationPreviews() {
@@ -136,14 +169,45 @@
         const file = input.files?.[0];
         if (!preview) return;
         if (!file) {
-          preview.src = "";
-          preview.hidden = true;
+          clearVerificationFileInput(input);
           return;
         }
-        preview.src = URL.createObjectURL(file);
+        if (preview.dataset.objectUrl) {
+          URL.revokeObjectURL(preview.dataset.objectUrl);
+        }
+        const objectUrl = URL.createObjectURL(file);
+        preview.dataset.objectUrl = objectUrl;
+        preview.src = objectUrl;
         preview.hidden = false;
       });
     });
+  }
+
+  function validateVerificationFiles() {
+    if (!documentTypeSelect) return true;
+    const activeGroup = documentTypeSelect.value === "passport" ? passportDocumentField : dualDocumentFields;
+    const inputs = Array.from(activeGroup?.querySelectorAll("input[type='file']") || []);
+    for (const input of inputs) {
+      input.setCustomValidity("");
+      const file = input.files?.[0];
+      const label = verificationImageLabels[input.dataset.verificationPreview] || "الصورة المطلوبة";
+      if (!file) {
+        input.setCustomValidity(`يرجى رفع ${label}.`);
+        input.reportValidity();
+        return false;
+      }
+      if (!isImageFile(file)) {
+        input.setCustomValidity(`${label} يجب أن تكون صورة.`);
+        input.reportValidity();
+        return false;
+      }
+      if (file.size > maxVerificationImageSize) {
+        input.setCustomValidity(`${label} يجب ألا تتجاوز 5MB.`);
+        input.reportValidity();
+        return false;
+      }
+    }
+    return true;
   }
 
   supportChatOpenButtons.forEach(function (button) {
@@ -393,6 +457,9 @@
       return;
     }
     event.preventDefault();
+    if (!verificationForm.reportValidity() || !validateVerificationFiles()) {
+      return;
+    }
     setVerificationModalOpen(verificationConfirmModal, true);
   });
 
