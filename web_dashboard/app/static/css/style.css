@@ -1478,6 +1478,29 @@ th {
   overflow-wrap: anywhere;
 }
 
+.live-balance-card {
+  border-color: rgba(37, 246, 164, 0.26);
+}
+
+.live-balance-card strong {
+  color: #dff7ff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.live-balance-card strong.is-live {
+  color: #25f6a4;
+  text-shadow: 0 0 20px rgba(37, 246, 164, 0.34);
+}
+
+.live-balance-card small {
+  transition: color 180ms ease;
+}
+
+.live-balance-card.is-live small {
+  color: #67e8f9;
+}
+
 .mining-withdraw-panel {
   align-items: center;
   display: grid;

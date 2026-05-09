@@ -434,6 +434,7 @@ def build_mining_status(user: User, db: Session, now: datetime | None = None) ->
         "current_daily_income": income["final_income"],
         "full_daily_income": income["final_income"],
         "expected_earned_income": expected_earned_income,
+        "current_total_balance": money(user.profits),
         "target_income": income["target_income"],
         "timezone": user_timezone,
     }

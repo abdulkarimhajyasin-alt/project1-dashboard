@@ -166,6 +166,10 @@ def wants_json_response(request: Request) -> bool:
     )
 
 
+def decimal_display(value: Decimal | int | str | None, places: int = 4) -> str:
+    return f"{Decimal(value or 0):.{places}f}"
+
+
 def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
     timezone_name = status["timezone"]
     if completed_cycle is not None:
@@ -186,11 +190,15 @@ def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
             "remaining_seconds": 0,
             "duration_seconds": duration_seconds,
             "start_time": format_datetime_for_timezone(completed_window_start, timezone_name),
+            "cycle_window_start": format_datetime_for_timezone(completed_window_start, timezone_name),
             "actual_start_time": format_datetime_for_timezone(completed_actual_start, timezone_name),
             "end_time": format_datetime_for_timezone(completed_window_end, timezone_name),
+            "cycle_window_end": format_datetime_for_timezone(completed_window_end, timezone_name),
             "start_time_iso": completed_window_start.replace(tzinfo=None).isoformat() + "Z",
+            "cycle_window_start_iso": completed_window_start.replace(tzinfo=None).isoformat() + "Z",
             "actual_start_time_iso": completed_actual_start.replace(tzinfo=None).isoformat() + "Z",
             "end_time_iso": completed_window_end.replace(tzinfo=None).isoformat() + "Z",
+            "cycle_window_end_iso": completed_window_end.replace(tzinfo=None).isoformat() + "Z",
             "active_seconds": active_seconds,
             "missed_seconds": missed_seconds,
             "earning_ratio": str(earning_ratio),
@@ -200,6 +208,7 @@ def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
             "current_daily_income": str(full_daily_income),
             "full_daily_income": str(full_daily_income),
             "expected_earned_income": str(completed_income),
+            "current_total_balance": decimal_display(status.get("current_total_balance"), 8),
             "completed": True,
             "completed_income": str(completed_income),
         }
@@ -212,11 +221,15 @@ def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
         "remaining_seconds": status["remaining_seconds"],
         "duration_seconds": status["duration_seconds"],
         "start_time": status["start_time"],
+        "cycle_window_start": status["start_time"],
         "actual_start_time": status["actual_start_time"],
         "end_time": status["end_time"],
+        "cycle_window_end": status["end_time"],
         "start_time_iso": status["start_time_iso"],
+        "cycle_window_start_iso": status["start_time_iso"],
         "actual_start_time_iso": status["actual_start_time_iso"],
         "end_time_iso": status["end_time_iso"],
+        "cycle_window_end_iso": status["end_time_iso"],
         "active_seconds": status["active_seconds"],
         "missed_seconds": status["missed_seconds"],
         "earning_ratio": str(status["earning_ratio"]),
@@ -226,6 +239,7 @@ def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
         "current_daily_income": str(status["current_daily_income"]),
         "full_daily_income": str(status["full_daily_income"]),
         "expected_earned_income": str(status["expected_earned_income"]),
+        "current_total_balance": decimal_display(status.get("current_total_balance"), 8),
         "completed": False,
         "completed_income": "0.0000",
     }

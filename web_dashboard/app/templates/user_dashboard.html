@@ -81,7 +81,22 @@
     <article class="mining-stat-card"><span>Expected Earned Income</span><strong data-expected-earned-income data-counter="{{ '%.4f'|format(mining_status.expected_earned_income or 0) }}">${{ '%.4f'|format(mining_status.expected_earned_income or 0) }}</strong><small>After Time Deduction</small></article>
     <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
     <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.4f'|format(mining_status.referral_income or 0) }}">${{ '%.4f'|format(mining_status.referral_income or 0) }}</strong><small>Current Cycle</small></article>
-    <article class="mining-stat-card"><span>Total Balance</span><strong data-counter="{{ '%.4f'|format(user.profits or 0) }}">${{ '%.4f'|format(user.profits or 0) }}</strong><small>Available Yield</small></article>
+    <article class="mining-stat-card live-balance-card">
+      <span>Total Balance</span>
+      <strong
+        data-live-balance
+        data-current-total-balance="{{ '%.8f'|format(mining_status.current_total_balance or 0) }}"
+        data-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
+        data-active-seconds="{{ mining_status.active_seconds or 0 }}"
+        data-actual-start-at="{{ mining_status.actual_start_time_iso }}"
+        data-end-at="{{ mining_status.end_time_iso }}"
+        data-cycle-status="{{ mining_status.status }}"
+        data-can-start="{{ 'true' if mining_status.can_start else 'false' }}"
+      >
+        ${{ '%.8f'|format(mining_status.current_total_balance or 0) }}
+      </strong>
+      <small data-live-balance-mode>{{ "Live Available Yield" if not mining_status.can_start and (mining_status.expected_earned_income or 0) > 0 else "Available Yield" }}</small>
+    </article>
     <article class="mining-stat-card"><span>Referral Rank</span><strong>{{ referral_rank_info.rank }}</strong><small>{{ referral_rank_info.remaining }} to {{ referral_rank_info.next_rank or "Max Rank" }}</small></article>
     <article class="mining-stat-card"><span>Number of Referrals</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Direct Referrals</small></article>
   </section>

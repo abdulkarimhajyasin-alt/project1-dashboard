@@ -348,11 +348,21 @@
   const missedTimeText = document.querySelector("[data-missed-time]");
   const earningRatioText = document.querySelector("[data-earning-ratio]");
   const expectedEarnedIncomeText = document.querySelector("[data-expected-earned-income]");
+  const liveBalanceText = document.querySelector("[data-live-balance]");
+  const liveBalanceMode = document.querySelector("[data-live-balance-mode]");
   const miningCoreNote = document.querySelector("[data-mining-core-note]");
   const startError = document.querySelector("[data-mining-start-error]");
   const startButton = document.querySelector("[data-start-mining-button]");
   const radius = 150;
   const circumference = 2 * Math.PI * radius;
+  let liveBalanceAnimationFrame = null;
+  let liveBalanceState = {
+    activeSeconds: 0,
+    actualStartAt: 0,
+    currentTotalBalance: 0,
+    expectedEarnedIncome: 0,
+    isActive: false,
+  };
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
@@ -384,6 +394,89 @@
     return `$${Number(value || 0).toFixed(decimals)}`;
   }
 
+  function parseMoneyNumber(value) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function formatLiveBalance(value) {
+    return `$${Math.max(0, value).toFixed(8)}`;
+  }
+
+  function stopLiveBalanceAnimation() {
+    if (!liveBalanceAnimationFrame) return;
+    window.cancelAnimationFrame(liveBalanceAnimationFrame);
+    liveBalanceAnimationFrame = null;
+  }
+
+  function getVisualBalance(now) {
+    if (!liveBalanceState.isActive || !liveBalanceState.actualStartAt || liveBalanceState.activeSeconds <= 0) {
+      return liveBalanceState.currentTotalBalance;
+    }
+
+    const elapsedActiveSeconds = clamp((now - liveBalanceState.actualStartAt) / 1000, 0, liveBalanceState.activeSeconds);
+    const visualEarnings = liveBalanceState.expectedEarnedIncome * (elapsedActiveSeconds / liveBalanceState.activeSeconds);
+    return liveBalanceState.currentTotalBalance + visualEarnings;
+  }
+
+  function renderLiveBalance() {
+    if (!liveBalanceText) return;
+    const visualBalance = getVisualBalance(Date.now());
+    liveBalanceText.textContent = formatLiveBalance(visualBalance);
+    liveBalanceText.classList.toggle("is-live", liveBalanceState.isActive);
+    liveBalanceText.closest(".live-balance-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+    if (liveBalanceMode) {
+      liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
+    }
+  }
+
+  function animateLiveBalance() {
+    renderLiveBalance();
+    if (liveBalanceState.isActive) {
+      liveBalanceAnimationFrame = window.requestAnimationFrame(animateLiveBalance);
+    }
+  }
+
+  function updateLiveBalanceFromStatus(status) {
+    if (!liveBalanceText || !status) return;
+    const currentTotalBalance = parseMoneyNumber(status.current_total_balance ?? liveBalanceText.dataset.currentTotalBalance);
+    const expectedEarnedIncome = parseMoneyNumber(status.expected_earned_income ?? liveBalanceText.dataset.expectedEarnedIncome);
+    const activeSeconds = Number(status.active_seconds || liveBalanceText.dataset.activeSeconds || 0);
+    const actualStartAt = status.actual_start_time_iso
+      ? Date.parse(status.actual_start_time_iso)
+      : Date.parse(liveBalanceText.dataset.actualStartAt || "");
+    const isActive =
+      !status.completed &&
+      status.can_start === false &&
+      status.status === "active" &&
+      expectedEarnedIncome > 0 &&
+      activeSeconds > 0 &&
+      Number.isFinite(actualStartAt);
+
+    liveBalanceState = {
+      activeSeconds,
+      actualStartAt: Number.isFinite(actualStartAt) ? actualStartAt : 0,
+      currentTotalBalance,
+      expectedEarnedIncome,
+      isActive,
+    };
+
+    liveBalanceText.dataset.currentTotalBalance = String(currentTotalBalance);
+    liveBalanceText.dataset.expectedEarnedIncome = String(expectedEarnedIncome);
+    liveBalanceText.dataset.activeSeconds = String(activeSeconds);
+    liveBalanceText.dataset.actualStartAt = status.actual_start_time_iso || "";
+    liveBalanceText.dataset.endAt = status.end_time_iso || "";
+    liveBalanceText.dataset.cycleStatus = status.status || "ready";
+    liveBalanceText.dataset.canStart = status.can_start ? "true" : "false";
+
+    stopLiveBalanceAnimation();
+    if (isActive) {
+      animateLiveBalance();
+    } else {
+      renderLiveBalance();
+    }
+  }
+
   function titleCase(value) {
     return String(value || "ready").replace(/\b\w/g, function (letter) {
       return letter.toUpperCase();
@@ -400,6 +493,19 @@
     if (!startError) return;
     startError.textContent = "";
     startError.hidden = true;
+  }
+
+  if (liveBalanceText) {
+    updateLiveBalanceFromStatus({
+      active_seconds: Number(liveBalanceText.dataset.activeSeconds || 0),
+      actual_start_time_iso: liveBalanceText.dataset.actualStartAt || "",
+      can_start: liveBalanceText.dataset.canStart === "true",
+      completed: false,
+      current_total_balance: liveBalanceText.dataset.currentTotalBalance || "0",
+      end_time_iso: liveBalanceText.dataset.endAt || "",
+      expected_earned_income: liveBalanceText.dataset.expectedEarnedIncome || "0",
+      status: liveBalanceText.dataset.cycleStatus || "ready",
+    });
   }
 
   if (ring) {
@@ -466,6 +572,7 @@
       if (missedTimeText) missedTimeText.textContent = currentCanStart ? "00:00:00" : missedLabel;
       if (earningRatioText) earningRatioText.textContent = formatRatioPercent(status.earning_ratio);
       if (expectedEarnedIncomeText) expectedEarnedIncomeText.textContent = formatMoney(status.expected_earned_income, 4);
+      updateLiveBalanceFromStatus(status);
       if (countdownText) {
         if (status.completed) {
           countdownText.textContent = `Completed. Added $${status.completed_income || "0.0000"}`;
