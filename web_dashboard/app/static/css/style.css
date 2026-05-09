@@ -2238,8 +2238,34 @@ body.verification-modal-open {
   border-radius: 8px;
 }
 
+.admin-app .danger-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .admin-app .empty {
   color: #9fb1c7;
+}
+
+.admin-flash {
+  border-radius: 8px;
+  font-weight: 900;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+}
+
+.admin-flash-success {
+  background: rgba(22, 163, 74, 0.16);
+  border: 1px solid rgba(34, 197, 94, 0.34);
+  color: #bbf7d0;
+  box-shadow: 0 0 28px rgba(34, 197, 94, 0.12);
+}
+
+.admin-flash-error {
+  background: rgba(127, 29, 29, 0.22);
+  border: 1px solid rgba(248, 113, 113, 0.36);
+  color: #fecaca;
+  box-shadow: 0 0 28px rgba(239, 41, 41, 0.12);
 }
 
 .settings-command-center {
@@ -2424,6 +2450,50 @@ body.verification-modal-open {
 .admin-command-dialog h2 {
   color: #ffffff;
   margin: 8px 0 18px;
+}
+
+.admin-delete-dialog p {
+  color: #c9d8ea;
+  line-height: 1.8;
+}
+
+.admin-delete-user-name {
+  color: #ffffff;
+  overflow-wrap: anywhere;
+}
+
+.admin-delete-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.admin-delete-cancel {
+  background: rgba(15, 23, 42, 0.82) !important;
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  border-radius: 8px;
+  color: #dff7ff !important;
+}
+
+.admin-delete-cancel:hover {
+  background: rgba(56, 189, 248, 0.14) !important;
+  border-color: rgba(103, 232, 249, 0.44);
+}
+
+.admin-delete-confirm {
+  background: linear-gradient(135deg, #ef2929, #b91c1c) !important;
+  border: 1px solid rgba(248, 113, 113, 0.44);
+  color: #ffffff !important;
+  min-width: 150px;
+}
+
+@media (max-width: 520px) {
+  .admin-delete-modal-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 .admin-command-close,
@@ -3525,6 +3595,13 @@ body.user-menu-open .user-drawer-overlay,
 .admin-action-button:hover {
   filter: saturate(1.12);
   transform: translateY(-2px) scale(1.02);
+}
+
+.admin-action-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+  opacity: 0.62;
+  transform: none;
 }
 
 .admin-action-button.blue {

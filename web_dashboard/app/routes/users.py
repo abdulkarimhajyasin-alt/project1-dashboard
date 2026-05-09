@@ -1,19 +1,46 @@
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, Record, SupportThread, User
+from app.models import Admin, Notification, PendingRequest, Record, SupportThread, User
 from app.notifications import get_admin_notifications_context
 from app.support_chat import get_or_create_support_thread
 
 
 router = APIRouter(prefix="/users")
 templates = Jinja2Templates(directory="app/templates")
+settings = get_settings()
+
+
+def users_redirect(**params: str) -> RedirectResponse:
+    query = f"?{urlencode(params)}" if params else ""
+    return RedirectResponse(url=f"/users{query}", status_code=303)
+
+
+def normalize_identifier(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def is_protected_admin_user(user: User, admin: Admin) -> bool:
+    admin_identifiers = {
+        normalize_identifier(admin.username),
+        normalize_identifier(settings.admin_username),
+    }
+    admin_identifiers.discard("")
+    user_identifiers = {
+        normalize_identifier(user.username),
+        normalize_identifier(user.email),
+    }
+    user_identifiers.discard("")
+    return bool(admin_identifiers.intersection(user_identifiers))
 
 
 def get_admin_user(db: Session, user_id: int) -> User:
@@ -26,6 +53,7 @@ def get_admin_user(db: Session, user_id: int) -> User:
 @router.get("", response_class=HTMLResponse)
 def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.created_at.desc()).all()
+    protected_user_ids = [user.id for user in users if is_protected_admin_user(user, admin)]
     return templates.TemplateResponse(
         "users.html",
         {
@@ -33,6 +61,7 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
             "admin": admin,
             "active_page": "users",
             "users": users,
+            "protected_user_ids": protected_user_ids,
             **get_admin_notifications_context(db),
         },
     )
@@ -50,6 +79,7 @@ def user_details(user_id: int, request: Request, admin: Admin = Depends(get_curr
             "active_page": "users",
             "user": user,
             "records": records,
+            "delete_protected": is_protected_admin_user(user, admin),
             **get_admin_notifications_context(db),
         },
     )
@@ -157,12 +187,42 @@ def reset_user_cycle(user_id: int, admin: Admin = Depends(get_current_admin), db
 
 
 @router.post("/{user_id}/delete")
-def delete_user(user_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int,
+    confirm_delete: str = Form(""),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    if confirm_delete != "yes":
+        return users_redirect(delete_error="Delete confirmation is required.")
+
     user = db.query(User).filter(User.id == user_id).first()
-    if user:
+    if not user:
+        return users_redirect(delete_error="User not found.")
+
+    if is_protected_admin_user(user, admin):
+        return users_redirect(delete_error="Main admin account cannot be deleted.")
+
+    try:
+        for referral in list(user.referrals):
+            referral.referred_by_id = None
+
+        db.query(PendingRequest).filter(PendingRequest.user_id == user.id).update(
+            {PendingRequest.user_id: None},
+            synchronize_session=False,
+        )
+        db.query(Notification).filter(Notification.recipient_user_id == user.id).update(
+            {Notification.recipient_user_id: None},
+            synchronize_session=False,
+        )
+
         support_thread = db.query(SupportThread).filter(SupportThread.user_id == user.id).first()
         if support_thread:
             db.delete(support_thread)
         db.delete(user)
         db.commit()
-    return RedirectResponse(url="/users", status_code=303)
+    except SQLAlchemyError:
+        db.rollback()
+        return users_redirect(delete_error="Could not delete user. Please try again.")
+
+    return users_redirect(delete_success="1")

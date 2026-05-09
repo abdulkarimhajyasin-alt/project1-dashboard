@@ -94,8 +94,19 @@
 
     <div class="admin-danger-zone">
       <h3>Danger Zone</h3>
-      <form method="post" action="/users/{{ user.id }}/delete">
-        <button class="admin-action-button red dark" type="submit">Delete Subscription</button>
+      <form
+        method="post"
+        action="/users/{{ user.id }}/delete"
+        data-delete-user-form
+        data-user-name="{{ user.username or user.name or user.email }}"
+        data-delete-protected="{{ 'true' if delete_protected else 'false' }}"
+      >
+        <input type="hidden" name="confirm_delete" value="yes">
+        <button
+          class="admin-action-button red dark"
+          type="submit"
+          {% if delete_protected %}disabled title="Main admin account cannot be deleted"{% endif %}
+        >Delete Subscription</button>
       </form>
     </div>
   </section>

@@ -12,7 +12,14 @@
   const adminModalOpenButtons = Array.from(document.querySelectorAll("[data-admin-modal-open]"));
   const adminModals = Array.from(document.querySelectorAll("[data-admin-modal]"));
   const adminImageButtons = Array.from(document.querySelectorAll("[data-admin-image-src]"));
+  const deleteUserModal = document.querySelector("[data-delete-user-modal]");
+  const deleteUserForms = Array.from(document.querySelectorAll("[data-delete-user-form]"));
+  const deleteUserName = deleteUserModal?.querySelector("[data-delete-user-name]");
+  const deleteUserConfirm = deleteUserModal?.querySelector("[data-delete-user-confirm]");
+  const deleteUserError = deleteUserModal?.querySelector("[data-delete-user-error]");
+  const deleteUserCancelButtons = Array.from(deleteUserModal?.querySelectorAll("[data-delete-user-cancel]") || []);
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
+  let pendingDeleteUserForm = null;
 
   const formatFileSize = (size) => {
     if (!Number.isFinite(size)) {
@@ -113,8 +120,102 @@
 
     modal.classList.toggle("is-open", isOpen);
     modal.setAttribute("aria-hidden", String(!isOpen));
-    document.body.classList.toggle("admin-modal-open", adminModals.some((item) => item.classList.contains("is-open")));
+    document.body.classList.toggle(
+      "admin-modal-open",
+      adminModals.some((item) => item.classList.contains("is-open")) || Boolean(deleteUserModal?.classList.contains("is-open")),
+    );
   };
+
+  const setDeleteUserModalOpen = (isOpen) => {
+    if (!deleteUserModal) {
+      return;
+    }
+
+    deleteUserModal.classList.toggle("is-open", isOpen);
+    deleteUserModal.setAttribute("aria-hidden", String(!isOpen));
+    document.body.classList.toggle(
+      "admin-modal-open",
+      isOpen || adminModals.some((item) => item.classList.contains("is-open")),
+    );
+
+    if (!isOpen) {
+      pendingDeleteUserForm = null;
+      if (deleteUserConfirm) {
+        deleteUserConfirm.disabled = false;
+        deleteUserConfirm.textContent = "Confirm Delete";
+      }
+      if (deleteUserError) {
+        deleteUserError.hidden = true;
+        deleteUserError.textContent = "";
+      }
+    }
+  };
+
+  deleteUserForms.forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      if (form.dataset.deleteConfirmed === "true") {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (form.dataset.deleteProtected === "true") {
+        if (deleteUserError) {
+          deleteUserError.hidden = false;
+          deleteUserError.textContent = "Main admin account cannot be deleted.";
+        }
+        return;
+      }
+
+      pendingDeleteUserForm = form;
+      if (deleteUserName) {
+        deleteUserName.textContent = form.dataset.userName || "this user";
+      }
+      if (deleteUserError) {
+        deleteUserError.hidden = true;
+        deleteUserError.textContent = "";
+      }
+      if (deleteUserConfirm) {
+        deleteUserConfirm.disabled = false;
+        deleteUserConfirm.textContent = "Confirm Delete";
+      }
+      setDeleteUserModalOpen(true);
+    });
+  });
+
+  deleteUserConfirm?.addEventListener("click", () => {
+    if (!pendingDeleteUserForm || pendingDeleteUserForm.dataset.deleteProtected === "true") {
+      if (deleteUserError) {
+        deleteUserError.hidden = false;
+        deleteUserError.textContent = "This user cannot be deleted.";
+      }
+      return;
+    }
+
+    deleteUserConfirm.disabled = true;
+    deleteUserConfirm.textContent = "Deleting...";
+    pendingDeleteUserForm.dataset.deleteConfirmed = "true";
+
+    if (typeof pendingDeleteUserForm.requestSubmit === "function") {
+      pendingDeleteUserForm.requestSubmit();
+    } else {
+      pendingDeleteUserForm.submit();
+    }
+  });
+
+  deleteUserCancelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!deleteUserConfirm?.disabled) {
+        setDeleteUserModalOpen(false);
+      }
+    });
+  });
+
+  deleteUserModal?.addEventListener("click", (event) => {
+    if (event.target === deleteUserModal && !deleteUserConfirm?.disabled) {
+      setDeleteUserModalOpen(false);
+    }
+  });
 
   adminModalOpenButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -222,6 +323,9 @@
       closeNotifications();
       setSupportChatOpen(false);
       adminModals.forEach((modal) => setAdminModalOpen(modal, false));
+      if (!deleteUserConfirm?.disabled) {
+        setDeleteUserModalOpen(false);
+      }
     }
   });
 

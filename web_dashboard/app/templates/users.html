@@ -3,6 +3,12 @@
 {% block page_title %}Users{% endblock %}
 
 {% block content %}
+{% if request.query_params.get("delete_success") %}
+<div class="admin-flash admin-flash-success" role="status">User deleted successfully</div>
+{% elif request.query_params.get("delete_error") %}
+<div class="admin-flash admin-flash-error" role="alert">{{ request.query_params.get("delete_error") }}</div>
+{% endif %}
+
 <section class="panel">
   <div class="panel-header">
     <h2>Add User</h2>
@@ -46,6 +52,8 @@
       </thead>
       <tbody>
         {% for user in users %}
+        {% set delete_user_label = user.username or user.name or user.email %}
+        {% set delete_protected = user.id in protected_user_ids %}
         <tr>
           <td>{{ user.name }}</td>
           <td>
@@ -67,8 +75,19 @@
           <td>{{ user.created_at.strftime("%Y-%m-%d") }}</td>
           <td><button type="button" class="safe-button">Reset password</button></td>
           <td>
-            <form method="post" action="/users/{{ user.id }}/delete">
-              <button class="danger-button" type="submit">Delete</button>
+            <form
+              method="post"
+              action="/users/{{ user.id }}/delete"
+              data-delete-user-form
+              data-user-name="{{ delete_user_label }}"
+              data-delete-protected="{{ 'true' if delete_protected else 'false' }}"
+            >
+              <input type="hidden" name="confirm_delete" value="yes">
+              <button
+                class="danger-button"
+                type="submit"
+                {% if delete_protected %}disabled title="Main admin account cannot be deleted"{% endif %}
+              >Delete</button>
             </form>
           </td>
         </tr>

@@ -77,6 +77,22 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+  <div class="admin-command-modal" id="deleteUserModal" data-delete-user-modal aria-hidden="true">
+    <section class="admin-command-dialog admin-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteUserTitle">
+      <p class="mining-kicker">Danger Zone</p>
+      <h2 id="deleteUserTitle">Confirm user deletion</h2>
+      <p>
+        You are about to permanently delete
+        <strong class="admin-delete-user-name" data-delete-user-name>this user</strong>.
+        This action is final and cannot be undone.
+      </p>
+      <p class="support-chat-error" data-delete-user-error hidden></p>
+      <div class="admin-delete-modal-actions">
+        <button class="admin-delete-cancel" type="button" data-delete-user-cancel>Cancel</button>
+        <button class="danger-button admin-delete-confirm" type="button" data-delete-user-confirm>Confirm Delete</button>
+      </div>
+    </section>
+  </div>
   <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=settings-control-panel" defer></script>
   {% block scripts %}{% endblock %}
 </body>
