@@ -12,6 +12,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.branding import PLATFORM_NAME, PLATFORM_TAGLINE, build_referral_share_context
+from app.countries import COUNTRY_TIMEZONE_CHOICES, get_country_timezone
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
 from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
@@ -39,95 +40,6 @@ DOCUMENT_TYPES = {
 }
 
 
-def arabic_country_sort_key(country_timezone: tuple[str, str]) -> str:
-    name = country_timezone[0].translate(
-        str.maketrans(
-            {
-                "أ": "ا",
-                "إ": "ا",
-                "آ": "ا",
-                "ٱ": "ا",
-                "ة": "ه",
-                "ى": "ي",
-                "ؤ": "و",
-                "ئ": "ي",
-            }
-        )
-    )
-    if name.startswith("ال"):
-        name = name[2:]
-    return name
-
-
-COUNTRY_TIMEZONES = sorted(
-    [
-        ("أذربيجان", "Asia/Baku"),
-        ("أرمينيا", "Asia/Yerevan"),
-        ("الأرجنتين", "America/Argentina/Buenos_Aires"),
-        ("الأردن", "Asia/Amman"),
-        ("ألمانيا", "Europe/Berlin"),
-        ("الإمارات العربية المتحدة", "Asia/Dubai"),
-        ("أوكرانيا", "Europe/Kyiv"),
-        ("البحرين", "Asia/Bahrain"),
-        ("البرازيل", "America/Sao_Paulo"),
-        ("البرتغال", "Europe/Lisbon"),
-        ("التشيك", "Europe/Prague"),
-        ("الجزائر", "Africa/Algiers"),
-        ("الدنمارك", "Europe/Copenhagen"),
-        ("السعودية", "Asia/Riyadh"),
-        ("السودان", "Africa/Khartoum"),
-        ("السويد", "Europe/Stockholm"),
-        ("الصومال", "Africa/Mogadishu"),
-        ("الصين", "Asia/Shanghai"),
-        ("العراق", "Asia/Baghdad"),
-        ("الكويت", "Asia/Kuwait"),
-        ("المغرب", "Africa/Casablanca"),
-        ("المكسيك", "America/Mexico_City"),
-        ("المملكة المتحدة", "Europe/London"),
-        ("النرويج", "Europe/Oslo"),
-        ("النمسا", "Europe/Vienna"),
-        ("الولايات المتحدة", "America/New_York"),
-        ("الهند", "Asia/Kolkata"),
-        ("اليابان", "Asia/Tokyo"),
-        ("اليمن", "Asia/Aden"),
-        ("اليونان", "Europe/Athens"),
-        ("إسبانيا", "Europe/Madrid"),
-        ("إستونيا", "Europe/Tallinn"),
-        ("إندونيسيا", "Asia/Jakarta"),
-        ("إيران", "Asia/Tehran"),
-        ("إيطاليا", "Europe/Rome"),
-        ("باكستان", "Asia/Karachi"),
-        ("بلجيكا", "Europe/Brussels"),
-        ("بنغلاديش", "Asia/Dhaka"),
-        ("بولندا", "Europe/Warsaw"),
-        ("تركيا", "Europe/Istanbul"),
-        ("تونس", "Africa/Tunis"),
-        ("جنوب أفريقيا", "Africa/Johannesburg"),
-        ("جورجيا", "Asia/Tbilisi"),
-        ("روسيا", "Europe/Moscow"),
-        ("رومانيا", "Europe/Bucharest"),
-        ("سنغافورة", "Asia/Singapore"),
-        ("سوريا", "Asia/Damascus"),
-        ("سويسرا", "Europe/Zurich"),
-        ("عُمان", "Asia/Muscat"),
-        ("فرنسا", "Europe/Paris"),
-        ("فنلندا", "Europe/Helsinki"),
-        ("فلسطين", "Asia/Gaza"),
-        ("قطر", "Asia/Qatar"),
-        ("كازاخستان", "Asia/Almaty"),
-        ("كندا", "America/Toronto"),
-        ("كوريا الجنوبية", "Asia/Seoul"),
-        ("لبنان", "Asia/Beirut"),
-        ("ليبيا", "Africa/Tripoli"),
-        ("ماليزيا", "Asia/Kuala_Lumpur"),
-        ("مصر", "Africa/Cairo"),
-        ("هولندا", "Europe/Amsterdam"),
-    ],
-    key=arabic_country_sort_key,
-)
-COUNTRY_TIMEZONE_MAP = dict(COUNTRY_TIMEZONES)
-
-
 def make_referral_code() -> str:
     return uuid4().hex[:10]
 
@@ -135,6 +47,18 @@ def make_referral_code() -> str:
 def get_referral_url(request: Request, user: User) -> str:
     code = user.referral_code or ""
     return str(request.url_for("user_register")) + f"?ref={code}"
+
+
+def build_register_context(request: Request, ref: str = "", error: str | None = None, selected_country: str = "") -> dict:
+    return {
+        "request": request,
+        "error": error,
+        "ref": ref,
+        "countries": COUNTRY_TIMEZONE_CHOICES,
+        "selected_country": selected_country,
+        "platform_name": PLATFORM_NAME,
+        "platform_tagline": PLATFORM_TAGLINE,
+    }
 
 
 def build_user_context(request: Request, user: User, active_user_page: str, db: Session) -> dict:
@@ -308,44 +232,65 @@ def read_verification_image(upload: UploadFile | None, label: str) -> dict[str, 
 
 @router.get("/register", response_class=HTMLResponse, name="user_register")
 def register_page(request: Request, ref: str = ""):
-    return templates.TemplateResponse(
-        "user_register.html",
-        {"request": request, "error": None, "ref": ref, "platform_name": PLATFORM_NAME, "platform_tagline": PLATFORM_TAGLINE},
-    )
+    return templates.TemplateResponse("user_register.html", build_register_context(request, ref=ref))
 
 
 @router.post("/register")
 def register(
     request: Request,
-    name: str = Form(...),
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
+    username: str = Form(""),
+    password: str = Form(""),
+    confirm_password: str = Form(""),
+    residence_country: str = Form(""),
     ref: str = Form(""),
     db: Session = Depends(get_db),
 ):
     username = username.strip().lower()
-    email = email.strip().lower()
-    existing = db.query(User).filter(or_(User.username == username, User.email == email)).first()
+    clean_country = residence_country.strip()
+    timezone = get_country_timezone(clean_country)
+    generated_email = f"{username}@novahash.local"
+
+    if not username or any(char.isspace() for char in username):
+        return templates.TemplateResponse(
+            "user_register.html",
+            build_register_context(request, ref=ref, error="يرجى إدخال اسم مستخدم صحيح بدون مسافات.", selected_country=clean_country),
+            status_code=400,
+        )
+    if not password:
+        return templates.TemplateResponse(
+            "user_register.html",
+            build_register_context(request, ref=ref, error="يرجى إدخال كلمة المرور.", selected_country=clean_country),
+            status_code=400,
+        )
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            "user_register.html",
+            build_register_context(request, ref=ref, error="كلمة المرور وتأكيد كلمة المرور غير متطابقين.", selected_country=clean_country),
+            status_code=400,
+        )
+    if not timezone:
+        return templates.TemplateResponse(
+            "user_register.html",
+            build_register_context(request, ref=ref, error="يرجى اختيار مكان الإقامة من القائمة.", selected_country=clean_country),
+            status_code=400,
+        )
+
+    existing = db.query(User).filter(or_(User.username == username, User.email == generated_email)).first()
     if existing:
         return templates.TemplateResponse(
             "user_register.html",
-            {
-                "request": request,
-                "error": "اسم المستخدم أو البريد مستخدم مسبقاً.",
-                "ref": ref,
-                "platform_name": PLATFORM_NAME,
-                "platform_tagline": PLATFORM_TAGLINE,
-            },
+            build_register_context(request, ref=ref, error="اسم المستخدم مستخدم مسبقاً.", selected_country=clean_country),
             status_code=400,
         )
 
     referrer = db.query(User).filter(User.referral_code == ref).first() if ref else None
     user = User(
-        name=name.strip(),
+        name=username,
         username=username,
-        email=email,
+        email=generated_email,
         password_hash=hash_password(password),
+        residence_country=clean_country,
+        timezone=timezone,
         referral_code=make_referral_code(),
         referred_by_id=referrer.id if referrer else None,
     )
@@ -359,9 +304,9 @@ def register(
         target_url=f"/users/{user.id}",
         kind="account",
         data={
-            "الاسم": user.name,
             "اسم المستخدم": user.username or "-",
-            "البريد الإلكتروني": user.email,
+            "مكان الإقامة": user.residence_country or "-",
+            "المنطقة الزمنية": user.timezone or "UTC",
             "كلمة السر": "محفوظة كـ hash ولا يتم عرضها كنص صريح",
             "كود الإحالة": user.referral_code or "-",
             "كود الدعوة المستخدم": ref.strip() or "-",
@@ -583,7 +528,6 @@ def account_page(
         {
             "verification_error": verification_error,
             "verification_sent": verification_sent == "1",
-            "country_timezones": COUNTRY_TIMEZONES,
             "document_types": DOCUMENT_TYPES,
         }
     )
@@ -593,7 +537,6 @@ def account_page(
 @router.post("/account/verification")
 def submit_account_verification(
     legal_full_name: str = Form(...),
-    residence_country: str = Form(...),
     document_type: str = Form(...),
     front_image: UploadFile | None = File(None),
     back_image: UploadFile | None = File(None),
@@ -602,14 +545,12 @@ def submit_account_verification(
     db: Session = Depends(get_db),
 ):
     clean_name = legal_full_name.strip()
-    clean_country = residence_country.strip()
-    timezone = COUNTRY_TIMEZONE_MAP.get(clean_country)
+    clean_country = (user.residence_country or "").strip()
+    timezone = user.timezone or get_country_timezone(clean_country) or "UTC"
 
     try:
         if not clean_name:
             raise ValueError("يرجى كتابة الاسم والكنية كما في البطاقة الشخصية.")
-        if not timezone:
-            raise ValueError("يرجى اختيار دولة من القائمة.")
         if document_type not in DOCUMENT_TYPES:
             raise ValueError("يرجى اختيار نوع وثيقة صحيح.")
 
@@ -624,7 +565,6 @@ def submit_account_verification(
 
     now = datetime.utcnow()
     user.legal_full_name = clean_name
-    user.residence_country = clean_country
     user.timezone = timezone
     user.document_type = document_type
     user.verification_status = "pending"
@@ -642,8 +582,6 @@ def submit_account_verification(
         document_type=document_type,
         details_json=json.dumps(
             {
-                "الدولة": clean_country,
-                "المنطقة الزمنية": timezone,
                 "نوع الوثيقة": DOCUMENT_TYPES[document_type],
             },
             ensure_ascii=False,
@@ -675,6 +613,7 @@ def submit_account_verification(
             "Email": user.email,
             "Full name": clean_name,
             "Country": clean_country,
+            "Timezone": timezone,
             "Document type": DOCUMENT_TYPES[document_type],
         },
     )

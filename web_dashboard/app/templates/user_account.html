@@ -48,15 +48,6 @@
         <input type="text" name="legal_full_name" value="{{ user.legal_full_name or user.name }}" required>
       </label>
       <label>
-        مكان الإقامة / الدولة
-        <select name="residence_country" required>
-          <option value="">اختر الدولة</option>
-          {% for country, timezone in country_timezones %}
-          <option value="{{ country }}" data-timezone="{{ timezone }}" {{ "selected" if user.residence_country == country else "" }}>{{ country }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
         نوع الوثيقة
         <select name="document_type" data-document-type required>
           {% for value, label in document_types.items() %}

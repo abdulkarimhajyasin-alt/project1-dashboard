@@ -22,10 +22,18 @@
     {% if error %}<div class="alert">{{ error }}</div>{% endif %}
     <form method="post" action="/user/register" class="form-stack">
       <input type="hidden" name="ref" value="{{ ref }}">
-      <label>الاسم الكامل<input type="text" name="name" required></label>
       <label>اسم المستخدم<input type="text" name="username" autocomplete="username" required></label>
-      <label>البريد الإلكتروني<input type="email" name="email" autocomplete="email" required></label>
       <label>كلمة المرور<input type="password" name="password" autocomplete="new-password" required></label>
+      <label>تأكيد كلمة المرور<input type="password" name="confirm_password" autocomplete="new-password" required></label>
+      <label>
+        مكان الإقامة
+        <select name="residence_country" required>
+          <option value="">اختر مكان الإقامة</option>
+          {% for country, timezone in countries %}
+          <option value="{{ country }}" {{ "selected" if selected_country == country else "" }}>{{ country }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <button type="submit">إنشاء الحساب</button>
     </form>
     <a class="auth-link" href="/user/login">لدي حساب بالفعل</a>

@@ -379,7 +379,8 @@ th {
   gap: 8px;
 }
 
-.auth-card input {
+.auth-card input,
+.auth-card select {
   background: #081522;
   border-color: #22334a;
   color: #ffffff;
