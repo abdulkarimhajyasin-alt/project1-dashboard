@@ -2687,6 +2687,29 @@ body.admin-modal-open {
   margin: 0;
 }
 
+.pending-reject-form {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 360px);
+}
+
+.pending-reject-form label {
+  color: #dbeafe;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pending-reject-form textarea {
+  background: rgba(3, 10, 20, 0.74);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 8px;
+  color: #ffffff;
+  min-height: 78px;
+  padding: 10px;
+}
+
 .pending-view,
 .pending-accept,
 .pending-reject {
@@ -3892,6 +3915,10 @@ body.user-menu-open .user-drawer-overlay,
 
 .notification-item.support {
   border-right-color: #25f6a4;
+}
+
+.notification-item.verification {
+  border-right-color: #a78bfa;
 }
 
 .notification-item.warning {

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -119,6 +120,19 @@ def apply_verification_request_to_user(pending_request: PendingRequest, *, appro
         user.verification_status = pending_request.status
 
 
+def update_pending_request_detail(pending_request: PendingRequest, key: str, value: str) -> None:
+    if not value:
+        return
+    try:
+        details = json.loads(pending_request.details_json or "{}")
+    except json.JSONDecodeError:
+        details = {}
+    if not isinstance(details, dict):
+        details = {}
+    details[key] = value
+    pending_request.details_json = json.dumps(details, ensure_ascii=False)
+
+
 def get_support_notification_message(support_message: SupportMessage) -> str:
     if support_message.has_attachment_data:
         return "صورة" if support_message.is_image else "ملف"
@@ -189,23 +203,57 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
 @router.post("/pending-requests/{request_id}/accept")
 def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
-    if pending_request:
+    if pending_request and pending_request.status == "pending":
         if pending_request.request_type == "verification":
             apply_verification_request_to_user(pending_request, approve=True)
+            if pending_request.user:
+                create_user_notification(
+                    db,
+                    user_id=pending_request.user.id,
+                    title="Verification approved",
+                    message="Your account verification request has been approved.",
+                    target_url="/user/account",
+                    kind="verification",
+                    data={"Status": "approved", "Reviewed by": admin.username},
+                )
         pending_request.status = "accepted"
         db.commit()
     return RedirectResponse(url="/notifications", status_code=303)
 
 
 @router.post("/pending-requests/{request_id}/reject")
-def reject_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+def reject_pending_request(
+    request_id: int,
+    reject_reason: str = Form(""),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
-    if pending_request:
+    if pending_request and pending_request.status == "pending":
         pending_request.status = "rejected"
         if pending_request.request_type == "verification" and pending_request.user:
             pending_request.user.verified = False
             pending_request.user.verification_status = "rejected"
             pending_request.user.verification_approved_at = None
+            clean_reason = reject_reason.strip()
+            if clean_reason:
+                update_pending_request_detail(pending_request, "Rejection reason", clean_reason)
+            message = "Your account verification request has been rejected."
+            if clean_reason:
+                message = f"{message} Reason: {clean_reason}"
+            create_user_notification(
+                db,
+                user_id=pending_request.user.id,
+                title="Verification rejected",
+                message=message,
+                target_url="/user/account",
+                kind="verification",
+                data={
+                    "Status": "rejected",
+                    "Reason": clean_reason or "No reason provided",
+                    "Reviewed by": admin.username,
+                },
+            )
         db.commit()
     return RedirectResponse(url="/notifications", status_code=303)
 

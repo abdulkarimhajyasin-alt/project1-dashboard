@@ -18,7 +18,7 @@
   <div class="pending-request-grid">
     {% for request_type, section in pending_request_sections.items() %}
     {% set requests = pending_requests_by_type.get(request_type, []) %}
-    <article class="pending-request-card {{ request_type }}">
+    <article class="pending-request-card {{ request_type }}" id="pending-{{ request_type }}">
       <header class="pending-card-header">
         <div>
           <p class="mining-kicker">{{ section.badge }}</p>
@@ -57,10 +57,10 @@
                 <div class="pending-actions">
                   <button type="button" class="pending-view" data-admin-modal-open="pendingRequest{{ item.id }}">عرض</button>
                   <form method="post" action="/pending-requests/{{ item.id }}/accept">
-                    <button class="pending-accept" type="submit">قبول</button>
+                    <button class="pending-accept" type="submit">Approve</button>
                   </form>
                   <form method="post" action="/pending-requests/{{ item.id }}/reject">
-                    <button class="pending-reject" type="submit">رفض</button>
+                    <button class="pending-reject" type="submit">Reject</button>
                   </form>
                 </div>
               </td>
@@ -156,10 +156,16 @@
       </form>
       {% endif %}
       <form method="post" action="/pending-requests/{{ item.id }}/accept">
-        <button class="pending-accept" type="submit">قبول الطلب</button>
+        <button class="pending-accept" type="submit">Approve</button>
       </form>
-      <form method="post" action="/pending-requests/{{ item.id }}/reject">
-        <button class="pending-reject" type="submit">رفض الطلب</button>
+      <form method="post" action="/pending-requests/{{ item.id }}/reject" class="pending-reject-form">
+        {% if request_type == 'verification' %}
+        <label>
+          Rejection reason
+          <textarea name="reject_reason" rows="3" placeholder="Optional reason shown to the user"></textarea>
+        </label>
+        {% endif %}
+        <button class="pending-reject" type="submit">Reject</button>
       </form>
     </div>
   </section>

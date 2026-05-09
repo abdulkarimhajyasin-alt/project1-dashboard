@@ -199,6 +199,10 @@ def get_support_notification_message(support_message) -> str:
     return support_message.body or "رسالة جديدة"
 
 
+def get_user_display_name(user: User) -> str:
+    return user.username or user.name or user.email
+
+
 def get_safe_user_redirect(request: Request, fallback: str = "/user/dashboard") -> str:
     referer = request.headers.get("referer", "")
     if not referer:
@@ -570,6 +574,20 @@ def submit_account_verification(
 
     db.add(pending_request)
     db.add(user)
+    create_admin_notification(
+        db,
+        title="New verification request",
+        message=f"New verification request from {get_user_display_name(user)}",
+        target_url="/notifications#pending-verification",
+        kind="verification",
+        data={
+            "User": get_user_display_name(user),
+            "Email": user.email,
+            "Full name": clean_name,
+            "Country": clean_country,
+            "Document type": DOCUMENT_TYPES[document_type],
+        },
+    )
     db.commit()
     return RedirectResponse(url="/user/account?verification_sent=1", status_code=303)
 
