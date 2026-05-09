@@ -1,18 +1,19 @@
 ﻿# -*- coding: utf-8 -*-
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 from urllib.parse import urlencode, urlsplit
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
+from app.mining import build_mining_status, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
 from app.models import Notification, PendingRequest, Record, User
 from app.notifications import create_admin_notification, get_user_notifications_context
 from app.security import hash_password, verify_password
@@ -27,10 +28,7 @@ from app.support_chat import (
 
 router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="app/templates")
-DAILY_DURATION = timedelta(hours=24)
 MIN_WITHDRAWAL = Decimal("10.00")
-BASE_DAILY_REWARD = Decimal("0.001")
-REFERRAL_DAILY_REWARD = Decimal("0.0005")
 MAX_VERIFICATION_IMAGE_SIZE = 5 * 1024 * 1024
 DOCUMENT_TYPES = {
     "id_card": "بطاقة شخصية",
@@ -132,44 +130,6 @@ def make_referral_code() -> str:
     return uuid4().hex[:10]
 
 
-def get_daily_reward(user: User) -> Decimal:
-    capital = Decimal(user.capital or 0)
-    if capital <= 0:
-        return BASE_DAILY_REWARD
-    units = int(capital // Decimal("10"))
-    return BASE_DAILY_REWARD * Decimal(max(units, 1))
-
-
-def settle_daily_cycle(user: User, db: Session) -> None:
-    if not user.last_start_at:
-        return
-    if datetime.utcnow() - user.last_start_at < DAILY_DURATION:
-        return
-
-    reward = get_daily_reward(user)
-    user.profits = Decimal(user.profits or 0) + reward
-    user.daily_earnings = reward
-    db.add(
-        Record(
-            user_id=user.id,
-            title="Daily mining reward",
-            amount=reward,
-            record_type="daily_reward",
-            notes="Automatic daily reward after 24 hour cycle.",
-        )
-    )
-    user.last_start_at = None
-    db.commit()
-    db.refresh(user)
-
-
-def get_progress_percent(user: User) -> int:
-    if not user.last_start_at:
-        return 0
-    elapsed = datetime.utcnow() - user.last_start_at
-    return min(100, int((elapsed.total_seconds() / DAILY_DURATION.total_seconds()) * 100))
-
-
 def get_referral_url(request: Request, user: User) -> str:
     code = user.referral_code or ""
     return str(request.url_for("user_register")) + f"?ref={code}"
@@ -177,16 +137,21 @@ def get_referral_url(request: Request, user: User) -> str:
 
 def build_user_context(request: Request, user: User, active_user_page: str, db: Session) -> dict:
     withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
+    referrals_count = len(user.referrals)
+    mining_status = build_mining_status(user, db)
+    rank_info = get_referral_rank_info(referrals_count)
     return {
         "request": request,
         "user": user,
         "active_user_page": active_user_page,
-        "progress_percent": get_progress_percent(user),
-        "can_start": user.last_start_at is None,
+        "progress_percent": mining_status["progress_percent"],
+        "can_start": mining_status["can_start"],
+        "mining_status": mining_status,
         "withdraw_percent": withdraw_percent,
         "min_withdrawal": MIN_WITHDRAWAL,
         "referral_url": get_referral_url(request, user),
-        "referrals_count": len(user.referrals),
+        "referrals_count": referrals_count,
+        "referral_rank_info": rank_info,
         "maintenance_enabled": is_maintenance_enabled(db),
         "user_notification_modal": request.session.pop("user_notification_modal", None),
         **get_user_notifications_context(db, user.id),
@@ -376,7 +341,7 @@ def clear_user_notifications(user: User = Depends(get_current_user), db: Session
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    settle_daily_cycle(user, db)
+    completed_cycle = settle_due_mining_cycle(user, db)
     intro_seen = bool(request.session.get("user_intro_seen"))
     request.session["user_intro_seen"] = True
     context = build_user_context(request, user, "dashboard", db)
@@ -384,6 +349,9 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
         "user_dashboard.html",
         {
             "intro_seen": intro_seen,
+            "mining_completed_cycle": completed_cycle,
+            "cycle_started": request.query_params.get("cycle_started") == "1",
+            "mining_error": request.query_params.get("mining_error", ""),
             **context,
         },
     )
@@ -391,19 +359,19 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
 
 @router.get("/plans", response_class=HTMLResponse)
 def plans_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    settle_daily_cycle(user, db)
+    settle_due_mining_cycle(user, db)
     return templates.TemplateResponse("user_plans.html", build_user_context(request, user, "plans", db))
 
 
 @router.get("/withdraw", response_class=HTMLResponse)
 def withdraw_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    settle_daily_cycle(user, db)
+    settle_due_mining_cycle(user, db)
     return templates.TemplateResponse("user_withdraw.html", build_user_context(request, user, "withdraw", db))
 
 
 @router.get("/referral", response_class=HTMLResponse)
 def referral_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    settle_daily_cycle(user, db)
+    settle_due_mining_cycle(user, db)
     return templates.TemplateResponse("user_referral.html", build_user_context(request, user, "referral", db))
 
 
@@ -416,7 +384,7 @@ def support_page(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    settle_daily_cycle(user, db)
+    settle_due_mining_cycle(user, db)
     thread = get_or_create_support_thread(db, user)
     messages = get_thread_messages(db, thread)
     context = build_user_context(request, user, "support", db)
@@ -473,7 +441,7 @@ def send_support_message(
 
 @router.get("/history", response_class=HTMLResponse)
 def history_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    settle_daily_cycle(user, db)
+    settle_due_mining_cycle(user, db)
     context = build_user_context(request, user, "history", db)
     context["records"] = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
     return templates.TemplateResponse("user_history.html", context)
@@ -487,7 +455,7 @@ def account_page(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    settle_daily_cycle(user, db)
+    settle_due_mining_cycle(user, db)
     context = build_user_context(request, user, "account", db)
     context.update(
         {
@@ -594,19 +562,39 @@ def submit_account_verification(
 
 @router.post("/start")
 def start_daily_cycle(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    settle_daily_cycle(user, db)
-    if user.last_start_at is None:
-        user.last_start_at = datetime.utcnow()
-        if user.referrer:
-            user.referrer.profits = Decimal(user.referrer.profits or 0) + REFERRAL_DAILY_REWARD
-            db.add(
-                Record(
-                    user_id=user.referrer.id,
-                    title="Referral activity reward",
-                    amount=REFERRAL_DAILY_REWARD,
-                    record_type="referral_reward",
-                    notes=f"Referral started daily cycle: {user.username or user.email}",
-                )
-            )
-        db.commit()
-    return RedirectResponse(url="/user/dashboard", status_code=303)
+    cycle, error = start_mining_cycle(user, db)
+    if error:
+        return RedirectResponse(url=f"/user/dashboard?{urlencode({'mining_error': error})}", status_code=303)
+    return RedirectResponse(url="/user/dashboard?cycle_started=1", status_code=303)
+
+
+@router.get("/mining/status")
+def mining_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    completed_cycle = settle_due_mining_cycle(user, db)
+    status = build_mining_status(user, db)
+    return JSONResponse(
+        {
+            "cycle_id": status["cycle_id"],
+            "status": status["status"],
+            "can_start": status["can_start"],
+            "progress_percent": status["progress_percent"],
+            "remaining_seconds": status["remaining_seconds"],
+            "start_time": status["start_time"],
+            "end_time": status["end_time"],
+            "start_time_iso": status["start_time_iso"],
+            "end_time_iso": status["end_time_iso"],
+            "active_capital": str(status["active_capital"]),
+            "referral_income": str(status["referral_income"]),
+            "current_daily_income": str(status["current_daily_income"]),
+            "completed": completed_cycle is not None,
+            "completed_income": str(completed_cycle.final_income) if completed_cycle else "0.0000",
+        }
+    )
+
+
+@router.post("/mining/complete")
+def complete_mining(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    completed_cycle = settle_due_mining_cycle(user, db)
+    query = {"cycle_completed": "1"} if completed_cycle else {}
+    suffix = f"?{urlencode(query)}" if query else ""
+    return RedirectResponse(url=f"/user/dashboard{suffix}", status_code=303)

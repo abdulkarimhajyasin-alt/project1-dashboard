@@ -47,6 +47,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     records: Mapped[list[Record]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    mining_cycles: Mapped[list["MiningCycle"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     referrer: Mapped[User] = relationship(remote_side="User.id", back_populates="referrals")
     referrals: Mapped[list[User]] = relationship(back_populates="referrer")
 
@@ -57,12 +58,35 @@ class Record(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(160), nullable=False)
-    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0, nullable=False)
     record_type: Mapped[str] = mapped_column(String(40), default="general", nullable=False)
     notes: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="records")
+
+
+class MiningCycle(Base):
+    __tablename__ = "mining_cycles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    cycle_uuid: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    start_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    end_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="active", nullable=False, index=True)
+    active_capital: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    mining_income: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0, nullable=False)
+    referral_income: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0, nullable=False)
+    capital_bonus: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0, nullable=False)
+    final_income: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0, nullable=False)
+    referral_reward_paid: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    referrer_reward_amount: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0, nullable=False)
+    referrer_cycle_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="mining_cycles")
 
 
 class PendingRequest(Base):

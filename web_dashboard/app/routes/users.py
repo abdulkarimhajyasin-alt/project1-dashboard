@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, Notification, PendingRequest, Record, SupportThread, User
+from app.mining import get_referral_rank_info
+from app.models import Admin, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
 from app.notifications import get_admin_notifications_context
 from app.support_chat import get_or_create_support_thread
 
@@ -62,6 +63,7 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
             "active_page": "users",
             "users": users,
             "protected_user_ids": protected_user_ids,
+            "get_referral_rank_info": get_referral_rank_info,
             **get_admin_notifications_context(db),
         },
     )
@@ -80,6 +82,7 @@ def user_details(user_id: int, request: Request, admin: Admin = Depends(get_curr
             "user": user,
             "records": records,
             "delete_protected": is_protected_admin_user(user, admin),
+            "referral_rank_info": get_referral_rank_info(len(user.referrals)),
             **get_admin_notifications_context(db),
         },
     )
@@ -181,6 +184,11 @@ def adjust_user_balance(
 @router.post("/{user_id}/reset-cycle")
 def reset_user_cycle(user_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = get_admin_user(db, user_id)
+    (
+        db.query(MiningCycle)
+        .filter(MiningCycle.user_id == user.id, MiningCycle.status == "active")
+        .update({"status": "cancelled"}, synchronize_session=False)
+    )
     user.last_start_at = None
     db.commit()
     return RedirectResponse(url=f"/users/{user.id}", status_code=303)

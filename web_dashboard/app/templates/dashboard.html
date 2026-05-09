@@ -40,6 +40,43 @@
 <section class="admin-panel-card">
   <div class="admin-panel-header">
     <div>
+      <p class="mining-kicker">Referral Ranks</p>
+      <h2>أفضل رتب الإحالة</h2>
+    </div>
+    <a href="/users">إدارة الرتب</a>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-data-table">
+      <thead>
+        <tr>
+          <th>المستخدم</th>
+          <th>الرتبة</th>
+          <th>الإحالات</th>
+          <th>الرتبة القادمة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ranked_user in top_referral_users %}
+        {% set rank_info = get_referral_rank_info(ranked_user.referrals|length) %}
+        <tr>
+          <td><a class="admin-user-link" href="/users/{{ ranked_user.id }}">{{ ranked_user.username or ranked_user.name }}</a></td>
+          <td><span class="status admin-status-pill">{{ rank_info.rank }}</span></td>
+          <td>{{ rank_info.referrals_count }}</td>
+          <td>{{ rank_info.next_rank or "Max Rank" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="empty">لا توجد إحالات بعد.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-panel-card">
+  <div class="admin-panel-header">
+    <div>
       <p class="mining-kicker">Latest Ledger</p>
       <h2>أحدث التسجيلات</h2>
     </div>

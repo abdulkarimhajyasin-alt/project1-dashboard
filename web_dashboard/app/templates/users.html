@@ -44,6 +44,7 @@
           <th>Status</th>
           <th>Referrer</th>
           <th>Referrals</th>
+          <th>Rank</th>
           <th>Last Start</th>
           <th>Created</th>
           <th>Password</th>
@@ -54,6 +55,7 @@
         {% for user in users %}
         {% set delete_user_label = user.username or user.name or user.email %}
         {% set delete_protected = user.id in protected_user_ids %}
+        {% set rank_info = get_referral_rank_info(user.referrals|length) %}
         <tr>
           <td>{{ user.name }}</td>
           <td>
@@ -71,6 +73,7 @@
           <td><span class="status">{{ user.status }}</span></td>
           <td>{{ user.referrer.username if user.referrer else "-" }}</td>
           <td>{{ user.referrals|length }}</td>
+          <td><span class="status admin-status-pill">{{ rank_info.rank }}</span></td>
           <td>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</td>
           <td>{{ user.created_at.strftime("%Y-%m-%d") }}</td>
           <td><button type="button" class="safe-button">Reset password</button></td>
@@ -93,7 +96,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="13" class="empty">No users yet.</td>
+          <td colspan="14" class="empty">No users yet.</td>
         </tr>
         {% endfor %}
       </tbody>

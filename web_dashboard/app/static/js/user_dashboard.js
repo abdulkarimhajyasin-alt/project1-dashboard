@@ -338,6 +338,9 @@
   const progressCircle = document.querySelector(".ring-progress");
   const percentText = document.getElementById("ringPercent");
   const countdownText = document.getElementById("miningCountdown");
+  const remainingText = document.querySelector("[data-remaining-time]");
+  const miningStatusLabel = document.querySelector("[data-mining-status-label]");
+  const startButton = document.querySelector(".start-core-button");
   const radius = 150;
   const circumference = 2 * Math.PI * radius;
 
@@ -366,6 +369,9 @@
     const initialProgress = Number(ring.dataset.progress || 0);
     const canStart = ring.dataset.canStart === "true";
     const duration = Number(ring.dataset.duration || 86400);
+    const startAt = ring.dataset.startAt ? Date.parse(ring.dataset.startAt) : 0;
+    const endAt = ring.dataset.endAt ? Date.parse(ring.dataset.endAt) : 0;
+    let completionChecked = false;
     let animatedProgress = 0;
     const introTimer = window.setInterval(function () {
       animatedProgress += Math.max(1, initialProgress / 24);
@@ -377,14 +383,37 @@
     }, 18);
 
     if (canStart) {
-      countdownText.textContent = "جاهز للبدء";
+      countdownText.textContent = "Ready to start";
+      if (remainingText) remainingText.textContent = "00:00:00";
     } else {
-      const startedAt = Date.now() - (initialProgress / 100) * duration * 1000;
       window.setInterval(function () {
-        const elapsed = (Date.now() - startedAt) / 1000;
+        const now = Date.now();
+        const elapsed = startAt && endAt ? (now - startAt) / 1000 : (initialProgress / 100) * duration;
+        const remaining = endAt ? (endAt - now) / 1000 : duration - elapsed;
         const liveProgress = clamp((elapsed / duration) * 100, initialProgress, 100);
         setRingProgress(liveProgress);
-        countdownText.textContent = liveProgress >= 100 ? "اكتملت الدورة، حدّث الصفحة" : `المتبقي ${formatRemaining(duration - elapsed)}`;
+        const remainingLabel = formatRemaining(remaining);
+        if (remainingText) remainingText.textContent = remainingLabel;
+        countdownText.textContent = liveProgress >= 100 ? "Completing cycle..." : `Remaining ${remainingLabel}`;
+
+        if (liveProgress >= 100 && !completionChecked) {
+          completionChecked = true;
+          fetch("/user/mining/status", { headers: { Accept: "application/json" } })
+            .then(function (response) {
+              return response.ok ? response.json() : null;
+            })
+            .then(function (data) {
+              if (!data) return;
+              if (data.completed) {
+                countdownText.textContent = `Completed. Added $${data.completed_income}`;
+                if (miningStatusLabel) miningStatusLabel.textContent = "Completed";
+                if (startButton) startButton.disabled = false;
+              }
+            })
+            .catch(function () {
+              countdownText.textContent = "Cycle complete. Refresh to claim status.";
+            });
+        }
       }, 1000);
     }
   }

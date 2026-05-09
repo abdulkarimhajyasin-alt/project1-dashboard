@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -10,7 +11,8 @@ from urllib.parse import quote, urlencode
 
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.models import Admin, AppSetting, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
+from app.mining import get_referral_rank_info, money, utc_now
+from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
 from app.utils import format_datetime_for_timezone
@@ -54,14 +56,20 @@ PENDING_REQUEST_SECTIONS = {
 
 
 def get_admin_metrics(db: Session) -> dict:
+    now = utc_now()
     users_count = db.query(User).count()
     active_users_count = db.query(User).filter(User.status == "active").count()
     records_count = db.query(Record).count()
     total_amount = db.query(func.coalesce(func.sum(Record.amount), 0)).scalar()
     total_capital = db.query(func.coalesce(func.sum(User.capital), 0)).scalar()
     total_profits = db.query(func.coalesce(func.sum(User.profits), 0)).scalar()
-    active_cycles = db.query(User).filter(User.last_start_at.isnot(None)).count()
+    active_cycles = (
+        db.query(MiningCycle)
+        .filter(MiningCycle.status == "active", MiningCycle.end_at > now)
+        .count()
+    )
     latest_records = db.query(Record).order_by(Record.created_at.desc()).limit(5).all()
+    top_referral_users = sorted(db.query(User).all(), key=lambda item: len(item.referrals), reverse=True)[:5]
     stored_settings = {item.key: item.value for item in db.query(AppSetting).all()}
     settings = {**DEFAULT_SETTINGS, **stored_settings}
 
@@ -74,6 +82,8 @@ def get_admin_metrics(db: Session) -> dict:
         "total_profits": total_profits,
         "active_cycles": active_cycles,
         "latest_records": latest_records,
+        "top_referral_users": top_referral_users,
+        "get_referral_rank_info": get_referral_rank_info,
         "settings": settings,
         **get_admin_notifications_context(db),
     }
@@ -204,7 +214,43 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
 def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
     if pending_request and pending_request.status == "pending":
-        if pending_request.request_type == "verification":
+        if pending_request.request_type == "deposit" and pending_request.user and pending_request.amount:
+            amount = money(pending_request.amount)
+            pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) + amount)
+            db.add(
+                Record(
+                    user_id=pending_request.user.id,
+                    title="Approved capital deposit",
+                    amount=amount,
+                    record_type="capital_deposit",
+                    notes=f"Approved by admin: {admin.username}",
+                )
+            )
+        elif pending_request.request_type == "withdraw" and pending_request.user and pending_request.amount:
+            amount = money(pending_request.amount)
+            pending_request.user.profits = max(Decimal("0"), Decimal(pending_request.user.profits or 0) - amount)
+            db.add(
+                Record(
+                    user_id=pending_request.user.id,
+                    title="Approved profit withdrawal",
+                    amount=-amount,
+                    record_type="profit_withdraw",
+                    notes=f"Approved by admin: {admin.username}",
+                )
+            )
+        elif pending_request.request_type == "capital_withdraw" and pending_request.user and pending_request.amount:
+            amount = money(pending_request.amount)
+            pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) - amount)
+            db.add(
+                Record(
+                    user_id=pending_request.user.id,
+                    title="Approved capital withdrawal",
+                    amount=-amount,
+                    record_type="capital_withdraw",
+                    notes=f"Approved by admin: {admin.username}",
+                )
+            )
+        elif pending_request.request_type == "verification":
             apply_verification_request_to_user(pending_request, approve=True)
             if pending_request.user:
                 create_user_notification(

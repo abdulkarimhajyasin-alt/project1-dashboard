@@ -12,7 +12,8 @@
     <p>شارك الرابط، وعند بدء دورة تعدين من أحد المدعوين تحصل على مكافأة إحالة يومية.</p>
     <div class="referral-mini-stats">
       <span>المدعوون: <strong>{{ referrals_count }}</strong></span>
-      <span>مكافأة النشاط: <strong>$0.0005</strong></span>
+      <span>الرتبة: <strong>{{ referral_rank_info.rank }}</strong></span>
+      <span>المتبقي للرتبة التالية: <strong>{{ referral_rank_info.remaining }}</strong></span>
     </div>
   </div>
   <div class="referral-link-card">

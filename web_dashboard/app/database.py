@@ -123,6 +123,17 @@ def ensure_pending_request_columns() -> None:
                 connection.execute(text(ddl))
 
 
+def ensure_record_amount_precision() -> None:
+    inspector = inspect(engine)
+    if "records" not in inspector.get_table_names():
+        return
+    if not engine.dialect.name.startswith("postgresql"):
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE records ALTER COLUMN amount TYPE NUMERIC(12, 4)"))
+
+
 def init_db() -> None:
     from app import models  # noqa: F401
 
@@ -131,6 +142,7 @@ def init_db() -> None:
     ensure_notification_columns()
     ensure_support_message_columns()
     ensure_pending_request_columns()
+    ensure_record_amount_precision()
 
 
 def get_db():

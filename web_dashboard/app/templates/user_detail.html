@@ -121,6 +121,7 @@
     <article class="admin-user-data-card"><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></article>
     <article class="admin-user-data-card"><span>الأرباح اليومية</span><strong>${{ "%.4f"|format(user.daily_earnings or 0) }}</strong></article>
     <article class="admin-user-data-card"><span>الخطة</span><strong>{{ user.plan or "none" }}</strong></article>
+    <article class="admin-user-data-card"><span>رتبة الإحالة</span><strong>{{ referral_rank_info.rank }}</strong></article>
     <article class="admin-user-data-card"><span>كود الإحالة</span><strong>{{ user.referral_code or "-" }}</strong></article>
     <article class="admin-user-data-card"><span>المحيل</span><strong>{{ user.referrer.username if user.referrer else "-" }}</strong></article>
     <article class="admin-user-data-card"><span>آخر تشغيل</span><strong>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</strong></article>

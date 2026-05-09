@@ -15,16 +15,29 @@
 </div>
 {% endif %}
 
+{% if mining_completed_cycle %}
+<div class="verification-success-message mining-cycle-flash" data-mining-cycle-flash>
+  Mining cycle completed. ${{ "%.4f"|format(mining_completed_cycle.final_income or 0) }} was added to your balance.
+</div>
+{% elif cycle_started %}
+<div class="verification-success-message mining-cycle-flash">Mining cycle started successfully.</div>
+{% elif mining_error %}
+<div class="support-chat-error mining-cycle-flash">{{ mining_error }}</div>
+{% endif %}
+
 <section class="mining-stage">
   <article class="mining-core-card">
     <div class="hash-ribbons" aria-hidden="true"><i></i><i></i><i></i></div>
     <div
       class="mining-ring"
-      data-progress="{{ progress_percent }}"
-      data-can-start="{{ 'true' if can_start else 'false' }}"
+      data-progress="{{ mining_status.progress_percent }}"
+      data-can-start="{{ 'true' if mining_status.can_start else 'false' }}"
       data-duration="86400"
+      data-start-at="{{ mining_status.start_time_iso }}"
+      data-end-at="{{ mining_status.end_time_iso }}"
+      data-status="{{ mining_status.status }}"
     >
-      <svg viewBox="0 0 360 360" role="img" aria-label="تقدم دورة التعدين اليومية">
+      <svg viewBox="0 0 360 360" role="img" aria-label="Daily mining cycle progress">
         <defs>
           <linearGradient id="miningGradient" x1="0%" x2="100%" y1="0%" y2="100%">
             <stop offset="0%" stop-color="#25f6a4"></stop>
@@ -37,25 +50,33 @@
       </svg>
       <div class="ring-center">
         <span class="ring-label">Daily Mining</span>
-        <strong id="ringPercent">{{ progress_percent }}%</strong>
+        <strong id="ringPercent">{{ mining_status.progress_percent }}%</strong>
         <form method="post" action="/user/start">
-          <button class="start-core-button" type="submit" {% if not can_start %}disabled{% endif %}>Start</button>
+          <button class="start-core-button" type="submit" {% if not mining_status.can_start %}disabled{% endif %}>Start</button>
         </form>
-        <small id="miningCountdown">{{ 'جاهز للبدء' if can_start else 'جاري حساب الوقت المتبقي' }}</small>
+        <small id="miningCountdown">{{ 'Ready to start' if mining_status.can_start else 'Remaining ' ~ mining_status.remaining_seconds ~ 's' }}</small>
       </div>
     </div>
+    <div class="mining-cycle-meta">
+      <span>Mining Status <strong data-mining-status-label>{{ mining_status.status|title }}</strong></span>
+      <span>Cycle ID <strong>{{ mining_status.cycle_id or "-" }}</strong></span>
+      <span>Start Time <strong>{{ mining_status.start_time }}</strong></span>
+      <span>End Time <strong>{{ mining_status.end_time }}</strong></span>
+      <span>Timezone <strong>{{ mining_status.timezone }}</strong></span>
+      <span>Remaining Time <strong data-remaining-time>{{ mining_status.remaining_seconds }}</strong></span>
+    </div>
     <p class="mining-core-note">
-      {% if can_start %}اضغط Start لتشغيل دورة تعدين لمدة 24 ساعة.{% else %}الدورة الحالية نشطة، ويمكن تشغيل دورة جديدة بعد اكتمالها.{% endif %}
+      {% if mining_status.can_start %}Press Start to run a manual 24-hour mining cycle. No income is counted while you are stopped.{% else %}Your current mining cycle is active. A new cycle can start only after completion.{% endif %}
     </p>
   </article>
 
   <section class="mining-stats-grid">
-    <article class="mining-stat-card"><span>رأس المال</span><strong data-counter="{{ '%.2f'|format(user.capital or 0) }}">${{ '%.2f'|format(user.capital or 0) }}</strong><small>Capital Pool</small></article>
-    <article class="mining-stat-card"><span>الأرباح</span><strong data-counter="{{ '%.4f'|format(user.profits or 0) }}">${{ '%.4f'|format(user.profits or 0) }}</strong><small>Total Yield</small></article>
-    <article class="mining-stat-card"><span>الأرباح اليومية</span><strong data-counter="{{ '%.4f'|format(user.daily_earnings or 0) }}">${{ '%.4f'|format(user.daily_earnings or 0) }}</strong><small>Daily Output</small></article>
-    <article class="mining-stat-card"><span>عدد الإحالات</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Referral Nodes</small></article>
-    <article class="mining-stat-card"><span>الباقة الحالية</span><strong>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</strong><small>Active Plan</small></article>
-    <article class="mining-stat-card"><span>وقت السحب القادم</span><strong>{{ 'حسب الباقة' if user.plan != 'none' else 'غير متاح' }}</strong><small>Withdrawal Cycle</small></article>
+    <article class="mining-stat-card"><span>Current Daily Income</span><strong data-counter="{{ '%.4f'|format(mining_status.current_daily_income or 0) }}">${{ '%.4f'|format(mining_status.current_daily_income or 0) }}</strong><small>Backend Calculated</small></article>
+    <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
+    <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.4f'|format(mining_status.referral_income or 0) }}">${{ '%.4f'|format(mining_status.referral_income or 0) }}</strong><small>Current Cycle</small></article>
+    <article class="mining-stat-card"><span>Total Balance</span><strong data-counter="{{ '%.4f'|format(user.profits or 0) }}">${{ '%.4f'|format(user.profits or 0) }}</strong><small>Available Yield</small></article>
+    <article class="mining-stat-card"><span>Referral Rank</span><strong>{{ referral_rank_info.rank }}</strong><small>{{ referral_rank_info.remaining }} to {{ referral_rank_info.next_rank or "Max Rank" }}</small></article>
+    <article class="mining-stat-card"><span>Number of Referrals</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Direct Referrals</small></article>
   </section>
 </section>
 
