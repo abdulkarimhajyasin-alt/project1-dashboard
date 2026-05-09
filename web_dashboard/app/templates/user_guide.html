@@ -1,0 +1,117 @@
+{% extends "user_base.html" %}
+
+{% block title %}{{ platform_name|default("NovaHash") }} - تعليمات الاستخدام{% endblock %}
+{% block page_title %}تعليمات الاستخدام{% endblock %}
+{% block page_description %}دليل مختصر وواضح لفهم التعدين اليومي، الأرباح، الإحالات، توثيق الحساب، وخطوات النمو داخل {{ platform_name|default("NovaHash") }}.{% endblock %}
+
+{% block content %}
+<section class="usage-guide">
+  <article class="guide-hero">
+    <div>
+      <p class="mining-kicker">{{ platform_name|default("NovaHash") }} Usage Guide</p>
+      <h2>ابدأ بوضوح، واستمر بنظام يومي.</h2>
+      <p>هذه الصفحة تجمع أهم القواعد التي تساعدك على استخدام المنصة بثقة: شغّل دورة التعدين يومياً، تابع الوقت المتبقي، ابنِ شبكة إحالات نشطة، ووثّق حسابك قبل السحب.</p>
+    </div>
+    <div class="guide-hero-panel" aria-label="ملخص سريع">
+      <span>Daily Cycle</span>
+      <strong>18:00 - 18:00</strong>
+      <small>الأرباح تُحسب حسب وقت نشاطك الحقيقي داخل الدورة.</small>
+    </div>
+  </article>
+
+  <section class="guide-card-grid">
+    <article class="guide-card">
+      <span class="guide-icon" aria-hidden="true">01</span>
+      <h2>كيف يعمل التعدين اليومي؟</h2>
+      <ul>
+        <li>كل مستخدم يستطيع بدء دورة تعدين يومية.</li>
+        <li>دورة التعدين تعمل لمدة 24 ساعة.</li>
+        <li>الأرباح تُحسب من الـ Backend حسب وقت النشاط الحقيقي.</li>
+        <li>إذا تأخر المستخدم عن بدء الدورة، يتم خصم وقت التأخير من الأرباح.</li>
+        <li>يجب بدء دورة جديدة بعد انتهاء الدورة السابقة.</li>
+      </ul>
+    </article>
+
+    <article class="guide-card">
+      <span class="guide-icon" aria-hidden="true">02</span>
+      <h2>كيف تزيد أرباحك اليومية؟</h2>
+      <ul>
+        <li>كل مستخدم يبدأ بدخل تعدين مجاني يومي.</li>
+        <li>الأرباح اليومية تزداد عند إضافة رأس مال.</li>
+        <li>كلما كان رأس المال أكبر، أصبح الدخل اليومي أكبر.</li>
+        <li>الأرباح اليومية من رأس المال تُحسب بنسبة 2% يومياً.</li>
+        <li>الأرباح لا تُضاف بشكل وهمي، بل يتم حسابها من النظام مباشرة.</li>
+      </ul>
+      <div class="guide-example-grid">
+        <span>رأس مال 100$ <strong>دخل يومي تقريبي 2$</strong></span>
+        <span>رأس مال 500$ <strong>دخل يومي تقريبي 10$</strong></span>
+      </div>
+    </article>
+
+    <article class="guide-card">
+      <span class="guide-icon" aria-hidden="true">03</span>
+      <h2>كيف تربح من الإحالات؟</h2>
+      <ul>
+        <li>يمكنك دعوة الآخرين عبر رابط الإحالة الخاص بك.</li>
+        <li>عندما يبدأ الأشخاص الذين دعوتهم التعدين، تحصل على أرباح من نشاطهم.</li>
+        <li>النظام يدعم الإحالات متعددة المستويات.</li>
+        <li>كلما كبرت شبكتك، زادت أرباحك اليومية.</li>
+        <li>بناء شبكة قوية يساعدك على الوصول إلى رتب أعلى داخل المنصة.</li>
+      </ul>
+      <p class="guide-motivation">ابدأ مبكراً وابنِ شبكتك قبل الآخرين. المستخدمون النشطون يحققون أعلى نمو داخل المنصة.</p>
+    </article>
+
+    <article class="guide-card">
+      <span class="guide-icon" aria-hidden="true">04</span>
+      <h2>نظام الرتب</h2>
+      <ul>
+        <li>كلما زاد عدد الإحالات المباشرة الخاصة بك، ارتفعت رتبتك.</li>
+        <li>كل رتبة تعكس قوة شبكتك ونشاطك داخل المنصة.</li>
+        <li>الرتب الأعلى تمنح ظهور أقوى داخل نظام الإحالات.</li>
+      </ul>
+    </article>
+  </section>
+
+  <article class="guide-warning-card">
+    <span class="guide-icon guide-icon-warning" aria-hidden="true">KYC</span>
+    <div>
+      <p class="mining-kicker">Important Withdrawal Rule</p>
+      <h2>توثيق الحساب إلزامي للسحب</h2>
+      <ul>
+        <li>يجب توثيق الحساب قبل طلب أي عملية سحب.</li>
+        <li>الحسابات غير الموثقة لا تستطيع سحب الأرباح.</li>
+        <li>التوثيق يساعد على حماية الحسابات ومنع إساءة الاستخدام.</li>
+        <li>تأكد من رفع البيانات الصحيحة أثناء التوثيق.</li>
+      </ul>
+    </div>
+    <a href="/user/account">توثيق الحساب الآن</a>
+  </article>
+
+  <section class="guide-card-grid compact">
+    <article class="guide-card">
+      <span class="guide-icon" aria-hidden="true">05</span>
+      <h2>نصائح لزيادة أرباحك</h2>
+      <ul>
+        <li>ابدأ دورة التعدين يومياً بدون تأخير.</li>
+        <li>قم بدعوة مستخدمين نشطين.</li>
+        <li>زد رأس المال تدريجياً لزيادة الدخل اليومي.</li>
+        <li>تابع دورة التعدين والوقت المتبقي باستمرار.</li>
+        <li>حافظ على توثيق حسابك محدثاً.</li>
+      </ul>
+    </article>
+
+    <article class="guide-card">
+      <span class="guide-icon" aria-hidden="true">FAQ</span>
+      <h2>أسئلة سريعة</h2>
+      <dl class="guide-faq">
+        <dt>هل تُضاف الأرباح بدون Start؟</dt>
+        <dd>لا. يجب بدء دورة التعدين حتى يتم احتساب النشاط.</dd>
+        <dt>هل التأخير يؤثر على الربح؟</dt>
+        <dd>نعم. النظام يحسب الربح حسب الوقت الفعلي داخل الدورة.</dd>
+        <dt>هل يمكن السحب بدون توثيق؟</dt>
+        <dd>لا. توثيق الحساب شرط أساسي قبل السحب.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+{% endblock %}

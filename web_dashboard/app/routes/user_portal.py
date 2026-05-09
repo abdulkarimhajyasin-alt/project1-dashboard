@@ -491,6 +491,12 @@ def referral_page(request: Request, user: User = Depends(get_current_user), db: 
     return templates.TemplateResponse("user_referral.html", build_user_context(request, user, "referral", db))
 
 
+@router.get("/guide", response_class=HTMLResponse)
+def guide_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    settle_due_mining_cycle(user, db)
+    return templates.TemplateResponse("user_guide.html", build_user_context(request, user, "guide", db))
+
+
 @router.get("/support", response_class=HTMLResponse)
 def support_page(
     request: Request,

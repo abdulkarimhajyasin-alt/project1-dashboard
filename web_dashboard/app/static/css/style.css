@@ -2102,6 +2102,193 @@ body.verification-modal-open {
   min-height: 18px;
 }
 
+.usage-guide {
+  display: grid;
+  gap: 18px;
+}
+
+.guide-hero,
+.guide-card,
+.guide-warning-card {
+  background:
+    linear-gradient(145deg, rgba(15, 31, 51, 0.92), rgba(7, 14, 28, 0.86)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.08), transparent 54%, rgba(56, 189, 248, 0.10));
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+
+.guide-hero {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+  overflow: hidden;
+  padding: 24px;
+  position: relative;
+}
+
+.guide-hero::after {
+  background: radial-gradient(circle, rgba(37, 246, 164, 0.18), transparent 66%);
+  content: "";
+  height: 220px;
+  left: -70px;
+  pointer-events: none;
+  position: absolute;
+  top: -80px;
+  width: 220px;
+}
+
+.guide-hero > *,
+.guide-card > *,
+.guide-warning-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.guide-hero h2,
+.guide-card h2,
+.guide-warning-card h2 {
+  color: #ffffff;
+  margin: 8px 0 12px;
+}
+
+.guide-hero p,
+.guide-card li,
+.guide-warning-card li,
+.guide-card dd {
+  color: #a8bbcf;
+  line-height: 1.8;
+}
+
+.guide-hero-panel {
+  background: rgba(3, 10, 20, 0.48);
+  border: 1px solid rgba(37, 246, 164, 0.24);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.guide-hero-panel span,
+.guide-card dt {
+  color: #67e8f9;
+  font-weight: 900;
+}
+
+.guide-hero-panel strong {
+  color: #ffffff;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: 0;
+}
+
+.guide-hero-panel small,
+.guide-motivation {
+  color: #dff7ff;
+}
+
+.guide-card-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guide-card {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  position: relative;
+}
+
+.guide-icon {
+  align-items: center;
+  background: rgba(37, 246, 164, 0.12);
+  border: 1px solid rgba(37, 246, 164, 0.30);
+  border-radius: 999px;
+  color: #dff7ff;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.guide-card ul,
+.guide-warning-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-inline-start: 20px;
+}
+
+.guide-example-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.guide-example-grid span {
+  background: rgba(3, 10, 20, 0.42);
+  border: 1px solid rgba(103, 232, 249, 0.14);
+  border-radius: 8px;
+  color: #8ea5bb;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.guide-example-grid strong {
+  color: #ffffff;
+}
+
+.guide-motivation {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 8px;
+  margin: 0;
+  padding: 12px;
+}
+
+.guide-warning-card {
+  align-items: center;
+  border-color: rgba(250, 204, 21, 0.40);
+  box-shadow: 0 24px 80px rgba(250, 204, 21, 0.08);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 24px;
+}
+
+.guide-icon-warning {
+  background: rgba(250, 204, 21, 0.16);
+  border-color: rgba(250, 204, 21, 0.42);
+  color: #fef3c7;
+  height: 54px;
+  width: 54px;
+}
+
+.guide-warning-card a {
+  background: linear-gradient(135deg, #25f6a4, #38bdf8);
+  border-radius: 999px;
+  color: #03111b;
+  font-weight: 900;
+  padding: 12px 16px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.guide-faq {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.guide-faq dd {
+  margin: 0 0 8px;
+}
+
 .mining-placeholders article {
   padding: 20px;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
@@ -2231,7 +2418,22 @@ body.verification-modal-open {
   .mining-stats-grid,
   .mining-cycle-meta,
   .mining-plans,
-  .mining-placeholders {
+  .mining-placeholders,
+  .guide-hero,
+  .guide-card-grid,
+  .guide-warning-card {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-warning-card {
+    align-items: stretch;
+  }
+
+  .guide-warning-card a {
+    white-space: normal;
+  }
+
+  .guide-example-grid {
     grid-template-columns: 1fr;
   }
 
