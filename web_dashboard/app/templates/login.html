@@ -3,13 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Login</title>
+  <title>{{ platform_name|default("NovaHash") }} Admin Login</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
 <body class="login-page">
   <main class="login-panel">
+    <div class="brand-lockup auth-brand-lockup">
+      <span class="brand-mark brand-mark-nova">N</span>
+      <div>
+        <strong>{{ platform_name|default("NovaHash") }}</strong>
+        <small>{{ platform_tagline|default("Daily Mining Network") }}</small>
+      </div>
+    </div>
     <h1>Admin Login</h1>
-    <p>Sign in to manage your dashboard.</p>
+    <p>Sign in to manage {{ platform_name|default("NovaHash") }}.</p>
     {% if error %}
       <div class="alert">{{ error }}</div>
     {% endif %}

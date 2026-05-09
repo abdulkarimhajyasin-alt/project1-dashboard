@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ title or "لوحة تحكم التعدين" }}</title>
+  <title>{{ title or ((platform_name|default("NovaHash")) ~ " Admin") }}</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=settings-control-panel">
 </head>
 <body class="admin-app mining-admin-app">
@@ -13,10 +13,10 @@
     <aside class="admin-sidebar" id="adminSidebar" data-admin-drawer aria-label="القائمة الجانبية" aria-hidden="true">
       <div class="admin-sidebar-top">
         <div class="admin-sidebar-brand">
-          <span class="brand-mark">M</span>
+          <span class="brand-mark brand-mark-nova">N</span>
           <div>
-            <strong>Mining Admin</strong>
-            <small>Control Center</small>
+            <strong>{{ platform_name|default("NovaHash") }}</strong>
+            <small>Admin Control Center</small>
           </div>
         </div>
         <button class="admin-drawer-close" type="button" data-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">X</button>
@@ -64,7 +64,7 @@
           <span>القائمة</span>
         </button>
         <div class="admin-page-heading">
-          <p class="mining-kicker">لوحة التحكم الإدارية</p>
+          <p class="mining-kicker">{{ platform_name|default("NovaHash") }} Admin</p>
           <h1 data-dashboard-heading>{% block page_title %}{% endblock %}</h1>
           <span data-dashboard-subtitle>إدارة المستخدمين، الأرباح، رأس المال، وسجلات المنصة.</span>
         </div>

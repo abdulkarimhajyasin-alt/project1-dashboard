@@ -1069,15 +1069,57 @@ th {
 
 .brand-mark {
   align-items: center;
-  background: linear-gradient(135deg, #25f6a4, #38bdf8);
-  border-radius: 8px;
-  box-shadow: 0 0 34px rgba(56, 189, 248, 0.38);
+  background:
+    radial-gradient(circle at 35% 25%, rgba(103, 232, 249, 0.92), transparent 28%),
+    linear-gradient(145deg, rgba(37, 246, 164, 0.9), rgba(56, 189, 248, 0.86) 52%, rgba(8, 18, 34, 0.96));
+  border: 1px solid rgba(103, 232, 249, 0.64);
+  border-radius: 50%;
+  box-shadow: 0 0 34px rgba(56, 189, 248, 0.38), inset 0 0 18px rgba(2, 6, 23, 0.46);
   color: #03111b;
   display: inline-flex;
   font-weight: 900;
   height: 48px;
   justify-content: center;
+  letter-spacing: 0;
+  position: relative;
   width: 48px;
+}
+
+.brand-mark::after {
+  border: 1px solid rgba(223, 247, 255, 0.42);
+  border-radius: inherit;
+  content: "";
+  inset: 7px;
+  position: absolute;
+}
+
+.brand-mark-nova {
+  font-size: 22px;
+}
+
+.brand-lockup {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.brand-lockup strong,
+.brand-lockup small {
+  display: block;
+}
+
+.brand-lockup strong {
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.brand-lockup small {
+  color: #8ea5bb;
+  margin-top: 3px;
+}
+
+.auth-brand-lockup {
+  margin-bottom: 18px;
 }
 
 .mining-brand strong,
@@ -1628,6 +1670,239 @@ th {
   grid-template-columns: minmax(260px, .8fr) minmax(280px, 1.2fr);
   margin-bottom: 18px;
   padding: 24px;
+}
+
+.referral-command {
+  display: grid;
+  gap: 18px;
+}
+
+.referral-hero-panel,
+.network-power-card,
+.enhanced-referral-card,
+.referral-message-card {
+  background:
+    linear-gradient(145deg, rgba(15, 31, 51, 0.92), rgba(7, 14, 28, 0.86)),
+    linear-gradient(90deg, rgba(37, 246, 164, 0.08), transparent 54%, rgba(56, 189, 248, 0.10));
+  border: 1px solid rgba(103, 232, 249, 0.20);
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  padding: 22px;
+}
+
+.referral-hero-panel {
+  overflow: hidden;
+  position: relative;
+}
+
+.referral-hero-panel::after {
+  background: radial-gradient(circle, rgba(37, 246, 164, 0.16), transparent 64%);
+  content: "";
+  height: 180px;
+  left: -50px;
+  pointer-events: none;
+  position: absolute;
+  top: -60px;
+  width: 180px;
+  z-index: 0;
+}
+
+.referral-hero-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.referral-hero-panel h2,
+.network-power-card h2,
+.referral-message-card h2 {
+  color: #ffffff;
+  margin: 8px 0 12px;
+}
+
+.referral-hero-panel p {
+  color: #9fb1c7;
+  line-height: 1.8;
+  max-width: 820px;
+}
+
+.referral-actions-strip,
+.referral-link-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.referral-actions-strip {
+  margin-top: 18px;
+}
+
+.referral-actions-strip button,
+.referral-link-control button,
+.referral-message-card button {
+  background: rgba(18, 52, 82, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.20);
+  border-radius: 8px;
+  color: #e0faff;
+  font-weight: 900;
+  min-height: 44px;
+  padding: 11px 13px;
+}
+
+.referral-actions-strip button:hover,
+.referral-link-control button:hover,
+.referral-message-card button:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(37, 246, 164, 0.42);
+  transform: translateY(-1px);
+}
+
+.copy-toast {
+  background: rgba(37, 246, 164, 0.12);
+  border: 1px solid rgba(37, 246, 164, 0.32);
+  border-radius: 8px;
+  color: #bfffe4 !important;
+  display: inline-flex;
+  font-weight: 900;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+}
+
+.copy-toast[hidden] {
+  display: none;
+}
+
+.copy-toast.is-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(248, 113, 113, 0.36);
+  color: #fecaca !important;
+}
+
+.network-power-header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.network-power-badge {
+  background: rgba(37, 246, 164, 0.12);
+  border: 1px solid rgba(37, 246, 164, 0.28);
+  border-radius: 999px;
+  color: #dff7ff;
+  font-weight: 900;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+.network-power-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.network-power-grid span {
+  background: rgba(3, 10, 20, 0.42);
+  border: 1px solid rgba(103, 232, 249, 0.14);
+  border-radius: 8px;
+  color: #8ea5bb;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.network-power-grid strong {
+  color: #ffffff;
+  overflow-wrap: anywhere;
+}
+
+.rank-progress {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.rank-progress > div:first-child {
+  align-items: center;
+  color: #c9d8ea;
+  display: flex;
+  justify-content: space-between;
+}
+
+.rank-progress-track {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(103, 232, 249, 0.16);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.rank-progress-track span {
+  background: linear-gradient(90deg, #25f6a4, #38bdf8);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.42);
+  display: block;
+  height: 100%;
+  max-width: 100%;
+}
+
+.enhanced-referral-card {
+  display: grid;
+  gap: 12px;
+}
+
+.enhanced-referral-card label,
+.referral-message-card .mining-kicker {
+  font-weight: 900;
+}
+
+.referral-link-control {
+  align-items: stretch;
+}
+
+.referral-link-control input {
+  background: rgba(3, 10, 20, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  color: #ffffff;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.referral-message-card {
+  display: grid;
+  gap: 14px;
+}
+
+.referral-message-card textarea {
+  background: rgba(3, 10, 20, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 8px;
+  color: #dff7ff;
+  line-height: 1.8;
+  min-height: 240px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.compact-message-card textarea {
+  min-height: 190px;
+}
+
+@media (max-width: 900px) {
+  .network-power-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .network-power-header,
+  .referral-link-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .referral-actions-strip button,
+  .referral-link-control button,
+  .referral-message-card button {
+    width: 100%;
+  }
 }
 
 .verification-entry-card {

@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.branding import PLATFORM_NAME, PLATFORM_TAGLINE
 from app.database import get_db
 from app.models import Admin
 from app.security import verify_password
@@ -16,7 +17,10 @@ templates = Jinja2Templates(directory="app/templates")
 def login_page(request: Request):
     if request.session.get("admin_id"):
         return RedirectResponse(url="/dashboard", status_code=303)
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "error": None, "platform_name": PLATFORM_NAME, "platform_tagline": PLATFORM_TAGLINE},
+    )
 
 
 @router.post("/login")
@@ -25,7 +29,12 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     if not admin or not verify_password(password, admin.password_hash):
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "error": "Invalid username or password."},
+            {
+                "request": request,
+                "error": "Invalid username or password.",
+                "platform_name": PLATFORM_NAME,
+                "platform_tagline": PLATFORM_TAGLINE,
+            },
             status_code=401,
         )
 

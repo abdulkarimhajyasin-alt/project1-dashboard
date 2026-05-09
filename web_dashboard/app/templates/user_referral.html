@@ -1,30 +1,79 @@
 {% extends "user_base.html" %}
 
-{% block title %}الإحالة - لوحة التعدين{% endblock %}
-{% block page_title %}الإحالة{% endblock %}
-{% block page_description %}شارك رابطك واحصل على مكافآت عند نشاط المدعوين.{% endblock %}
+{% block title %}{{ platform_name }} - Referral Network{% endblock %}
+{% block page_title %}Build Your Network{% endblock %}
+{% block page_description %}شارك رابطك، تابع قوة شبكتك، وانسخ رسالة جاهزة لدعوة فريقك إلى {{ platform_name }}.{% endblock %}
 
 {% block content %}
-<section class="mining-referral">
-  <div class="referral-copy">
-    <p class="mining-kicker">Referral Network</p>
-    <h2>دعوة صديق</h2>
-    <p>شارك الرابط، وعند بدء دورة تعدين من أحد المدعوين تحصل على مكافأة إحالة يومية.</p>
-    <div class="referral-mini-stats">
-      <span>المدعوون: <strong>{{ referrals_count }}</strong></span>
-      <span>الرتبة: <strong>{{ referral_rank_info.rank }}</strong></span>
-      <span>المتبقي للرتبة التالية: <strong>{{ referral_rank_info.remaining }}</strong></span>
+<section class="referral-command">
+  <article class="referral-hero-panel">
+    <p class="mining-kicker">{{ platform_name }} Referral Engine</p>
+    <h2>Build Your Network</h2>
+    <p>كل دعوة ناجحة تضيف عقدة جديدة لشبكتك. عندما يبدأ فريقك التعدين اليومي، تظهر أرباح الإحالات متعددة المستويات في رصيدك وسجلك.</p>
+    <div class="referral-actions-strip">
+      <button type="button" data-copy-target="#referralLink">Copy Referral Link</button>
+      <button type="button" data-copy-target="#referralFullMessage">Copy Message</button>
+      <button type="button" data-copy-target="#referralShortMessage">Copy Short Message</button>
+      <button type="button" data-share-message data-share-target="#referralFullMessage">Share Message</button>
     </div>
-  </div>
-  <div class="referral-link-card">
-    <label for="referralLink">رابط الإحالة الخاص بك</label>
-    <input id="referralLink" value="{{ referral_url }}" readonly>
-    <div class="share-row mining-share-row">
-      <a href="https://wa.me/?text={{ referral_url }}" target="_blank" rel="noopener">WhatsApp</a>
-      <a href="https://www.facebook.com/sharer/sharer.php?u={{ referral_url }}" target="_blank" rel="noopener">Facebook</a>
-      <button type="button" data-copy-referral>نسخ الرابط</button>
+    <p class="copy-toast" data-copy-toast hidden></p>
+  </article>
+
+  <article class="network-power-card">
+    <div class="network-power-header">
+      <div>
+        <p class="mining-kicker">Your Network Power</p>
+        <h2>{{ referral_rank_info.rank }}</h2>
+      </div>
+      <span class="network-power-badge">{{ referrals_count }} Referrals</span>
     </div>
-    <small id="copyFeedback"></small>
-  </div>
+    <div class="network-power-grid">
+      <span>Number of Referrals <strong>{{ referrals_count }}</strong></span>
+      <span>Referral Rank <strong>{{ referral_rank_info.rank }}</strong></span>
+      <span>Next Rank <strong>{{ referral_rank_info.next_rank or "Max Rank" }}</strong></span>
+      <span>Remaining Referrals <strong>{{ referral_rank_info.remaining }}</strong></span>
+      <span>Total Referral Earnings <strong>${{ "%.8f"|format(total_referral_earnings or 0) }}</strong></span>
+    </div>
+    <div class="rank-progress">
+      <div>
+        <span>Rank Progress</span>
+        <strong>{{ rank_progress_percent }}%</strong>
+      </div>
+      <div class="rank-progress-track" data-rank-progress="{{ rank_progress_percent }}">
+        <span style="width: {{ rank_progress_percent }}%"></span>
+      </div>
+    </div>
+  </article>
+
+  <article class="referral-link-card enhanced-referral-card">
+    <label for="referralLink">Referral Link</label>
+    <div class="referral-link-control">
+      <input id="referralLink" value="{{ referral_url }}" readonly>
+      <button type="button" data-copy-target="#referralLink">Copy Referral Link</button>
+    </div>
+    <small>هذا الرابط خاص بحسابك الحالي داخل {{ platform_name }}.</small>
+  </article>
+
+  <article class="referral-message-card">
+    <div>
+      <p class="mining-kicker">Ready Message</p>
+      <h2>رسالة مشاركة جاهزة</h2>
+    </div>
+    <textarea id="referralFullMessage" readonly>{{ referral_message }}</textarea>
+    <div class="mining-share-row">
+      <button type="button" data-copy-target="#referralFullMessage">Copy Full Message</button>
+    </div>
+  </article>
+
+  <article class="referral-message-card compact-message-card">
+    <div>
+      <p class="mining-kicker">Quick Share</p>
+      <h2>نسخة قصيرة</h2>
+    </div>
+    <textarea id="referralShortMessage" readonly>{{ short_referral_message }}</textarea>
+    <div class="mining-share-row">
+      <button type="button" data-copy-target="#referralShortMessage">Copy Short Message</button>
+    </div>
+  </article>
 </section>
 {% endblock %}

@@ -700,17 +700,83 @@
     }, 250);
   });
 
-  const copyButton = document.querySelector("[data-copy-referral]");
-  const copyFeedback = document.getElementById("copyFeedback");
-  if (copyButton) {
-    copyButton.addEventListener("click", function () {
-      const input = document.getElementById("referralLink");
-      if (!input) return;
-      navigator.clipboard.writeText(input.value).then(function () {
-        if (copyFeedback) copyFeedback.textContent = "تم نسخ الرابط";
+  const copyToast = document.querySelector("[data-copy-toast]") || document.getElementById("copyFeedback");
+  let copyToastTimer = null;
+
+  function showCopyToast(message, isError) {
+    if (!copyToast) return;
+    copyToast.textContent = message;
+    copyToast.hidden = false;
+    copyToast.classList.toggle("is-error", Boolean(isError));
+    if (copyToastTimer) {
+      window.clearTimeout(copyToastTimer);
+    }
+    copyToastTimer = window.setTimeout(function () {
+      copyToast.hidden = true;
+      copyToast.textContent = "";
+      copyToast.classList.remove("is-error");
+    }, 2600);
+  }
+
+  function copyTextValue(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+
+    const scratch = document.createElement("textarea");
+    scratch.value = text;
+    scratch.setAttribute("readonly", "readonly");
+    scratch.style.position = "fixed";
+    scratch.style.opacity = "0";
+    document.body.append(scratch);
+    scratch.select();
+    try {
+      const success = document.execCommand("copy");
+      scratch.remove();
+      return success ? Promise.resolve() : Promise.reject(new Error("Copy failed."));
+    } catch (error) {
+      scratch.remove();
+      return Promise.reject(error);
+    }
+  }
+
+  document.querySelectorAll("[data-copy-target]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const target = document.querySelector(button.dataset.copyTarget || "");
+      const value = target?.value || target?.textContent || "";
+      if (!value.trim()) {
+        showCopyToast("Nothing to copy.", true);
+        return;
+      }
+      copyTextValue(value).then(function () {
+        showCopyToast("Copied successfully");
+      }).catch(function () {
+        showCopyToast("Could not copy. Please select and copy manually.", true);
       });
     });
-  }
+  });
+
+  document.querySelectorAll("[data-share-message]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const target = document.querySelector(button.dataset.shareTarget || "");
+      const text = target?.value || target?.textContent || "";
+      if (!text.trim()) {
+        showCopyToast("Nothing to share.", true);
+        return;
+      }
+      if (navigator.share) {
+        navigator.share({ text }).catch(function () {
+          showCopyToast("Share cancelled.");
+        });
+        return;
+      }
+      copyTextValue(text).then(function () {
+        showCopyToast("Copied successfully");
+      }).catch(function () {
+        showCopyToast("Sharing is not available here.", true);
+      });
+    });
+  });
 
   document.querySelectorAll("[data-close-modal]").forEach(function (button) {
     button.addEventListener("click", function () {

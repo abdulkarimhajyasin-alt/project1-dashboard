@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
+from app.branding import PLATFORM_NAME, PLATFORM_TAGLINE, build_referral_messages
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
 from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
@@ -145,18 +146,27 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         Record.user_id == user.id,
         Record.record_type == "referral_reward",
     ).scalar()
+    referral_url = get_referral_url(request, user)
+    referral_messages = build_referral_messages(referral_url)
+    next_rank_target = referrals_count + int(rank_info.get("remaining") or 0)
+    rank_progress_percent = 100 if not rank_info.get("next_rank") else min(100, int((referrals_count / max(1, next_rank_target)) * 100))
     return {
         "request": request,
         "user": user,
+        "platform_name": PLATFORM_NAME,
+        "platform_tagline": PLATFORM_TAGLINE,
         "active_user_page": active_user_page,
         "progress_percent": mining_status["progress_percent"],
         "can_start": mining_status["can_start"],
         "mining_status": mining_status,
         "withdraw_percent": withdraw_percent,
         "min_withdrawal": MIN_WITHDRAWAL,
-        "referral_url": get_referral_url(request, user),
+        "referral_url": referral_url,
+        "referral_message": referral_messages["full"],
+        "short_referral_message": referral_messages["short"],
         "referrals_count": referrals_count,
         "referral_rank_info": rank_info,
+        "rank_progress_percent": rank_progress_percent,
         "total_referral_earnings": total_referral_earnings or Decimal("0"),
         "maintenance_enabled": is_maintenance_enabled(db),
         "user_notification_modal": request.session.pop("user_notification_modal", None),
@@ -296,7 +306,10 @@ def read_verification_image(upload: UploadFile | None, label: str) -> dict[str, 
 
 @router.get("/register", response_class=HTMLResponse, name="user_register")
 def register_page(request: Request, ref: str = ""):
-    return templates.TemplateResponse("user_register.html", {"request": request, "error": None, "ref": ref})
+    return templates.TemplateResponse(
+        "user_register.html",
+        {"request": request, "error": None, "ref": ref, "platform_name": PLATFORM_NAME, "platform_tagline": PLATFORM_TAGLINE},
+    )
 
 
 @router.post("/register")
@@ -315,7 +328,13 @@ def register(
     if existing:
         return templates.TemplateResponse(
             "user_register.html",
-            {"request": request, "error": "اسم المستخدم أو البريد مستخدم مسبقاً.", "ref": ref},
+            {
+                "request": request,
+                "error": "اسم المستخدم أو البريد مستخدم مسبقاً.",
+                "ref": ref,
+                "platform_name": PLATFORM_NAME,
+                "platform_tagline": PLATFORM_TAGLINE,
+            },
             status_code=400,
         )
 
@@ -357,7 +376,10 @@ def register(
 def login_page(request: Request):
     if request.session.get("user_id"):
         return RedirectResponse(url="/user/dashboard", status_code=303)
-    return templates.TemplateResponse("user_login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(
+        "user_login.html",
+        {"request": request, "error": None, "platform_name": PLATFORM_NAME, "platform_tagline": PLATFORM_TAGLINE},
+    )
 
 
 @router.post("/login")
@@ -367,7 +389,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
             "user_login.html",
-            {"request": request, "error": "بيانات الدخول غير صحيحة."},
+            {"request": request, "error": "بيانات الدخول غير صحيحة.", "platform_name": PLATFORM_NAME, "platform_tagline": PLATFORM_TAGLINE},
             status_code=401,
         )
 

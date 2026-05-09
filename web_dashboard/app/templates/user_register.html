@@ -3,14 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>إنشاء حساب</title>
+  <title>{{ platform_name|default("NovaHash") }} - إنشاء حساب</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
 <body class="user-auth-page">
   <main class="auth-card wide-auth-card">
+    <div class="brand-lockup auth-brand-lockup">
+      <span class="brand-mark brand-mark-nova">N</span>
+      <div>
+        <strong>{{ platform_name|default("NovaHash") }}</strong>
+        <small>{{ platform_tagline|default("Daily Mining Network") }}</small>
+      </div>
+    </div>
     <p class="auth-kicker">ابدأ رحلتك</p>
-    <h1>إنشاء حساب مستخدم</h1>
-    <p>أنشئ حسابك وابدأ دورة الأرباح اليومية الأولى.</p>
+    <h1>إنشاء حساب على {{ platform_name|default("NovaHash") }}</h1>
+    <p>أنشئ حسابك وابدأ دورة الأرباح اليومية الأولى داخل شبكة التعدين.</p>
     {% if error %}<div class="alert">{{ error }}</div>{% endif %}
     <form method="post" action="/user/register" class="form-stack">
       <input type="hidden" name="ref" value="{{ ref }}">

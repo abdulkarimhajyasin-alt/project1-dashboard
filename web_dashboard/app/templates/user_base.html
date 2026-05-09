@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}لوحة التعدين{% endblock %}</title>
+  <title>{% block title %}{{ platform_name|default("NovaHash") }} - لوحة التعدين{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=settings-control-panel">
 </head>
 <body class="user-app mining-app {{ 'maintenance-active' if maintenance_enabled|default(false) else '' }}">
@@ -13,10 +13,10 @@
     <aside class="mining-sidebar" id="userSidebar" data-user-drawer aria-label="القائمة الجانبية" aria-hidden="true">
       <div class="user-sidebar-top">
         <div class="mining-brand">
-          <span class="brand-mark">MY</span>
+          <span class="brand-mark brand-mark-nova">N</span>
           <div>
-            <strong>Mining Yield</strong>
-            <small>Crypto Mining Hub</small>
+            <strong>{{ platform_name|default("NovaHash") }}</strong>
+            <small>{{ platform_tagline|default("Daily Mining Network") }}</small>
           </div>
         </div>
         <button class="user-drawer-close" type="button" data-user-drawer-close aria-label="إغلاق القائمة" title="إغلاق القائمة">X</button>
@@ -42,7 +42,7 @@
           <span>القائمة</span>
         </button>
         <div>
-          <p class="mining-kicker">{% block page_kicker %}لوحة التعدين التفاعلية{% endblock %}</p>
+          <p class="mining-kicker">{% block page_kicker %}{{ platform_name|default("NovaHash") }} Command Center{% endblock %}</p>
           <h1>{% block page_title %}أهلاً {{ user.name }}{% endblock %}</h1>
           <span>{% block page_description %}راقب دورة التعدين اليومية، الأرباح، والإحالات من مكان واحد.{% endblock %}</span>
         </div>
