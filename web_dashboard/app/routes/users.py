@@ -95,13 +95,16 @@ def get_active_miner_ids(db: Session) -> set[int]:
 
 def get_users_metrics(db: Session) -> dict:
     active_miner_ids = get_active_miner_ids(db)
+    total_capital = db.query(func.coalesce(func.sum(User.capital), 0)).scalar() or Decimal("0")
+    total_profits = db.query(func.coalesce(func.sum(User.profits), 0)).scalar() or Decimal("0")
     return {
         "total_users": db.query(User).count(),
         "active_users": db.query(User).filter(User.status == "active").count(),
         "verified_users": db.query(User).filter(User.verified.is_(True)).count(),
         "active_miners": len(active_miner_ids),
-        "total_capital": db.query(func.coalesce(func.sum(User.capital), 0)).scalar() or Decimal("0"),
-        "total_profits": db.query(func.coalesce(func.sum(User.profits), 0)).scalar() or Decimal("0"),
+        "total_capital": total_capital,
+        "total_profits": total_profits,
+        "total_balances": Decimal(total_capital or 0) + Decimal(total_profits or 0),
     }
 
 
@@ -162,6 +165,9 @@ def serialize_user_tree_node(
 def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     username = normalize_identifier(request.query_params.get("username"))
     email = normalize_identifier(request.query_params.get("email"))
+    country = normalize_identifier(request.query_params.get("country"))
+    plan_filter = normalize_identifier(request.query_params.get("plan"))
+    verified_filter = normalize_identifier(request.query_params.get("verified"))
     user_filter = normalize_identifier(request.query_params.get("filter")) or "all"
     sort_by = normalize_identifier(request.query_params.get("sort")) or "newest"
 
@@ -184,8 +190,14 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
         query = query.filter(func.lower(func.coalesce(User.username, User.name, "")).like(f"%{username}%"))
     if email:
         query = query.filter(func.lower(User.email).like(f"%{email}%"))
+    if country:
+        query = query.filter(func.lower(func.coalesce(User.residence_country, "")).like(f"%{country}%"))
     if user_filter == "active":
         query = query.filter(User.status == "active")
+    elif user_filter == "frozen":
+        query = query.filter(User.status == "frozen")
+    elif user_filter == "banned":
+        query = query.filter(User.status == "banned")
     elif user_filter == "verified":
         query = query.filter(User.verified.is_(True))
     elif user_filter == "miner":
@@ -194,6 +206,12 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
         query = query.filter(User.plan == "vip")
     elif user_filter == "referrals":
         query = query.filter(referral_count_column > 0)
+    if verified_filter == "yes":
+        query = query.filter(User.verified.is_(True))
+    elif verified_filter == "no":
+        query = query.filter(User.verified.is_(False))
+    if plan_filter in {"none", "silver", "gold", "vip"}:
+        query = query.filter(User.plan == plan_filter)
 
     if sort_by == "capital":
         query = query.order_by(User.capital.desc(), User.created_at.desc())
@@ -234,8 +252,11 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
             "users_metrics": get_users_metrics(db),
             "active_filter": user_filter,
             "active_sort": sort_by,
+            "active_plan": plan_filter,
+            "active_verified": verified_filter,
             "search_username": username,
             "search_email": email,
+            "search_country": country,
             **get_admin_notifications_context(db),
         },
     )

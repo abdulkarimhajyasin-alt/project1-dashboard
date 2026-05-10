@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block page_title %}Users{% endblock %}
+{% block page_title %}Users Tree{% endblock %}
 
 {% block content %}
 {% if request.query_params.get("delete_success") %}
@@ -11,50 +11,88 @@
 
 <section class="admin-users-page">
   <header class="admin-users-hero">
-    <div>
-      <p class="mining-kicker">Accounts Intelligence</p>
-      <h2>Admin Users Command Center</h2>
-      <span>Search, inspect balances, open accounts, and explore referral networks from one focused workspace.</span>
+    <div class="admin-users-hero-copy">
+      <p class="mining-kicker">Users Tree</p>
+      <h2>المستخدمون بنظام الشجرة</h2>
+      <span>إدارة المستخدمين، أرصدتهم، حالاتهم، وشبكات الإحالة من شاشة واحدة منظمة.</span>
     </div>
-    <form method="post" action="/users" class="admin-users-create">
-      <input type="text" name="name" placeholder="Name" required>
-      <input type="email" name="email" placeholder="Email" required>
-      <select name="status" aria-label="Status">
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-      <button type="submit">Add User</button>
-    </form>
+
+    <nav class="admin-users-quick-nav" aria-label="Admin shortcuts">
+      <a href="/dashboard">Dashboard</a>
+      <a class="is-active" href="/users">Users Tree</a>
+      <a href="/records">Financial</a>
+      <a href="/support">Support</a>
+    </nav>
+
+    <div class="admin-users-stats" aria-label="Users summary">
+      <article><span>إجمالي المستخدمين</span><strong>{{ users_metrics.total_users }}</strong></article>
+      <article><span>المستخدمون النشطون</span><strong>{{ users_metrics.active_users }}</strong></article>
+      <article><span>المستخدمون الموثقون</span><strong>{{ users_metrics.verified_users }}</strong></article>
+      <article><span>إجمالي رأس المال</span><strong>${{ "%.2f"|format(users_metrics.total_capital or 0) }}</strong></article>
+      <article><span>إجمالي الأرباح</span><strong>${{ "%.4f"|format(users_metrics.total_profits or 0) }}</strong></article>
+      <article><span>إجمالي الأرصدة</span><strong>${{ "%.4f"|format(users_metrics.total_balances or 0) }}</strong></article>
+    </div>
   </header>
 
-  <div class="admin-users-stats" aria-label="Users summary">
-    <article><span>Total Users</span><strong>{{ users_metrics.total_users }}</strong></article>
-    <article><span>Active Users</span><strong>{{ users_metrics.active_users }}</strong></article>
-    <article><span>Verified Users</span><strong>{{ users_metrics.verified_users }}</strong></article>
-    <article><span>Active Miners</span><strong>{{ users_metrics.active_miners }}</strong></article>
-    <article><span>Total Capital</span><strong>${{ "%.2f"|format(users_metrics.total_capital or 0) }}</strong></article>
-    <article><span>Total Profits</span><strong>${{ "%.4f"|format(users_metrics.total_profits or 0) }}</strong></article>
-  </div>
-
   <section class="admin-users-toolbar" aria-label="Search and filters">
+    <div class="admin-users-toolbar-head">
+      <div>
+        <p class="mining-kicker">Filters</p>
+        <h3>البحث والتصفية</h3>
+      </div>
+      <form method="post" action="/users" class="admin-users-create">
+        <input type="text" name="name" placeholder="Name" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <select name="status" aria-label="Status">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button type="submit">Add User</button>
+      </form>
+    </div>
+
     <form method="get" action="/users" class="admin-users-filter-form">
       <label>
-        <span>Search by username</span>
-        <input type="search" name="username" value="{{ search_username }}" placeholder="username">
+        <span>الاسم / Username / Telegram</span>
+        <input type="search" name="username" value="{{ search_username }}" placeholder="name or username">
       </label>
       <label>
-        <span>Search by email</span>
+        <span>Email</span>
         <input type="search" name="email" value="{{ search_email }}" placeholder="email@example.com">
       </label>
       <label>
-        <span>Filter by</span>
+        <span>الدولة</span>
+        <input type="search" name="country" value="{{ search_country }}" placeholder="country">
+      </label>
+      <label>
+        <span>الحالة</span>
         <select name="filter">
           <option value="all" {{ "selected" if active_filter == "all" else "" }}>All Users</option>
           <option value="active" {{ "selected" if active_filter == "active" else "" }}>Active</option>
+          <option value="frozen" {{ "selected" if active_filter == "frozen" else "" }}>Frozen</option>
+          <option value="banned" {{ "selected" if active_filter == "banned" else "" }}>Banned</option>
           <option value="verified" {{ "selected" if active_filter == "verified" else "" }}>Verified</option>
           <option value="miner" {{ "selected" if active_filter == "miner" else "" }}>Miner</option>
           <option value="vip" {{ "selected" if active_filter == "vip" else "" }}>VIP</option>
           <option value="referrals" {{ "selected" if active_filter == "referrals" else "" }}>Has Referrals</option>
+        </select>
+      </label>
+      <label>
+        <span>التوثيق</span>
+        <select name="verified">
+          <option value="" {{ "selected" if not active_verified else "" }}>All</option>
+          <option value="yes" {{ "selected" if active_verified == "yes" else "" }}>موثق</option>
+          <option value="no" {{ "selected" if active_verified == "no" else "" }}>غير موثق</option>
+        </select>
+      </label>
+      <label>
+        <span>الخطة</span>
+        <select name="plan">
+          <option value="" {{ "selected" if not active_plan else "" }}>All Plans</option>
+          <option value="none" {{ "selected" if active_plan == "none" else "" }}>NONE</option>
+          <option value="silver" {{ "selected" if active_plan == "silver" else "" }}>Silver</option>
+          <option value="gold" {{ "selected" if active_plan == "gold" else "" }}>Gold</option>
+          <option value="vip" {{ "selected" if active_plan == "vip" else "" }}>VIP</option>
         </select>
       </label>
       <label>
@@ -73,84 +111,106 @@
     </form>
   </section>
 
-  <section class="admin-users-list" data-referral-tree aria-label="Users list">
-    {% for item in user_cards %}
-    {% set user = item.user %}
-    {% set referral_count = item.referral_count %}
-    {% set rank_info = item.rank_info %}
-    <article class="admin-user-card" data-user-row data-user-id="{{ user.id }}" data-tree-level="0">
-      <div class="admin-user-main">
-        <div class="admin-user-avatar" aria-hidden="true">{{ item.initials }}</div>
-        <div class="admin-user-identity">
-          <a href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
-          <span>{{ user.name or "-" }}</span>
-          <small>{{ user.email }}</small>
-          <div class="admin-user-badges">
-            <span class="user-badge {{ 'is-active' if user.status == 'active' else 'is-muted' }}">{{ user.status }}</span>
-            {% if user.verified %}<span class="user-badge is-verified">Verified</span>{% endif %}
-            {% if item.is_mining %}<span class="user-badge is-mining">Mining</span>{% endif %}
-            {% if user.plan == 'vip' %}<span class="user-badge is-vip">VIP</span>{% endif %}
-          </div>
-        </div>
+  <section class="admin-users-table-panel" data-referral-tree aria-label="Users list">
+    <div class="admin-users-table-header">
+      <div>
+        <p class="mining-kicker">Accounts</p>
+        <h3>قائمة المستخدمين</h3>
       </div>
-
-      <div class="admin-user-metrics">
-        <div><span>Capital</span><strong>${{ "%.2f"|format(user.capital or 0) }}</strong></div>
-        <div><span>Profits</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></div>
-        <div><span>Referrals</span><strong>{{ referral_count }}</strong></div>
-        <div><span>Rank</span><strong>{{ rank_info.rank }}</strong></div>
-        <div><span>Last Start</span><strong>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</strong></div>
-        <div><span>Created</span><strong>{{ user.created_at.strftime("%Y-%m-%d") }}</strong></div>
-      </div>
-
-      <div class="admin-user-actions">
-        <a class="admin-user-action primary" href="/users/{{ user.id }}"><span>OA</span>Open Account</a>
-        <a class="admin-user-action" href="/users/{{ user.id }}#overview"><span>DT</span>Details</a>
-        <form method="post" action="/users/{{ user.id }}/message">
-          <button class="admin-user-action success" type="submit"><span>SM</span>Send Message</button>
-        </form>
-        <button type="button" class="admin-user-action safe"><span>RP</span>Reset Password</button>
-        <form
-          method="post"
-          action="/users/{{ user.id }}/delete"
-          data-delete-user-form
-          data-user-name="{{ item.delete_label }}"
-          data-delete-protected="{{ 'true' if item.delete_protected else 'false' }}"
-        >
-          <input type="hidden" name="confirm_delete" value="yes">
-          <button
-            class="admin-user-action danger"
-            type="submit"
-            {% if item.delete_protected %}disabled title="Main admin account cannot be deleted"{% endif %}
-          ><span>DL</span>Delete</button>
-        </form>
-      </div>
-
-      <div class="admin-user-network">
-        {% if referral_count %}
-        <button
-          class="referral-tree-toggle"
-          type="button"
-          data-referral-toggle
-          data-user-id="{{ user.id }}"
-          data-tree-level="0"
-          data-children-count="{{ referral_count }}"
-          aria-expanded="false"
-        >View Network</button>
-        <span class="referral-tree-count">{{ referral_count }} referrals</span>
-        {% else %}
-        <span class="referral-tree-count is-empty">No referrals</span>
-        {% endif %}
-      </div>
-
-      <div class="referral-children" data-referral-children hidden></div>
-    </article>
-    {% else %}
-    <div class="admin-users-empty">
-      <strong>No users found</strong>
-      <p>Try clearing filters or add the first account from the quick create panel.</p>
+      <span>{{ user_cards|length }} shown</span>
     </div>
-    {% endfor %}
+
+    <div class="admin-users-table-scroll">
+      <table class="admin-users-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Name</th>
+            <th>Country</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Verified</th>
+            <th>Capital</th>
+            <th>Balance</th>
+            <th>Profit</th>
+            <th>Children</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in user_cards %}
+          {% set user = item.user %}
+          {% set referral_count = item.referral_count %}
+          <tr class="admin-users-table-row" data-user-row data-user-id="{{ user.id }}" data-tree-level="0">
+            <td data-label="Username">
+              <a class="admin-users-username" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
+            </td>
+            <td data-label="Name">{{ user.name or "-" }}</td>
+            <td data-label="Country">{{ user.residence_country or "-" }}</td>
+            <td data-label="Plan"><span class="user-badge plan">{{ (user.plan or "none")|upper }}</span></td>
+            <td data-label="Status"><span class="user-badge status-{{ user.status }}">{{ user.status }}</span></td>
+            <td data-label="Verified"><span class="user-badge {{ 'is-verified' if user.verified else 'is-muted' }}">{{ 'موثق' if user.verified else 'غير موثق' }}</span></td>
+            <td data-label="Capital">${{ "%.2f"|format(user.capital or 0) }}</td>
+            <td data-label="Balance">${{ "%.4f"|format((user.capital or 0) + (user.profits or 0)) }}</td>
+            <td data-label="Profit">${{ "%.4f"|format(user.profits or 0) }}</td>
+            <td data-label="Children">
+              <div class="admin-users-children-cell">
+                <span class="user-badge children">{{ referral_count }}</span>
+                {% if referral_count %}
+                <button
+                  class="referral-tree-toggle"
+                  type="button"
+                  data-referral-toggle
+                  data-user-id="{{ user.id }}"
+                  data-tree-level="0"
+                  data-children-count="{{ referral_count }}"
+                  aria-expanded="false"
+                >View Network</button>
+                {% endif %}
+              </div>
+            </td>
+            <td data-label="Action">
+              <div class="admin-users-action-cell">
+                <a class="admin-user-action primary compact" href="/users/{{ user.id }}">View</a>
+                <form method="post" action="/users/{{ user.id }}/message">
+                  <button class="admin-user-action success compact" type="submit">Message</button>
+                </form>
+                <button type="button" class="admin-user-action safe compact">Reset</button>
+                <form
+                  method="post"
+                  action="/users/{{ user.id }}/delete"
+                  data-delete-user-form
+                  data-user-name="{{ item.delete_label }}"
+                  data-delete-protected="{{ 'true' if item.delete_protected else 'false' }}"
+                >
+                  <input type="hidden" name="confirm_delete" value="yes">
+                  <button
+                    class="admin-user-action danger compact"
+                    type="submit"
+                    {% if item.delete_protected %}disabled title="Main admin account cannot be deleted"{% endif %}
+                  >Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <tr class="admin-users-tree-row">
+            <td colspan="11">
+              <div class="referral-children" data-referral-children hidden></div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="11">
+              <div class="admin-users-empty">
+                <strong>No users found</strong>
+                <p>Try clearing filters or add the first account from the quick create panel.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </section>
 </section>
 {% endblock %}

@@ -771,7 +771,16 @@
       button.textContent = isLoading ? "Loading..." : "View Network";
     };
 
-    const getChildrenContainer = (card) => card?.querySelector(":scope > [data-referral-children]");
+    const getChildrenContainer = (card) => {
+      const directContainer = card?.querySelector(":scope > [data-referral-children]");
+      if (directContainer) {
+        return directContainer;
+      }
+      if (card?.matches("tr")) {
+        return card.nextElementSibling?.querySelector("[data-referral-children]");
+      }
+      return null;
+    };
 
     const removeDescendantCards = (card, userId) => {
       const id = String(userId);
