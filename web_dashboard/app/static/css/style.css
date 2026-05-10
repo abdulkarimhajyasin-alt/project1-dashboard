@@ -611,16 +611,6 @@ th {
   width: auto;
 }
 
-.admin-users-tree-row > td {
-  padding: 0;
-}
-
-.admin-users-tree-row .referral-children {
-  border-left: 0;
-  margin: 0;
-  padding: 12px 0 12px 16px;
-}
-
 .admin-user-card {
   display: grid;
   gap: 16px;
@@ -814,6 +804,54 @@ th {
   transform: none;
 }
 
+.referral-table-child-row {
+  animation: referral-row-rise 160ms ease both;
+  box-shadow: inset -3px 0 rgba(103, 232, 249, 0.34);
+}
+
+.admin-users-table tbody tr.referral-table-child-row {
+  background:
+    linear-gradient(90deg, rgba(37, 246, 164, 0.05), transparent 42%),
+    rgba(8, 20, 36, 0.54);
+}
+
+.admin-users-table tbody tr.referral-table-child-row:hover {
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.09), transparent 48%),
+    rgba(18, 44, 72, 0.42);
+}
+
+.referral-table-child-row td:first-child {
+  padding-right: calc(12px + var(--tree-indent, 0px));
+  position: relative;
+}
+
+.referral-table-child-row td:first-child::before {
+  background: linear-gradient(180deg, rgba(103, 232, 249, 0.56), rgba(37, 246, 164, 0.18));
+  border-radius: 999px;
+  content: "";
+  inset: 10px 6px 10px auto;
+  position: absolute;
+  width: 2px;
+}
+
+.referral-tree-user {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.user-badge.tree-level {
+  background: rgba(103, 232, 249, 0.1);
+  border-color: rgba(103, 232, 249, 0.24);
+  color: #c8f6ff;
+  font-size: 10px;
+  padding: 4px 7px;
+  text-transform: none;
+}
+
 .admin-user-network {
   border-top: 1px solid rgba(103, 232, 249, 0.12);
   grid-column: 1 / -1;
@@ -901,6 +939,17 @@ th {
   from {
     opacity: 0;
     transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes referral-row-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -1019,16 +1068,29 @@ th {
     font-weight: 900;
   }
 
-  .admin-users-tree-row {
-    margin-bottom: 12px;
-  }
-
-  .admin-users-tree-row td::before {
+  .referral-feedback-row td::before {
     content: none;
   }
 
   .admin-users-action-cell {
     justify-content: flex-end;
+  }
+
+  .referral-table-child-row {
+    box-shadow: inset -3px 0 rgba(103, 232, 249, 0.34);
+    margin-right: min(var(--tree-indent, 0px), 42px);
+  }
+
+  .referral-table-child-row td:first-child {
+    padding-right: 12px;
+  }
+
+  .referral-table-child-row td:first-child::before {
+    inset: 8px 0 8px auto;
+  }
+
+  .referral-tree-user {
+    justify-content: flex-start;
   }
 
   .referral-children {

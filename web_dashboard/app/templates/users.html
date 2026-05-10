@@ -141,7 +141,7 @@
           {% for item in user_cards %}
           {% set user = item.user %}
           {% set referral_count = item.referral_count %}
-          <tr class="admin-users-table-row" data-user-row data-user-id="{{ user.id }}" data-tree-level="0">
+          <tr class="admin-users-table-row" data-user-row data-user-id="{{ user.id }}" data-tree-level="0" data-ancestor-ids="">
             <td data-label="Username">
               <a class="admin-users-username" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
             </td>
@@ -189,11 +189,6 @@
                   >Delete</button>
                 </form>
               </div>
-            </td>
-          </tr>
-          <tr class="admin-users-tree-row">
-            <td colspan="11">
-              <div class="referral-children" data-referral-children hidden></div>
             </td>
           </tr>
           {% else %}

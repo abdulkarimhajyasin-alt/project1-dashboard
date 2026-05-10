@@ -139,6 +139,7 @@ def serialize_user_tree_node(
         "name": user.name or "-",
         "username": get_user_label(user),
         "email": user.email or "-",
+        "country": user.residence_country or "-",
         "initials": user_initials(user),
         "status": user.status or "active",
         "verified": bool(user.verified),

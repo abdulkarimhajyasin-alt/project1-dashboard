@@ -714,17 +714,13 @@
       const button = document.createElement("button");
       button.className = buttonClass;
       button.type = "submit";
-      const icon = document.createElement("span");
-      icon.textContent = label === "Send Message" ? "SM" : label.slice(0, 2).toUpperCase();
-      button.append(icon);
       button.textContent = label;
-      button.prepend(icon);
       form.append(button);
       return form;
     };
 
     const makeDeleteForm = (user) => {
-      const form = makePostActionForm(user.delete_url || `/users/${user.id}/delete`, "admin-user-action danger", "Delete");
+      const form = makePostActionForm(user.delete_url || `/users/${user.id}/delete`, "admin-user-action danger compact", "Delete");
       form.dataset.deleteUserForm = "";
       form.dataset.userName = user.delete_label || user.username || user.name || "this user";
       form.dataset.deleteProtected = user.delete_protected ? "true" : "false";
@@ -759,31 +755,48 @@
       button.textContent = isLoading ? "Loading..." : "View";
     };
 
-    const getChildrenContainer = (card) => {
-      const directContainer = card?.querySelector(":scope > [data-referral-children]");
-      if (directContainer) {
-        return directContainer;
-      }
-      if (card?.matches("tr")) {
-        return card.nextElementSibling?.querySelector("[data-referral-children]");
-      }
-      return null;
+    const tableBody = referralTree.querySelector(".admin-users-table tbody");
+
+    const formatMoney = (value, digits) => {
+      const amount = Number.parseFloat(value ?? 0);
+      return `$${(Number.isFinite(amount) ? amount : 0).toFixed(digits)}`;
     };
 
-    const removeDescendantCards = (card, userId) => {
-      const id = String(userId);
-      const container = getChildrenContainer(card);
-      container?.querySelectorAll("[data-user-row]").forEach((childCard) => {
-        if (childCard.dataset.userId) expandedNodes.delete(childCard.dataset.userId);
+    const hasAncestor = (row, userId) => (row.dataset.ancestorIds || "").split(",").includes(String(userId));
+
+    const getDescendantRows = (userId) => Array.from(
+      tableBody?.querySelectorAll("[data-user-row], [data-referral-feedback-row]") || [],
+    ).filter((row) => hasAncestor(row, userId));
+
+    const insertRowsAfter = (parentRow, rows) => {
+      let anchor = parentRow;
+      rows.forEach((row) => {
+        anchor.after(row);
+        anchor = row;
       });
-      if (container) {
-        container.replaceChildren();
-        container.hidden = true;
-      }
-      expandedNodes.delete(id);
+    };
+
+    const removeDescendantRows = (parentRow, userId) => {
+      getDescendantRows(userId).forEach((row) => {
+        if (row.dataset.userId) {
+          expandedNodes.delete(row.dataset.userId);
+        }
+        row.remove();
+      });
+      expandedNodes.delete(String(userId));
+      parentRow?.querySelectorAll("[data-referral-toggle]").forEach((toggle) => {
+        if (toggle.dataset.userId !== String(userId) && expandedNodes.has(toggle.dataset.userId)) {
+          setToggleState(toggle, false);
+        }
+      });
     };
 
     const makeFeedback = (message, type = "loading") => {
+      const row = document.createElement("tr");
+      row.className = `admin-users-table-row referral-feedback-row referral-${type}`;
+      row.dataset.referralFeedbackRow = "";
+      const cell = document.createElement("td");
+      cell.colSpan = 11;
       const item = document.createElement("div");
       item.className = `referral-feedback referral-${type}`;
       if (type === "loading") {
@@ -791,7 +804,9 @@
       } else {
         item.textContent = message;
       }
-      return item;
+      cell.append(item);
+      row.append(cell);
+      return row;
     };
 
     const makeBadge = (text, className = "") => {
@@ -801,133 +816,109 @@
       return badge;
     };
 
-    const makeNetworkControl = (user, level) => {
-      const network = document.createElement("div");
-      network.className = "admin-user-network";
-      if (user.has_children) {
-        const count = document.createElement("span");
-        count.className = "referral-tree-count";
-        count.textContent = `${user.children_count || user.referrals_count || 0} referrals`;
-        network.append(count);
+    const makeTableCell = (label, content) => {
+      const cell = document.createElement("td");
+      cell.dataset.label = label;
+      if (content instanceof Node) {
+        cell.append(content);
       } else {
-        const empty = document.createElement("span");
-        empty.className = "referral-tree-count is-empty";
-        empty.textContent = "No referrals";
-        network.append(empty);
+        cell.textContent = content;
       }
-      return network;
+      return cell;
     };
 
-    const makeMetric = (label, value) => {
-      const item = document.createElement("div");
-      const span = document.createElement("span");
-      span.textContent = label;
-      const strong = document.createElement("strong");
-      strong.textContent = value || "-";
-      item.append(span, strong);
-      return item;
-    };
+    const makeChildRow = (user, level, ancestorIds) => {
+      const row = document.createElement("tr");
+      row.className = "admin-users-table-row referral-table-child-row";
+      row.dataset.userRow = "";
+      row.dataset.userId = String(user.id);
+      row.dataset.treeLevel = String(level);
+      row.dataset.ancestorIds = ancestorIds.join(",");
+      row.style.setProperty("--tree-indent", `${Math.min(level, 8) * 18}px`);
 
-    const makeChildCard = (user, level, ancestorIds) => {
-      const card = document.createElement("article");
-      card.className = "admin-user-card referral-child-card";
-      card.dataset.userRow = "";
-      card.dataset.userId = String(user.id);
-      card.dataset.treeLevel = String(level);
-      card.dataset.ancestorIds = ancestorIds.join(",");
-      card.style.setProperty("--tree-indent", `${Math.max(0, level - 1) * 24}px`);
-
-      const main = document.createElement("div");
-      main.className = "admin-user-main";
-      const avatar = document.createElement("div");
-      avatar.className = "admin-user-avatar";
-      avatar.setAttribute("aria-hidden", "true");
-      avatar.textContent = user.initials || "U";
-      const identity = document.createElement("div");
-      identity.className = "admin-user-identity";
+      const usernameWrap = document.createElement("div");
+      usernameWrap.className = "referral-tree-user";
       const userLink = document.createElement("a");
+      userLink.className = "admin-users-username";
       userLink.href = user.detail_url || `/users/${user.id}`;
       userLink.textContent = user.username || user.name || "-";
-      const name = document.createElement("span");
-      name.textContent = user.name || "-";
-      const email = document.createElement("small");
-      email.textContent = user.email || "-";
-      const badges = document.createElement("div");
-      badges.className = "admin-user-badges";
-      badges.append(makeBadge(user.status || "active", user.status === "active" ? "is-active" : "is-muted"));
-      if (user.verified) badges.append(makeBadge("Verified", "is-verified"));
-      if (user.is_mining) badges.append(makeBadge("Mining", "is-mining"));
-      if (user.plan === "vip") badges.append(makeBadge("VIP", "is-vip"));
-      identity.append(userLink, name, email, badges);
-      main.append(avatar, identity);
+      usernameWrap.append(userLink, makeBadge(`Level ${level}`, "tree-level"));
 
-      const metrics = document.createElement("div");
-      metrics.className = "admin-user-metrics";
-      metrics.append(
-        makeMetric("Capital", `$${user.capital || "0.00"}`),
-        makeMetric("Profits", `$${user.profits || "0.0000"}`),
-        makeMetric("Referrals", String(user.referrals_count || 0)),
-        makeMetric("Rank", user.rank || "-"),
-        makeMetric("Last Start", user.last_start_at || "-"),
-        makeMetric("Created", user.created_at || "-"),
-      );
+      const nameLink = document.createElement("a");
+      nameLink.className = "admin-users-name-link";
+      nameLink.href = user.detail_url || `/users/${user.id}`;
+      nameLink.textContent = user.name || "-";
+
+      const plan = makeBadge((user.plan || "none").toUpperCase(), "plan");
+      const status = makeBadge(user.status || "active", `status-${user.status || "active"}`);
+      const verified = makeBadge(user.verified ? "Verified" : "Not verified", user.verified ? "is-verified" : "is-muted");
+      const childrenCount = Number(user.children_count || user.referrals_count || 0);
+      const children = document.createElement("div");
+      children.className = "admin-users-children-cell";
+      children.append(makeBadge(String(childrenCount), "children"));
 
       const actions = document.createElement("div");
-      actions.className = "admin-user-actions";
+      actions.className = "admin-users-action-cell";
       const view = document.createElement("button");
       view.type = "button";
-      view.className = "admin-user-action primary";
+      view.className = "admin-user-action primary compact";
       view.dataset.referralToggle = "";
       view.dataset.userId = String(user.id);
       view.dataset.treeLevel = String(level);
-      view.dataset.childrenCount = String(user.children_count || user.referrals_count || 0);
+      view.dataset.childrenCount = String(childrenCount);
       view.setAttribute("aria-expanded", "false");
       view.textContent = "View";
-      if (!user.has_children) {
+      if (!childrenCount) {
         view.disabled = true;
         view.title = "No children for this user";
       }
       const reset = document.createElement("button");
       reset.type = "button";
-      reset.className = "admin-user-action safe";
-      const resetIcon = document.createElement("span");
-      resetIcon.textContent = "RP";
-      reset.append(resetIcon, document.createTextNode("Reset Password"));
+      reset.className = "admin-user-action safe compact";
+      reset.textContent = "Reset";
       actions.append(
         view,
-        makePostActionForm(user.message_url || `/users/${user.id}/message`, "admin-user-action success", "Send Message"),
+        makePostActionForm(user.message_url || `/users/${user.id}/message`, "admin-user-action success compact", "Message"),
         reset,
         makeDeleteForm(user),
       );
 
-      const children = document.createElement("div");
-      children.className = "referral-children";
-      children.dataset.referralChildren = "";
-      children.hidden = true;
-
-      card.append(main, metrics, actions, makeNetworkControl(user, level), children);
-      return card;
+      const balance = Number.parseFloat(user.capital ?? 0) + Number.parseFloat(user.profits ?? 0);
+      row.append(
+        makeTableCell("Username", usernameWrap),
+        makeTableCell("Name", nameLink),
+        makeTableCell("Country", user.country || "-"),
+        makeTableCell("Plan", plan),
+        makeTableCell("Status", status),
+        makeTableCell("Verified", verified),
+        makeTableCell("Capital", formatMoney(user.capital, 2)),
+        makeTableCell("Balance", formatMoney(balance, 4)),
+        makeTableCell("Profit", formatMoney(user.profits, 4)),
+        makeTableCell("Children", children),
+        makeTableCell("Action", actions),
+      );
+      return row;
     };
 
     const renderChildren = (parentCard, parentId, children) => {
-      removeDescendantCards(parentCard, parentId);
+      removeDescendantRows(parentCard, parentId);
 
       const parentAncestors = (parentCard.dataset.ancestorIds || "").split(",").filter(Boolean);
       const ancestorIds = [...parentAncestors, String(parentId)];
       const level = Number(parentCard.dataset.treeLevel || 0) + 1;
-      const container = getChildrenContainer(parentCard);
-      const fragment = document.createDocumentFragment();
+      const rows = [];
 
       if (!children.length) {
-        fragment.append(makeFeedback("No children found.", "empty"));
+        const emptyRow = makeFeedback("No children found.", "empty");
+        emptyRow.dataset.ancestorIds = ancestorIds.join(",");
+        rows.push(emptyRow);
       } else {
         children.forEach((child) => {
-          fragment.append(makeChildCard(child, level, ancestorIds));
+          rows.push(makeChildRow(child, level, ancestorIds));
         });
       }
 
-      container?.append(fragment);
-      if (container) container.hidden = false;
+      insertRowsAfter(parentCard, rows);
       expandedNodes.add(String(parentId));
       setToggleState(parentCard.querySelector(`[data-referral-toggle][data-user-id="${parentId}"]`), true);
     };
@@ -946,7 +937,7 @@
       }
 
       if (expandedNodes.has(userId)) {
-        removeDescendantCards(parentCard, userId);
+        removeDescendantRows(parentCard, userId);
         setToggleState(button, false);
         return;
       }
@@ -956,11 +947,11 @@
         return;
       }
 
-      removeDescendantCards(parentCard, userId);
+      removeDescendantRows(parentCard, userId);
       const loadingRow = makeFeedback("Loading children...", "loading");
-      const container = getChildrenContainer(parentCard);
-      container?.append(loadingRow);
-      if (container) container.hidden = false;
+      const parentAncestors = (parentCard.dataset.ancestorIds || "").split(",").filter(Boolean);
+      loadingRow.dataset.ancestorIds = [...parentAncestors, String(userId)].join(",");
+      insertRowsAfter(parentCard, [loadingRow]);
       setToggleLoading(button, true);
 
       fetch(`/users/${userId}/children`, {
@@ -984,8 +975,8 @@
           loadingRow.remove();
           setToggleLoading(button, false);
           const errorRow = makeFeedback(error.message || "Could not load children.", "error");
-          container?.append(errorRow);
-          if (container) container.hidden = false;
+          errorRow.dataset.ancestorIds = loadingRow.dataset.ancestorIds || String(userId);
+          insertRowsAfter(parentCard, [errorRow]);
         });
     });
   }
