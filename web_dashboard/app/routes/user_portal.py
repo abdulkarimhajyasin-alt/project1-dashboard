@@ -527,7 +527,7 @@ def open_user_notification(
 
 
 @router.post("/notifications/clear")
-def clear_user_notifications(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def clear_user_notifications(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     (
         db.query(Notification)
         .filter(
@@ -538,6 +538,15 @@ def clear_user_notifications(user: User = Depends(get_current_user), db: Session
         .update({"is_read": True}, synchronize_session=False)
     )
     db.commit()
+    if wants_json_response(request):
+        return JSONResponse(
+            build_notifications_poll_payload(
+                db,
+                recipient_type="user",
+                recipient_user_id=user.id,
+                open_prefix="/user/notifications",
+            )
+        )
     return RedirectResponse(url="/user/dashboard", status_code=303)
 
 
@@ -837,11 +846,14 @@ def send_support_message(
             kind="support",
         )
         db.commit()
+        db.refresh(support_message)
         if request.headers.get("x-requested-with") == "fetch":
+            messages = [serialize_user_support_message(item, thread) for item in get_thread_messages(db, thread)]
             return JSONResponse(
                 {
                     "ok": True,
-                    "messages": [serialize_user_support_message(item, thread) for item in get_thread_messages(db, thread)],
+                    "message": serialize_user_support_message(support_message, thread),
+                    "messages": messages,
                 }
             )
     elif request.headers.get("x-requested-with") == "fetch":

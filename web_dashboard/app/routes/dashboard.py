@@ -521,13 +521,21 @@ def open_notification(
 
 
 @router.post("/notifications/clear")
-def clear_notifications(admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+def clear_notifications(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     (
         db.query(Notification)
         .filter(Notification.recipient_type == "admin", Notification.is_read.is_(False))
         .update({"is_read": True}, synchronize_session=False)
     )
     db.commit()
+    if request.headers.get("x-requested-with") == "fetch" or "application/json" in request.headers.get("accept", ""):
+        return JSONResponse(
+            build_notifications_poll_payload(
+                db,
+                recipient_type="admin",
+                open_prefix="/notifications",
+            )
+        )
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
@@ -619,11 +627,14 @@ def support_chat_reply(
             kind="support",
         )
         db.commit()
+        db.refresh(support_message)
         if request.headers.get("x-requested-with") == "fetch":
+            messages = [serialize_support_message(item, thread) for item in get_thread_messages(db, thread)]
             return JSONResponse(
                 {
                     "ok": True,
-                    "messages": [serialize_support_message(item, thread) for item in get_thread_messages(db, thread)],
+                    "message": serialize_support_message(support_message, thread),
+                    "messages": messages,
                 }
             )
     elif request.headers.get("x-requested-with") == "fetch":

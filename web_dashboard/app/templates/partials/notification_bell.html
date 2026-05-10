@@ -15,11 +15,9 @@
       </div>
       <div class="notification-panel-tools">
         <span>{{ notification_count }} جديد</span>
-        {% if notification_count %}
-        <form method="post" action="{{ notification_clear_url|default('/notifications/clear') }}">
-          <button type="submit">مسح</button>
+        <form method="post" action="{{ notification_clear_url|default('/notifications/clear') }}" data-notification-clear-form>
+          <button type="submit" data-notification-clear-button {% if not notification_count %}hidden disabled{% endif %}>مسح الكل</button>
         </form>
-        {% endif %}
       </div>
     </div>
     <div class="notification-list">

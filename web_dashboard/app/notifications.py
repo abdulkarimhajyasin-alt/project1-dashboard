@@ -78,8 +78,9 @@ def build_notifications_poll_payload(
     query = db.query(Notification).filter(Notification.recipient_type == recipient_type)
     if recipient_type == "user":
         query = query.filter(Notification.recipient_user_id == recipient_user_id)
-    unread_count = query.filter(Notification.is_read.is_(False)).count()
-    notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
+    unread_query = query.filter(Notification.is_read.is_(False))
+    unread_count = unread_query.count()
+    notifications = unread_query.order_by(Notification.created_at.desc()).limit(limit).all()
     latest_notification_id = notifications[0].id if notifications else 0
     return {
         "unread_count": unread_count,

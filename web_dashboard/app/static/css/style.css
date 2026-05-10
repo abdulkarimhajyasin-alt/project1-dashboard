@@ -5718,6 +5718,16 @@ body.user-menu-open .user-drawer-overlay,
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
+.notification-panel-tools button[hidden] {
+  display: none;
+}
+
+.notification-panel-tools button:disabled {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
+}
+
 .notification-panel-tools button:hover {
   border-color: rgba(254, 202, 202, 0.62);
   box-shadow: 0 0 30px rgba(239, 41, 41, 0.34);

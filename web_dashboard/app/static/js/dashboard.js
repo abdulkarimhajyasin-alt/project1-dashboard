@@ -472,6 +472,11 @@
       }
       const tools = root.querySelector(".notification-panel-tools span");
       if (tools) tools.textContent = `${count} جديد`;
+      const clearButton = root.querySelector("[data-notification-clear-button]");
+      if (clearButton) {
+        clearButton.hidden = count <= 0;
+        clearButton.disabled = count <= 0;
+      }
       const list = root.querySelector(".notification-list");
       if (!list) return;
       const notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
@@ -561,6 +566,32 @@
     }
   });
 
+  notificationRoots.forEach((root) => {
+    const clearForm = root.querySelector("[data-notification-clear-form]");
+    clearForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const button = clearForm.querySelector("[data-notification-clear-button]");
+      if (button) button.disabled = true;
+      fetch(clearForm.action, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "fetch",
+        },
+      })
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error("تعذر مسح الإشعارات."))))
+        .then((payload) => {
+          renderNotifications(payload);
+          latestRealtimeNotificationId = Number(payload.latest_notification_id || 0);
+        })
+        .catch((error) => {
+          realtimeToast(error.message || "تعذر مسح الإشعارات.");
+          if (button) button.disabled = false;
+        });
+    });
+  });
+
   supportChatModal?.querySelector("[data-support-compose]")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -576,7 +607,8 @@
       .then(({ ok, data }) => {
         if (!ok || data.ok === false) throw new Error(data.error || "Could not send message.");
         form.reset();
-        renderSupportMessages(data.messages);
+        form.querySelector("[data-support-file-clear]")?.click();
+        renderSupportMessages(data.messages || (data.message ? [data.message] : []));
         pollNotifications(true);
       })
       .catch((error) => realtimeToast(error.message || "Could not send message."))
