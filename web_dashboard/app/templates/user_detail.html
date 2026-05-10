@@ -5,57 +5,114 @@
 {% block content %}
 <section class="admin-user-detail-shell">
   <article class="admin-user-detail-hero">
-    <div>
-      <p class="mining-kicker">User Control Node</p>
-      <h2>{{ user.username or user.name }}</h2>
-      <p>{{ user.email }}</p>
-      <div class="admin-signal-row">
-        <span>الحالة: <strong>{{ user.status }}</strong></span>
-        <span>الخطة: <strong>{{ user.plan or "none" }}</strong></span>
-        <span>الإحالات: <strong>{{ user.referrals|length }}</strong></span>
+    <div class="admin-user-hero-top">
+      <div class="admin-user-hero-title">
+        <p class="mining-kicker">User Control Node</p>
+        <h2>{{ user.username or user.name }}</h2>
+        <div class="admin-user-badges">
+          <span class="user-badge status-{{ user.status }}">{{ user.status }}</span>
+          <span class="user-badge {{ 'is-verified' if user.verified else 'is-unverified' }}">{{ 'verified' if user.verified else 'غير موثق' }}</span>
+          <span class="user-badge plan">{{ user.plan or "none" }}</span>
+          <span class="user-badge {{ 'is-verified' if user.manual_withdrawal_unlock else 'is-muted' }}">{{ 'السحب مفتوح' if user.manual_withdrawal_unlock else 'السحب مقفل' }}</span>
+        </div>
+      </div>
+      <div class="admin-user-hero-actions">
+        <a class="admin-user-back" href="/users">العودة للمستخدمين</a>
+        <form method="post" action="/users/{{ user.id }}/message">
+          <button class="admin-action-button blue" type="submit">إرسال رسالة</button>
+        </form>
       </div>
     </div>
-    <a class="admin-user-back" href="/users">العودة للمستخدمين</a>
+
+    <div class="admin-user-meta-line">
+      <span>Telegram ID: <strong>{{ telegram_id }}</strong></span>
+      <span>Referrer: <strong>{{ user.referrer.username if user.referrer else "-" }}</strong></span>
+      <span>Children: <strong>{{ user.referrals|length }}</strong></span>
+    </div>
+
+    <div class="admin-user-stat-grid">
+      <article><span>الرصيد</span><strong>${{ "%.4f"|format(total_balance or 0) }}</strong></article>
+      <article><span>رأس المال</span><strong>${{ "%.2f"|format(user.capital or 0) }}</strong></article>
+      <article><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></article>
+      <article><span>عدد العمليات</span><strong>{{ transaction_count }}</strong></article>
+      <article><span>موعد الربح القادم</span><strong>{{ mining_status.end_time or "-" }}</strong></article>
+      <article><span>عداد الربح القادم</span><strong>{{ next_profit_countdown }}</strong></article>
+      <article><span>موعد السحب القادم</span><strong>{{ withdrawal_cycle.withdrawal_cycle_end.strftime("%Y-%m-%d %H:%M") if withdrawal_cycle.withdrawal_cycle_days else "-" }}</strong></article>
+      <article><span>عداد السحب</span><strong>{{ next_withdraw_countdown if withdrawal_cycle.withdrawal_cycle_days else "-" }}</strong></article>
+    </div>
   </article>
 
-  <nav class="admin-detail-tabs" aria-label="أقسام بيانات المستخدم">
-    <a href="#overview">Overview</a>
-    <a href="#financial">Financial</a>
-    <a href="#transactions">Transactions</a>
-    <a href="#verification">Verification</a>
-    <a class="is-primary" href="#actions">Actions</a>
-  </nav>
+  <section class="admin-detail-panel" data-admin-user-detail-tabs>
+    <nav class="admin-detail-tabs" aria-label="أقسام بيانات المستخدم">
+      <a class="is-primary" href="#overview" data-admin-detail-tab="overview">Overview</a>
+      <a href="#financial" data-admin-detail-tab="financial">Financial</a>
+      <a href="#transactions" data-admin-detail-tab="transactions">Transactions</a>
+      <a href="#verification" data-admin-detail-tab="verification">Verification</a>
+      <a href="#actions" data-admin-detail-tab="actions">Actions</a>
+    </nav>
 
-  <section class="admin-user-control-board" id="actions">
-    <div class="admin-control-block">
-      <h3>التحكم بالمستخدم</h3>
-      <div class="admin-control-actions">
-        <form method="post" action="/users/{{ user.id }}/status">
-          <input type="hidden" name="status_action" value="unfreeze">
-          <button class="admin-action-button blue" type="submit">Unfreeze</button>
-        </form>
-        <form method="post" action="/users/{{ user.id }}/status">
-          <input type="hidden" name="status_action" value="freeze">
-          <button class="admin-action-button amber" type="submit">Freeze</button>
-        </form>
-        <form method="post" action="/users/{{ user.id }}/status">
-          <input type="hidden" name="status_action" value="unban">
-          <button class="admin-action-button green" type="submit">Unban</button>
-        </form>
-        <form method="post" action="/users/{{ user.id }}/status">
-          <input type="hidden" name="status_action" value="ban">
-          <button class="admin-action-button red" type="submit">Ban</button>
-        </form>
+    <section class="admin-detail-tab-panel" id="overview" data-admin-detail-panel="overview">
+      <div class="admin-panel-header compact">
+        <div>
+          <p class="mining-kicker">Overview</p>
+          <h2>بيانات المستخدم</h2>
+        </div>
       </div>
-    </div>
+      <div class="admin-user-detail-grid">
+        <article class="admin-user-data-card"><span>Username</span><strong>{{ user.username or "-" }}</strong></article>
+        <article class="admin-user-data-card"><span>Password</span><strong>{{ user.password_hash or "غير مضبوطة" }}</strong></article>
+        <article class="admin-user-data-card"><span>Telegram ID</span><strong>{{ telegram_id }}</strong></article>
+        <article class="admin-user-data-card"><span>Full Name</span><strong>{{ user.legal_full_name or user.name or "-" }}</strong></article>
+        <article class="admin-user-data-card"><span>Residence</span><strong>{{ user.residence_country or "-" }}</strong></article>
+        <article class="admin-user-data-card"><span>Plan</span><strong>{{ user.plan or "none" }}</strong></article>
+        <article class="admin-user-data-card"><span>Status</span><strong>{{ user.status }}</strong></article>
+        <article class="admin-user-data-card"><span>Verified</span><strong>{{ 'موثق' if user.verified else 'غير موثق' }}</strong></article>
+        <article class="admin-user-data-card"><span>Referrer</span><strong>{{ user.referrer.username if user.referrer else "-" }}</strong></article>
+        <article class="admin-user-data-card"><span>Children Count</span><strong>{{ user.referrals|length }}</strong></article>
+      </div>
 
-    <div class="admin-control-block" id="financial">
-      <h3>Financial Control</h3>
+      <div class="admin-table-wrap admin-referral-table">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>اسم المستخدم</th>
+              <th>البريد</th>
+              <th>الحالة</th>
+              <th>تاريخ الإنشاء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for referral in user.referrals %}
+            <tr>
+              <td>{{ referral.name }}</td>
+              <td><a class="admin-user-link" href="/users/{{ referral.id }}">{{ referral.username or referral.name }}</a></td>
+              <td>{{ referral.email }}</td>
+              <td><span class="status admin-status-pill">{{ referral.status }}</span></td>
+              <td>{{ referral.created_at.strftime("%Y-%m-%d") }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="empty">لا توجد إحالات لهذا المستخدم.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-detail-tab-panel" id="financial" data-admin-detail-panel="financial" hidden>
+      <div class="admin-panel-header compact">
+        <div>
+          <p class="mining-kicker">Financial</p>
+          <h2>التحكم المالي</h2>
+        </div>
+      </div>
       <div class="admin-finance-grid">
         <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form">
           <input type="hidden" name="field" value="capital">
           <label>
-            رأس المال
+            إضافة/خصم Balance
             <input type="number" name="amount" step="0.01" min="0" value="10">
           </label>
           <button class="admin-action-button green" type="submit" name="operation" value="add">Balance +</button>
@@ -65,7 +122,7 @@
         <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form">
           <input type="hidden" name="field" value="profits">
           <label>
-            الأرباح
+            إضافة/خصم Profit
             <input type="number" name="amount" step="0.0001" min="0" value="1">
           </label>
           <button class="admin-action-button green" type="submit" name="operation" value="add">Profit +</button>
@@ -74,7 +131,7 @@
 
         <form method="post" action="/users/{{ user.id }}/plan" class="admin-plan-form">
           <label>
-            تغيير الخطة
+            تغيير Plan
             <select name="plan">
               <option value="none" {{ "selected" if user.plan == "none" else "" }}>none</option>
               <option value="silver" {{ "selected" if user.plan == "silver" else "" }}>silver</option>
@@ -86,9 +143,10 @@
         </form>
 
         <form method="post" action="/users/{{ user.id }}/reset-cycle" class="admin-plan-form">
-          <span>دورة التعدين اليومية</span>
+          <span>Reset Cycle</span>
           <button class="admin-action-button slate" type="submit">Reset Cycle</button>
         </form>
+
         <form method="post" action="/users/{{ user.id }}/manual-withdrawal-unlock" class="admin-plan-form manual-withdrawal-form">
           {% if user.manual_withdrawal_unlock %}
           <input type="hidden" name="unlock_action" value="close">
@@ -101,117 +159,140 @@
           {% endif %}
         </form>
       </div>
-    </div>
 
-    <div class="admin-danger-zone">
-      <h3>Danger Zone</h3>
-      <form
-        method="post"
-        action="/users/{{ user.id }}/delete"
-        data-delete-user-form
-        data-user-name="{{ user.username or user.name or user.email }}"
-        data-delete-protected="{{ 'true' if delete_protected else 'false' }}"
-      >
-        <input type="hidden" name="confirm_delete" value="yes">
-        <button
-          class="admin-action-button red dark"
-          type="submit"
-          {% if delete_protected %}disabled title="Main admin account cannot be deleted"{% endif %}
-        >Delete Subscription</button>
-      </form>
-    </div>
-  </section>
-
-  <section class="admin-user-detail-grid" id="overview">
-    <article class="admin-user-data-card"><span>ID</span><strong>{{ user.id }}</strong></article>
-    <article class="admin-user-data-card"><span>الاسم</span><strong>{{ user.name }}</strong></article>
-    <article class="admin-user-data-card"><span>اسم المستخدم</span><strong>{{ user.username or "-" }}</strong></article>
-    <article class="admin-user-data-card"><span>البريد</span><strong>{{ user.email }}</strong></article>
-    <article class="admin-user-data-card"><span>الحالة</span><strong>{{ user.status }}</strong></article>
-    <article class="admin-user-data-card"><span>رأس المال</span><strong>${{ "%.2f"|format(user.capital or 0) }}</strong></article>
-    <article class="admin-user-data-card"><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></article>
-    <article class="admin-user-data-card"><span>الأرباح اليومية</span><strong>${{ "%.4f"|format(user.daily_earnings or 0) }}</strong></article>
-    <article class="admin-user-data-card"><span>الخطة</span><strong>{{ user.plan or "none" }}</strong></article>
-    <article class="admin-user-data-card"><span>رتبة الإحالة</span><strong>{{ referral_rank_info.rank }}</strong></article>
-    <article class="admin-user-data-card"><span>كود الإحالة</span><strong>{{ user.referral_code or "-" }}</strong></article>
-    <article class="admin-user-data-card"><span>المحيل</span><strong>{{ user.referrer.username if user.referrer else "-" }}</strong></article>
-    <article class="admin-user-data-card"><span>آخر تشغيل</span><strong>{{ user.last_start_at.strftime("%Y-%m-%d %H:%M") if user.last_start_at else "-" }}</strong></article>
-    <article class="admin-user-data-card"><span>تاريخ الإنشاء</span><strong>{{ user.created_at.strftime("%Y-%m-%d %H:%M") }}</strong></article>
-    <article class="admin-user-data-card" id="verification"><span>كلمة المرور</span><strong>{{ "محفوظة كـ hash" if user.password_hash else "غير مضبوطة" }}</strong></article>
-  </section>
-
-  <section class="admin-panel-card" id="transactions">
-    <div class="admin-panel-header">
-      <div>
-        <p class="mining-kicker">Transactions</p>
-        <h2>سجلات المستخدم</h2>
+      <div class="admin-danger-zone">
+        <h3>Danger Zone</h3>
+        <form
+          method="post"
+          action="/users/{{ user.id }}/delete"
+          data-delete-user-form
+          data-user-name="{{ user.username or user.name or user.email }}"
+          data-delete-protected="{{ 'true' if delete_protected else 'false' }}"
+        >
+          <input type="hidden" name="confirm_delete" value="yes">
+          <button
+            class="admin-action-button red dark"
+            type="submit"
+            {% if delete_protected %}disabled title="Main admin account cannot be deleted"{% endif %}
+          >Delete Subscription</button>
+        </form>
       </div>
-    </div>
-    <div class="admin-table-wrap">
-      <table class="admin-data-table">
-        <thead>
-          <tr>
-            <th>العنوان</th>
-            <th>النوع</th>
-            <th>المبلغ</th>
-            <th>ملاحظات</th>
-            <th>التاريخ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for record in records %}
-          <tr>
-            <td>{{ record.title }}</td>
-            <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
-            <td>${{ "%.4f"|format(record.amount) }}</td>
-            <td>{{ record.notes or "-" }}</td>
-            <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="empty">لا توجد سجلات لهذا المستخدم.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
+    </section>
 
-  <section class="admin-panel-card">
-    <div class="admin-panel-header">
-      <div>
-        <p class="mining-kicker">Referral Tree</p>
-        <h2>المستخدمون المحالون</h2>
+    <section class="admin-detail-tab-panel" id="transactions" data-admin-detail-panel="transactions" hidden>
+      <div class="admin-panel-header compact">
+        <div>
+          <p class="mining-kicker">Transactions</p>
+          <h2>سجلات المستخدم</h2>
+        </div>
       </div>
-    </div>
-    <div class="admin-table-wrap">
-      <table class="admin-data-table">
-        <thead>
-          <tr>
-            <th>الاسم</th>
-            <th>اسم المستخدم</th>
-            <th>البريد</th>
-            <th>الحالة</th>
-            <th>تاريخ الإنشاء</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for referral in user.referrals %}
-          <tr>
-            <td>{{ referral.name }}</td>
-            <td><a class="admin-user-link" href="/users/{{ referral.id }}">{{ referral.username or referral.name }}</a></td>
-            <td>{{ referral.email }}</td>
-            <td><span class="status admin-status-pill">{{ referral.status }}</span></td>
-            <td>{{ referral.created_at.strftime("%Y-%m-%d") }}</td>
-          </tr>
+      <div class="admin-table-wrap">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th>العنوان</th>
+              <th>النوع</th>
+              <th>المبلغ</th>
+              <th>ملاحظات</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in records %}
+            <tr>
+              <td>{{ record.title }}</td>
+              <td><span class="status admin-status-pill">{{ record.record_type }}</span></td>
+              <td>${{ "%.4f"|format(record.amount) }}</td>
+              <td>{{ record.notes or "-" }}</td>
+              <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="empty">لا توجد سجلات لهذا المستخدم.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-detail-tab-panel" id="verification" data-admin-detail-panel="verification" hidden>
+      <div class="admin-panel-header compact">
+        <div>
+          <p class="mining-kicker">Verification</p>
+          <h2>حالة التوثيق</h2>
+        </div>
+      </div>
+      <div class="admin-verification-layout">
+        <div class="admin-user-detail-grid">
+          <article class="admin-user-data-card"><span>Status</span><strong>{{ user.verification_status }}</strong></article>
+          <article class="admin-user-data-card"><span>Verified</span><strong>{{ 'موثق' if user.verified else 'غير موثق' }}</strong></article>
+          <article class="admin-user-data-card"><span>Document Type</span><strong>{{ pending_verification_request.document_type_label if pending_verification_request else user.document_type or "-" }}</strong></article>
+          <article class="admin-user-data-card"><span>Requested At</span><strong>{{ user.verification_requested_at.strftime("%Y-%m-%d %H:%M") if user.verification_requested_at else "-" }}</strong></article>
+        </div>
+
+        {% if pending_verification_request %}
+        <div class="verification-proof-grid">
+          {% for image in pending_verification_request.verification_images %}
+          <button type="button" class="verification-proof-button" data-admin-image-src="/pending-requests/{{ pending_verification_request.id }}/image/{{ image.type }}" data-admin-image-title="{{ image.label }}">
+            <span>{{ image.label }}</span>
+          </button>
           {% else %}
-          <tr>
-            <td colspan="5" class="empty">لا توجد إحالات لهذا المستخدم.</td>
-          </tr>
+          <p class="empty">لا توجد صور توثيق مرفقة.</p>
           {% endfor %}
-        </tbody>
-      </table>
-    </div>
+        </div>
+        <div class="pending-actions">
+          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/accept">
+            <button class="pending-accept" type="submit">Approve</button>
+          </form>
+          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/reject" class="pending-reject-form">
+            <textarea name="reject_reason" rows="3" placeholder="Optional reason shown to the user"></textarea>
+            <button class="pending-reject" type="submit">Reject</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="empty">لا يوجد طلب توثيق معلق لهذا المستخدم.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="admin-detail-tab-panel" id="actions" data-admin-detail-panel="actions" hidden>
+      <div class="admin-panel-header compact">
+        <div>
+          <p class="mining-kicker">Actions</p>
+          <h2>التحكم بالمستخدم</h2>
+        </div>
+      </div>
+      <div class="admin-control-actions">
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="ban">
+          <button class="admin-action-button red" type="submit">Ban</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="unban">
+          <button class="admin-action-button green" type="submit">Unban</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="freeze">
+          <button class="admin-action-button amber" type="submit">Freeze</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/status">
+          <input type="hidden" name="status_action" value="unfreeze">
+          <button class="admin-action-button blue" type="submit">Unfreeze</button>
+        </form>
+        <form method="post" action="/users/{{ user.id }}/message">
+          <button class="admin-action-button purple" type="submit">Send Message</button>
+        </form>
+      </div>
+    </section>
   </section>
 </section>
+
+<div class="admin-command-modal" id="verificationImagePreview" data-admin-modal aria-hidden="true">
+  <section class="admin-command-dialog verification-image-dialog" role="dialog" aria-modal="true" aria-labelledby="verificationImageTitle">
+    <button class="admin-modal-close" type="button" data-admin-modal-close aria-label="إغلاق">X</button>
+    <h2 id="verificationImageTitle" data-admin-image-title>صورة التوثيق</h2>
+    <img src="" alt="صورة التوثيق" data-admin-image-preview>
+  </section>
+</div>
 {% endblock %}

@@ -368,6 +368,41 @@
 
   activeMiningOpen?.addEventListener("click", loadActiveMiningCycles);
 
+  const userDetailTabs = document.querySelector("[data-admin-user-detail-tabs]");
+  if (userDetailTabs) {
+    const tabLinks = Array.from(userDetailTabs.querySelectorAll("[data-admin-detail-tab]"));
+    const tabPanels = Array.from(userDetailTabs.querySelectorAll("[data-admin-detail-panel]"));
+    const panelIds = new Set(tabPanels.map((panel) => panel.dataset.adminDetailPanel));
+
+    const activateUserDetailTab = (target, shouldPushState = true) => {
+      const nextTarget = panelIds.has(target) ? target : "overview";
+      tabLinks.forEach((link) => {
+        const isActive = link.dataset.adminDetailTab === nextTarget;
+        link.classList.toggle("is-primary", isActive);
+        link.setAttribute("aria-selected", String(isActive));
+      });
+      tabPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.adminDetailPanel !== nextTarget;
+      });
+      const nextHash = `#${nextTarget}`;
+      if (shouldPushState && window.location.hash !== nextHash) {
+        window.history.pushState({ userDetailTab: nextTarget }, "", nextHash);
+      }
+    };
+
+    tabLinks.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        activateUserDetailTab(link.dataset.adminDetailTab || "overview");
+      });
+    });
+
+    activateUserDetailTab((window.location.hash || "#overview").slice(1), false);
+    window.addEventListener("popstate", () => {
+      activateUserDetailTab((window.location.hash || "#overview").slice(1), false);
+    });
+  }
+
   adminImageButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const modal = document.getElementById("verificationImagePreview");

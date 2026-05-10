@@ -11,9 +11,10 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.mining import get_referral_rank_info
+from app.mining import build_mining_status, get_referral_rank_info
 from app.models import Admin, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
+from app.routes.user_portal import build_withdrawal_cycle_status
 from app.support_chat import get_or_create_support_thread
 
 
@@ -58,6 +59,20 @@ def get_user_label(user: User) -> str:
 
 def format_admin_datetime(value, fmt: str) -> str:
     return value.strftime(fmt) if value else "-"
+
+
+def format_admin_duration(seconds: int | None) -> str:
+    remaining = max(0, int(seconds or 0))
+    days, remainder = divmod(remaining, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if days:
+        return f"{days}d {hours}h {minutes}m"
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 def user_initials(user: User) -> str:
@@ -259,6 +274,18 @@ def user_children(user_id: int, admin: Admin = Depends(get_current_admin), db: S
 def user_details(user_id: int, request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = get_admin_user(db, user_id)
     records = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
+    mining_status = build_mining_status(user, db)
+    withdrawal_cycle = build_withdrawal_cycle_status(user, db)
+    pending_verification_request = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "verification",
+            PendingRequest.status == "pending",
+        )
+        .order_by(PendingRequest.created_at.desc())
+        .first()
+    )
     return templates.TemplateResponse(
         "user_detail.html",
         {
@@ -267,6 +294,14 @@ def user_details(user_id: int, request: Request, admin: Admin = Depends(get_curr
             "active_page": "users",
             "user": user,
             "records": records,
+            "transaction_count": len(records),
+            "total_balance": Decimal(user.capital or 0) + Decimal(user.profits or 0),
+            "telegram_id": getattr(user, "telegram_id", None) or "-",
+            "mining_status": mining_status,
+            "next_profit_countdown": format_admin_duration(mining_status.get("remaining_seconds")),
+            "withdrawal_cycle": withdrawal_cycle,
+            "next_withdraw_countdown": format_admin_duration(withdrawal_cycle.get("withdrawal_remaining_seconds")),
+            "pending_verification_request": pending_verification_request,
             "delete_protected": is_protected_admin_user(user, admin),
             "referral_rank_info": get_referral_rank_info(len(user.referrals)),
             **get_admin_notifications_context(db),

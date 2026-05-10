@@ -5329,7 +5329,8 @@ body.user-menu-open .user-drawer-overlay,
 }
 
 .admin-user-detail-hero,
-.admin-user-control-board,
+.admin-detail-panel,
+.admin-detail-tab-panel,
 .admin-user-data-card {
   background:
     linear-gradient(145deg, rgba(15, 31, 51, 0.94), rgba(7, 14, 28, 0.88)),
@@ -5340,23 +5341,63 @@ body.user-menu-open .user-drawer-overlay,
 }
 
 .admin-user-detail-hero {
-  align-items: center;
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
+  display: grid;
+  gap: 20px;
   overflow: hidden;
   padding: 24px;
   position: relative;
 }
 
+.admin-user-detail-hero::before {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(37, 99, 235, 0.44), transparent 34%),
+    radial-gradient(circle at 82% 8%, rgba(37, 246, 164, 0.18), transparent 28%);
+  content: "";
+  inset: 0;
+  opacity: .74;
+  pointer-events: none;
+  position: absolute;
+}
+
+.admin-user-detail-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-user-hero-top {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.admin-user-hero-title {
+  display: grid;
+  gap: 12px;
+}
+
 .admin-user-detail-hero h2 {
   color: #ffffff;
-  font-size: clamp(28px, 5vw, 48px);
-  margin: 0 0 8px;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: 0;
+  line-height: 1.08;
+  margin: 0;
 }
 
 .admin-user-detail-hero p {
   color: #9fb1c7;
+}
+
+.admin-user-hero-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-user-hero-actions form {
+  margin: 0;
 }
 
 .admin-user-back {
@@ -5377,11 +5418,108 @@ body.user-menu-open .user-drawer-overlay,
   transform: translateY(-2px);
 }
 
+.admin-user-meta-line,
+.admin-user-detail-hero .admin-user-badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-user-meta-line span {
+  background: rgba(2, 6, 23, 0.34);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-weight: 800;
+  padding: 9px 11px;
+}
+
+.admin-user-meta-line strong {
+  color: #ffffff;
+}
+
+.admin-user-detail-hero .admin-user-badges {
+  margin-top: 0;
+}
+
+.admin-user-detail-hero .admin-user-badges .user-badge {
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+
+.user-badge.status-active {
+  background: rgba(22, 163, 74, 0.24);
+  border-color: rgba(34, 197, 94, 0.38);
+  color: #bbf7d0;
+}
+
+.user-badge.status-frozen {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(251, 191, 36, 0.38);
+  color: #fde68a;
+}
+
+.user-badge.status-banned {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+}
+
+.user-badge.plan {
+  background: rgba(37, 99, 235, 0.24);
+  border-color: rgba(96, 165, 250, 0.36);
+  color: #dbeafe;
+}
+
+.user-badge.is-muted {
+  background: rgba(51, 65, 85, 0.58);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.admin-user-stat-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-user-stat-grid article {
+  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  min-height: 88px;
+  padding: 16px;
+}
+
+.admin-user-stat-grid span {
+  color: #95a8bd;
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-user-stat-grid strong {
+  color: #ffffff;
+  display: block;
+  font-size: clamp(18px, 2.4vw, 26px);
+  line-height: 1.22;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail-panel {
+  display: grid;
+  gap: 18px;
+  padding: 14px;
+}
+
 .admin-detail-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .admin-detail-tabs a,
@@ -5408,10 +5546,14 @@ body.user-menu-open .user-drawer-overlay,
   transform: translateY(-2px);
 }
 
-.admin-user-control-board {
+.admin-detail-tab-panel {
   display: grid;
   gap: 16px;
-  padding: 24px;
+  padding: 20px;
+}
+
+.admin-detail-tab-panel[hidden] {
+  display: none;
 }
 
 .admin-control-block {
@@ -5427,9 +5569,9 @@ body.user-menu-open .user-drawer-overlay,
 
 .admin-control-actions,
 .admin-finance-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .admin-balance-form,
@@ -5442,6 +5584,12 @@ body.user-menu-open .user-drawer-overlay,
   flex-wrap: wrap;
   gap: 10px;
   padding: 12px;
+}
+
+.admin-balance-form label,
+.admin-plan-form label {
+  display: grid;
+  gap: 8px;
 }
 
 .admin-plan-form span {
@@ -5514,7 +5662,7 @@ body.user-menu-open .user-drawer-overlay,
 .admin-user-detail-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .admin-user-data-card {
@@ -5539,26 +5687,52 @@ body.user-menu-open .user-drawer-overlay,
 .admin-user-data-card strong {
   color: #ffffff;
   display: block;
-  font-size: clamp(18px, 3vw, 28px);
+  font-size: clamp(16px, 2vw, 22px);
+  line-height: 1.25;
   margin-top: 8px;
   overflow-wrap: anywhere;
 }
 
+.admin-referral-table {
+  margin-top: 4px;
+}
+
+.admin-verification-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-verification-layout .verification-proof-grid {
+  margin-top: 0;
+}
+
+.admin-verification-layout .pending-actions {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 @media (max-width: 1180px) {
+  .admin-user-stat-grid,
   .admin-user-detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-control-actions,
+  .admin-finance-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
-  .admin-user-detail-hero {
+  .admin-user-hero-top,
+  .admin-user-hero-actions {
     align-items: stretch;
     flex-direction: column;
   }
 
   .admin-detail-tabs,
-  .admin-control-actions,
-  .admin-finance-grid,
   .admin-balance-form,
   .admin-plan-form {
     align-items: stretch;
@@ -5571,6 +5745,7 @@ body.user-menu-open .user-drawer-overlay,
     width: 100%;
   }
 
+  .admin-user-stat-grid,
   .admin-user-detail-grid {
     grid-template-columns: 1fr;
   }
