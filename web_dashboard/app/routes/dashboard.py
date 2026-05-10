@@ -21,6 +21,7 @@ from app.mining import (
     money,
     progress_percent,
     remaining_seconds,
+    settle_due_mining_cycles,
     sync_active_cycle_with_user_capital,
     utc_now,
 )
@@ -69,6 +70,7 @@ PENDING_REQUEST_SECTIONS = {
 
 
 def get_admin_metrics(db: Session) -> dict:
+    settle_due_mining_cycles(db)
     now = utc_now()
     users_count = db.query(User).count()
     active_users_count = db.query(User).filter(User.status == "active").count()

@@ -5,8 +5,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.models import MiningCycle, Record, User
 from app.utils import format_datetime_for_timezone
@@ -439,6 +439,40 @@ def settle_due_mining_cycle(user: User, db: Session, now: datetime | None = None
         db.refresh(user)
         db.refresh(completed_cycle)
     return completed_cycle
+
+
+def settle_due_mining_cycles(db: Session, now: datetime | None = None) -> list[MiningCycle]:
+    now = normalize_utc(now or utc_now())
+    due_cycles = (
+        db.query(MiningCycle)
+        .options(joinedload(MiningCycle.user))
+        .filter(
+            MiningCycle.status == "active",
+            MiningCycle.completed_at.is_(None),
+            or_(
+                MiningCycle.cycle_window_end <= now,
+                and_(MiningCycle.cycle_window_end.is_(None), MiningCycle.end_at <= now),
+            ),
+        )
+        .order_by(MiningCycle.end_at.asc(), MiningCycle.created_at.asc())
+        .all()
+    )
+    completed_cycles: list[MiningCycle] = []
+    for cycle in due_cycles:
+        user = cycle.user
+        if not user:
+            continue
+        if capital_money(cycle.active_capital) != capital_money(user.capital):
+            apply_income_to_cycle(cycle, user.capital)
+        completed_cycle = complete_mining_cycle(db, user, cycle, now)
+        if completed_cycle:
+            completed_cycles.append(completed_cycle)
+            db.add(user)
+            db.add(completed_cycle)
+
+    if completed_cycles:
+        db.commit()
+    return completed_cycles
 
 
 def start_mining_cycle(user: User, db: Session, now: datetime | None = None) -> tuple[MiningCycle | None, str | None]:
