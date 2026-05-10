@@ -42,6 +42,7 @@ def ensure_user_columns() -> None:
         "referred_by_id": "ALTER TABLE users ADD COLUMN referred_by_id INTEGER REFERENCES users(id)",
         "last_start_at": "ALTER TABLE users ADD COLUMN last_start_at TIMESTAMP",
         "verified": "ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT FALSE",
+        "manual_withdrawal_unlock": "ALTER TABLE users ADD COLUMN manual_withdrawal_unlock BOOLEAN NOT NULL DEFAULT FALSE",
         "verification_status": "ALTER TABLE users ADD COLUMN verification_status VARCHAR(30) NOT NULL DEFAULT 'unverified'",
         "legal_full_name": "ALTER TABLE users ADD COLUMN legal_full_name VARCHAR(160)",
         "residence_country": "ALTER TABLE users ADD COLUMN residence_country VARCHAR(120)",

@@ -37,6 +37,7 @@ class User(Base):
     referred_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     last_start_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    manual_withdrawal_unlock: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verification_status: Mapped[str] = mapped_column(String(30), default="unverified", nullable=False)
     legal_full_name: Mapped[str] = mapped_column(String(160), nullable=True)
     residence_country: Mapped[str] = mapped_column(String(120), nullable=True)

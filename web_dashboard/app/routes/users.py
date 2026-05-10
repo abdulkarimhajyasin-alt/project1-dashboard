@@ -13,7 +13,7 @@ from app.database import get_db
 from app.dependencies import get_current_admin
 from app.mining import get_referral_rank_info
 from app.models import Admin, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
-from app.notifications import get_admin_notifications_context
+from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import get_or_create_support_thread
 
 
@@ -365,6 +365,36 @@ def adjust_user_balance(
     )
     db.commit()
     return RedirectResponse(url=f"/users/{user.id}", status_code=303)
+
+
+@router.post("/{user_id}/manual-withdrawal-unlock")
+def toggle_manual_withdrawal_unlock(
+    user_id: int,
+    unlock_action: str = Form(...),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = get_admin_user(db, user_id)
+    should_unlock = unlock_action == "open"
+    user.manual_withdrawal_unlock = should_unlock
+    create_user_notification(
+        db,
+        user_id=user.id,
+        title="صلاحية السحب",
+        message=(
+            "تم فتح السحب لديك من قبل الإدارة كمكافأة على أدائك."
+            if should_unlock
+            else "تم إغلاق صلاحية السحب اليدوي من قبل الإدارة."
+        ),
+        target_url="/user/withdraw",
+        kind="withdraw",
+        data={
+            "Status": "manual withdrawal unlocked" if should_unlock else "manual withdrawal locked",
+            "Reviewed by": admin.username,
+        },
+    )
+    db.commit()
+    return RedirectResponse(url=f"/users/{user.id}#financial", status_code=303)
 
 
 @router.post("/{user_id}/reset-cycle")

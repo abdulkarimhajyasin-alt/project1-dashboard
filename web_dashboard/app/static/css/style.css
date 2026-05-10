@@ -5434,6 +5434,11 @@ body.user-menu-open .user-drawer-overlay,
   font-weight: 900;
 }
 
+.manual-withdrawal-form {
+  border-color: rgba(56, 189, 248, 0.28);
+  box-shadow: inset 0 0 22px rgba(56, 189, 248, 0.06);
+}
+
 .admin-action-button:hover {
   filter: saturate(1.12);
   transform: translateY(-2px) scale(1.02);

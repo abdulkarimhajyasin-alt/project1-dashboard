@@ -108,6 +108,17 @@ def build_withdrawal_cycle_status(user: User, db: Session) -> dict:
     remaining = max(0, int((cycle_end - now).total_seconds())) if cycle_days else 0
     progress = 100 if not cycle_days else min(100, int((elapsed_seconds / total_seconds) * 100))
     available_profits = Decimal(user.profits or 0)
+    manual_unlock = bool(user.manual_withdrawal_unlock)
+    has_pending_withdrawal = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "withdraw",
+            PendingRequest.status == "pending",
+        )
+        .first()
+        is not None
+    )
 
     return {
         "withdrawal_cycle_start": cycle_start,
@@ -115,7 +126,15 @@ def build_withdrawal_cycle_status(user: User, db: Session) -> dict:
         "withdrawal_cycle_days": cycle_days,
         "withdrawal_progress_percent": progress,
         "withdrawal_remaining_seconds": remaining,
-        "can_withdraw": bool(user.verified and cycle_days and remaining == 0 and available_profits > 0),
+        "manual_withdrawal_unlock": manual_unlock,
+        "has_pending_withdrawal": has_pending_withdrawal,
+        "can_withdraw": bool(
+            user.verified
+            and cycle_days
+            and (remaining == 0 or manual_unlock)
+            and available_profits > 0
+            and not has_pending_withdrawal
+        ),
     }
 
 
@@ -697,7 +716,7 @@ def submit_profit_withdrawal_request(
         withdrawal_cycle = build_withdrawal_cycle_status(user, db)
         if not withdrawal_cycle["withdrawal_cycle_days"]:
             raise ValueError("لا توجد باقة فعالة تسمح بسحب الأرباح.")
-        if withdrawal_cycle["withdrawal_remaining_seconds"] > 0:
+        if withdrawal_cycle["withdrawal_remaining_seconds"] > 0 and not withdrawal_cycle["manual_withdrawal_unlock"]:
             raise ValueError("دورة السحب لم تنتهِ بعد.")
         if Decimal(user.profits or 0) <= 0:
             raise ValueError("لا توجد أرباح متاحة للسحب.")
@@ -742,6 +761,9 @@ def submit_profit_withdrawal_request(
             ensure_ascii=False,
         ),
     )
+    if user.manual_withdrawal_unlock:
+        user.manual_withdrawal_unlock = False
+        db.add(user)
     db.add(pending_request)
     create_admin_notification(
         db,

@@ -45,6 +45,10 @@
     لا يمكنك سحب الأرباح قبل توثيق الحساب.
     {% elif not withdrawal_cycle_days %}
     لا توجد باقة فعالة تسمح بالسحب حالياً.
+    {% elif has_pending_withdrawal %}
+    لديك طلب سحب أرباح قيد المراجعة بالفعل.
+    {% elif manual_withdrawal_unlock %}
+    تم فتح السحب لديك من قبل الإدارة لمرة واحدة.
     {% elif withdrawal_remaining_seconds > 0 %}
     يمكنك طلب السحب بعد انتهاء دورة السحب الحالية.
     {% elif (user.profits or 0) <= 0 %}
@@ -58,7 +62,7 @@
     type="button"
     data-profit-withdraw-open
     data-can-withdraw="{{ 'true' if can_withdraw else 'false' }}"
-    data-withdraw-block-message="{% if not user.verified %}لا يمكنك سحب الأرباح قبل توثيق الحساب.{% elif not withdrawal_cycle_days %}لا توجد باقة فعالة تسمح بالسحب حالياً.{% elif withdrawal_remaining_seconds > 0 %}دورة السحب لم تنتهِ بعد.{% elif (user.profits or 0) <= 0 %}لا توجد أرباح متاحة للسحب.{% else %}{% endif %}"
+    data-withdraw-block-message="{% if not user.verified %}لا يمكنك سحب الأرباح قبل توثيق الحساب.{% elif not withdrawal_cycle_days %}لا توجد باقة فعالة تسمح بالسحب حالياً.{% elif has_pending_withdrawal %}لديك طلب سحب أرباح قيد المراجعة بالفعل.{% elif withdrawal_remaining_seconds > 0 and not manual_withdrawal_unlock %}دورة السحب لم تنتهِ بعد.{% elif (user.profits or 0) <= 0 %}لا توجد أرباح متاحة للسحب.{% else %}{% endif %}"
   >
     سحب الأرباح
   </button>

@@ -89,6 +89,17 @@
           <span>دورة التعدين اليومية</span>
           <button class="admin-action-button slate" type="submit">Reset Cycle</button>
         </form>
+        <form method="post" action="/users/{{ user.id }}/manual-withdrawal-unlock" class="admin-plan-form manual-withdrawal-form">
+          {% if user.manual_withdrawal_unlock %}
+          <input type="hidden" name="unlock_action" value="close">
+          <span>السحب اليدوي مفتوح لمرة واحدة</span>
+          <button class="admin-action-button amber" type="submit">قفل السحب</button>
+          {% else %}
+          <input type="hidden" name="unlock_action" value="open">
+          <span>فتح السحب لمرة واحدة من الإدارة</span>
+          <button class="admin-action-button blue" type="submit">فتح السحب</button>
+          {% endif %}
+        </form>
       </div>
     </div>
 
