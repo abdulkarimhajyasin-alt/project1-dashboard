@@ -1,5 +1,5 @@
 {% if support_thread %}
-<div class="support-chat-backdrop {{ 'is-open' if support_chat_open else '' }}" data-support-chat-modal data-support-thread-id="{{ support_thread.id }}" aria-hidden="{{ 'false' if support_chat_open else 'true' }}">
+<div class="support-chat-backdrop {{ 'is-open' if support_chat_open else '' }}" data-support-chat-modal data-support-thread-id="{{ support_thread.id }}" data-support-messages-url="{{ '/user/support/messages' if support_chat_mode == 'user' else '' }}" aria-hidden="{{ 'false' if support_chat_open else 'true' }}">
   <section class="support-chat-window" role="dialog" aria-modal="true" aria-label="محادثة الدعم">
     <header class="support-chat-header">
       <div>

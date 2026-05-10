@@ -525,7 +525,6 @@
       .then((payload) => {
         if (!payload) return;
         renderNotifications(payload);
-        renderSupportMessages(payload.messages);
         const latest = Number(payload.latest_notification_id || 0);
         if (latest > latestRealtimeNotificationId && (latestRealtimeNotificationId || forceToast)) {
           realtimeToast(payload.notifications?.[0]?.title || "New notification");

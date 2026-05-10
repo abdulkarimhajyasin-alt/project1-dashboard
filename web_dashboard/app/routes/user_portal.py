@@ -297,11 +297,15 @@ def get_support_notification_message(support_message) -> str:
 
 def serialize_user_support_message(message, thread) -> dict:
     sender_label = "الدعم" if message.sender_type == "admin" else thread.user.username or thread.user.name
+    body = message.body or ""
     return {
         "id": message.id,
         "sender_type": message.sender_type,
+        "sender": message.sender_type,
+        "role": message.sender_type,
         "sender_label": sender_label,
-        "body": message.body or "",
+        "body": body,
+        "content": body,
         "created_at": message.created_at.isoformat(),
         "created_label": message.created_at.strftime("%Y-%m-%d %H:%M"),
         "has_attachment": message.has_attachment_data,
