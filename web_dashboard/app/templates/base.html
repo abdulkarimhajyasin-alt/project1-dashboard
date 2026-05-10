@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or ((platform_name|default("NovaHash")) ~ " Admin") }}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='/icons/favicon.svg') }}?v=novahash-2">
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=settings-control-panel">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=referral-table-rows">
 </head>
 <body class="admin-app mining-admin-app">
   <div class="mining-bg" aria-hidden="true"></div>
@@ -94,7 +94,7 @@
       </div>
     </section>
   </div>
-  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=support-chat-rendering" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=referral-table-rows" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

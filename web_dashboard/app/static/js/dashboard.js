@@ -756,6 +756,7 @@
     };
 
     const tableBody = referralTree.querySelector(".admin-users-table tbody");
+    const referralDebug = (...args) => console.debug("[referral-tree]", ...args);
 
     const formatMoney = (value, digits) => {
       const amount = Number.parseFloat(value ?? 0);
@@ -768,12 +769,36 @@
       tableBody?.querySelectorAll("[data-user-row], [data-referral-feedback-row]") || [],
     ).filter((row) => hasAncestor(row, userId));
 
-    const insertRowsAfter = (parentRow, rows) => {
-      let anchor = parentRow;
+    const getInsertionAnchor = (parentRow, userId) => {
+      const descendants = getDescendantRows(userId);
+      return descendants.length ? descendants[descendants.length - 1] : parentRow;
+    };
+
+    const insertRowsAfter = (parentRow, userId, rows) => {
+      if (!tableBody || !parentRow || !rows.length) {
+        referralDebug("insert skipped", {
+          hasTbody: Boolean(tableBody),
+          hasParentRow: Boolean(parentRow),
+          rows: rows.length,
+          userId,
+        });
+        return false;
+      }
+
+      let anchor = getInsertionAnchor(parentRow, userId);
       rows.forEach((row) => {
-        anchor.after(row);
+        tableBody.insertBefore(row, anchor.nextSibling);
         anchor = row;
       });
+
+      const inserted = rows.every((row) => row.isConnected && row.parentElement === tableBody);
+      referralDebug("row insertion", {
+        userId,
+        requested: rows.length,
+        inserted,
+        tbodyRows: tableBody.querySelectorAll("tr").length,
+      });
+      return inserted;
     };
 
     const removeDescendantRows = (parentRow, userId) => {
@@ -918,9 +943,12 @@
         });
       }
 
-      insertRowsAfter(parentCard, rows);
-      expandedNodes.add(String(parentId));
-      setToggleState(parentCard.querySelector(`[data-referral-toggle][data-user-id="${parentId}"]`), true);
+      const inserted = insertRowsAfter(parentCard, parentId, rows);
+      if (inserted) {
+        expandedNodes.add(String(parentId));
+        setToggleState(parentCard.querySelector(`[data-referral-toggle][data-user-id="${parentId}"]`), true);
+      }
+      return inserted;
     };
 
     referralTree.addEventListener("click", (event) => {
@@ -931,6 +959,13 @@
 
       const parentCard = button.closest("[data-user-row]");
       const userId = button.dataset.userId;
+
+      referralDebug("toggle click", {
+        userId,
+        hasTbody: Boolean(tableBody),
+        parentRowFound: Boolean(parentCard),
+        expanded: expandedNodes.has(userId),
+      });
 
       if (!parentCard || !userId) {
         return;
@@ -943,7 +978,9 @@
       }
 
       if (childrenCache.has(userId)) {
-        renderChildren(parentCard, userId, childrenCache.get(userId));
+        const cachedChildren = childrenCache.get(userId);
+        referralDebug("cache hit", { userId, childrenCount: cachedChildren.length });
+        renderChildren(parentCard, userId, cachedChildren);
         return;
       }
 
@@ -951,7 +988,7 @@
       const loadingRow = makeFeedback("Loading children...", "loading");
       const parentAncestors = (parentCard.dataset.ancestorIds || "").split(",").filter(Boolean);
       loadingRow.dataset.ancestorIds = [...parentAncestors, String(userId)].join(",");
-      insertRowsAfter(parentCard, [loadingRow]);
+      insertRowsAfter(parentCard, userId, [loadingRow]);
       setToggleLoading(button, true);
 
       fetch(`/users/${userId}/children`, {
@@ -959,24 +996,34 @@
         headers: { Accept: "application/json" },
       })
         .then((response) => {
+          referralDebug("fetch response", { userId, status: response.status, ok: response.ok });
           if (!response.ok) {
             throw new Error("Could not load children.");
           }
           return response.json();
         })
         .then((data) => {
-          const children = Array.isArray(data.children) ? data.children : [];
+          const children = Array.isArray(data) ? data : (Array.isArray(data.children) ? data.children : []);
+          referralDebug("response payload", {
+            userId,
+            schema: Array.isArray(data) ? "array" : typeof data,
+            hasChildrenKey: Object.prototype.hasOwnProperty.call(data || {}, "children"),
+            childrenCount: children.length,
+          });
           childrenCache.set(userId, children);
           loadingRow.remove();
           setToggleLoading(button, false);
-          renderChildren(parentCard, userId, children);
+          if (!renderChildren(parentCard, userId, children)) {
+            throw new Error("Could not insert child rows.");
+          }
         })
         .catch((error) => {
+          referralDebug("error", { userId, message: error.message || String(error) });
           loadingRow.remove();
           setToggleLoading(button, false);
           const errorRow = makeFeedback(error.message || "Could not load children.", "error");
           errorRow.dataset.ancestorIds = loadingRow.dataset.ancestorIds || String(userId);
-          insertRowsAfter(parentCard, [errorRow]);
+          insertRowsAfter(parentCard, userId, [errorRow]);
         });
     });
   }
