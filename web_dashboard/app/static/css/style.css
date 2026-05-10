@@ -573,6 +573,15 @@ th {
   padding: 9px 12px;
 }
 
+.admin-users-name-link {
+  color: #f8fbff;
+  font-weight: 900;
+}
+
+.admin-users-name-link:hover {
+  color: #9eeeff;
+}
+
 .admin-users-children-cell {
   align-items: center;
   display: flex;

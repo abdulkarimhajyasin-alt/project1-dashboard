@@ -706,18 +706,6 @@
     const childrenCache = new Map();
     const expandedNodes = new Set();
 
-    const makeDetailLink = (user, label = "Open Account", variant = "") => {
-      const link = document.createElement("a");
-      link.className = `admin-user-action ${variant}`.trim();
-      link.href = user.detail_url || `/users/${user.id}`;
-      const icon = document.createElement("span");
-      icon.textContent = label === "Details" ? "DT" : "OA";
-      link.append(icon);
-      link.textContent = label;
-      link.prepend(icon);
-      return link;
-    };
-
     const makePostActionForm = (action, buttonClass, label) => {
       const form = document.createElement("form");
       form.method = "post";
@@ -759,7 +747,7 @@
       if (!button) {
         return;
       }
-      button.textContent = isExpanded ? "Hide Network" : "View Network";
+      button.textContent = isExpanded ? "Hide" : "View";
       button.setAttribute("aria-expanded", String(isExpanded));
     };
 
@@ -768,7 +756,7 @@
         return;
       }
       button.disabled = isLoading;
-      button.textContent = isLoading ? "Loading..." : "View Network";
+      button.textContent = isLoading ? "Loading..." : "View";
     };
 
     const getChildrenContainer = (card) => {
@@ -817,17 +805,6 @@
       const network = document.createElement("div");
       network.className = "admin-user-network";
       if (user.has_children) {
-        const toggle = document.createElement("button");
-        toggle.className = "referral-tree-toggle";
-        toggle.type = "button";
-        toggle.dataset.referralToggle = "";
-        toggle.dataset.userId = String(user.id);
-        toggle.dataset.treeLevel = String(level);
-        toggle.dataset.childrenCount = String(user.children_count || user.referrals_count || 0);
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.textContent = "View Network";
-        network.append(toggle);
-
         const count = document.createElement("span");
         count.className = "referral-tree-count";
         count.textContent = `${user.children_count || user.referrals_count || 0} referrals`;
@@ -897,6 +874,19 @@
 
       const actions = document.createElement("div");
       actions.className = "admin-user-actions";
+      const view = document.createElement("button");
+      view.type = "button";
+      view.className = "admin-user-action primary";
+      view.dataset.referralToggle = "";
+      view.dataset.userId = String(user.id);
+      view.dataset.treeLevel = String(level);
+      view.dataset.childrenCount = String(user.children_count || user.referrals_count || 0);
+      view.setAttribute("aria-expanded", "false");
+      view.textContent = "View";
+      if (!user.has_children) {
+        view.disabled = true;
+        view.title = "No children for this user";
+      }
       const reset = document.createElement("button");
       reset.type = "button";
       reset.className = "admin-user-action safe";
@@ -904,8 +894,7 @@
       resetIcon.textContent = "RP";
       reset.append(resetIcon, document.createTextNode("Reset Password"));
       actions.append(
-        makeDetailLink(user, "Open Account", "primary"),
-        makeDetailLink({ ...user, detail_url: `${user.detail_url || `/users/${user.id}`}#overview` }, "Details"),
+        view,
         makePostActionForm(user.message_url || `/users/${user.id}/message`, "admin-user-action success", "Send Message"),
         reset,
         makeDeleteForm(user),

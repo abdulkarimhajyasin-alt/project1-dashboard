@@ -145,7 +145,7 @@
             <td data-label="Username">
               <a class="admin-users-username" href="/users/{{ user.id }}">{{ user.username or user.name }}</a>
             </td>
-            <td data-label="Name">{{ user.name or "-" }}</td>
+            <td data-label="Name"><a class="admin-users-name-link" href="/users/{{ user.id }}">{{ user.name or "-" }}</a></td>
             <td data-label="Country">{{ user.residence_country or "-" }}</td>
             <td data-label="Plan"><span class="user-badge plan">{{ (user.plan or "none")|upper }}</span></td>
             <td data-label="Status"><span class="user-badge status-{{ user.status }}">{{ user.status }}</span></td>
@@ -156,22 +156,20 @@
             <td data-label="Children">
               <div class="admin-users-children-cell">
                 <span class="user-badge children">{{ referral_count }}</span>
-                {% if referral_count %}
+              </div>
+            </td>
+            <td data-label="Action">
+              <div class="admin-users-action-cell">
                 <button
-                  class="referral-tree-toggle"
+                  class="admin-user-action primary compact"
                   type="button"
                   data-referral-toggle
                   data-user-id="{{ user.id }}"
                   data-tree-level="0"
                   data-children-count="{{ referral_count }}"
                   aria-expanded="false"
-                >View Network</button>
-                {% endif %}
-              </div>
-            </td>
-            <td data-label="Action">
-              <div class="admin-users-action-cell">
-                <a class="admin-user-action primary compact" href="/users/{{ user.id }}">View</a>
+                  {% if not referral_count %}disabled title="No children for this user"{% endif %}
+                >View</button>
                 <form method="post" action="/users/{{ user.id }}/message">
                   <button class="admin-user-action success compact" type="submit">Message</button>
                 </form>
