@@ -3242,6 +3242,21 @@ body.verification-modal-open {
   line-height: 1.9;
 }
 
+.mining-intro-modal h2 {
+  line-height: 1.35;
+}
+
+.mining-intro-copy {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 24px;
+  text-align: right;
+}
+
+.mining-intro-copy p {
+  margin: 0;
+}
+
 .modal-orbit {
   aspect-ratio: 1;
   border: 1px solid rgba(103, 232, 249, 0.26);
