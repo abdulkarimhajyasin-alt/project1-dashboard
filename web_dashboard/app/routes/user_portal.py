@@ -586,6 +586,18 @@ def user_notifications_poll(
     )
 
 
+@router.get("/support/messages")
+def user_support_messages(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    thread = get_or_create_support_thread(db, user)
+    return JSONResponse(
+        {
+            "ok": True,
+            "thread_id": thread.id,
+            "messages": [serialize_user_support_message(item, thread) for item in get_thread_messages(db, thread)],
+        }
+    )
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     completed_cycle = settle_due_mining_cycle(user, db)

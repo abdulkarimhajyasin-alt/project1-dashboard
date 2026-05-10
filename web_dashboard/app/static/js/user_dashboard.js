@@ -352,6 +352,7 @@
   supportChatOpenButtons.forEach(function (button) {
     button.addEventListener("click", function () {
       setSupportChatOpen(true);
+      refreshSupportMessages();
     });
   });
 
@@ -468,26 +469,57 @@
     const bodyEl = supportChatModal?.querySelector("[data-support-chat-body]");
     if (!bodyEl || !Array.isArray(messages)) return;
     const previousLast = Number(bodyEl.querySelector("[data-support-message-id]:last-child")?.dataset.supportMessageId || 0);
-    bodyEl.innerHTML = messages.map(function (message) {
-      return `
-        <article class="support-bubble ${message.sender_type === "admin" ? "from-admin" : "from-user"}" data-support-message-id="${message.id}">
-          <div class="support-bubble-meta">
-            <strong>${escapeHtml(message.sender_label || "")}</strong>
-            <small>${escapeHtml(message.created_label || "")}</small>
-          </div>
-          ${message.body ? `<p>${escapeHtml(message.body)}</p>` : ""}
-          ${message.has_attachment ? (message.is_image ? `<img src="${escapeHtml(message.attachment_url)}" class="chat-image" alt="attachment">` : `<a href="${escapeHtml(message.attachment_url)}">تحميل الملف</a>`) : ""}
-        </article>
-      `;
-    }).join("") || '<div class="support-chat-empty"><strong>لا توجد رسائل بعد</strong><p>ابدأ المحادثة برسالة واضحة.</p></div>';
+    bodyEl.innerHTML = messages.map(supportMessageHtml).join("") || '<div class="support-chat-empty"><strong>لا توجد رسائل بعد</strong><p>ابدأ المحادثة برسالة واضحة.</p></div>';
     const nextLast = Number(messages[messages.length - 1]?.id || 0);
     if (nextLast > previousLast) bodyEl.scrollTop = bodyEl.scrollHeight;
+    updateSupportComposeState(messages);
+  }
+
+  function supportMessageHtml(message) {
+    return `
+      <article class="support-bubble ${message.sender_type === "admin" ? "from-admin" : "from-user"}" data-support-message-id="${message.id}">
+        <div class="support-bubble-meta">
+          <strong>${escapeHtml(message.sender_label || "")}</strong>
+          <small>${escapeHtml(message.created_label || "")}</small>
+        </div>
+        ${message.body ? `<p>${escapeHtml(message.body)}</p>` : ""}
+        ${message.has_attachment ? (message.is_image ? `<img src="${escapeHtml(message.attachment_url)}" class="chat-image" alt="attachment">` : `<a href="${escapeHtml(message.attachment_url)}">تحميل الملف</a>`) : ""}
+      </article>
+    `;
+  }
+
+  function appendSupportMessage(message) {
+    const bodyEl = supportChatModal?.querySelector("[data-support-chat-body]");
+    if (!bodyEl || !message || bodyEl.querySelector(`[data-support-message-id="${message.id}"]`)) return;
+    bodyEl.querySelector(".support-chat-empty")?.remove();
+    bodyEl.insertAdjacentHTML("beforeend", supportMessageHtml(message));
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+    updateSupportComposeState([message]);
+  }
+
+  function updateSupportComposeState(messages) {
     const compose = supportChatModal?.querySelector("[data-support-compose]");
     const waitingForAdmin = messages[messages.length - 1]?.sender_type === "user";
     if (compose) compose.dataset.waitingForAdmin = String(waitingForAdmin);
     compose?.querySelectorAll("textarea, input, button[type='submit']").forEach(function (field) {
       field.disabled = waitingForAdmin;
     });
+  }
+
+  function refreshSupportMessages() {
+    if (!supportChatModal?.classList.contains("is-open")) return Promise.resolve();
+    return fetch("/user/support/messages", {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    })
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (payload) {
+        if (!payload || !Array.isArray(payload.messages)) return;
+        if (payload.thread_id) supportChatModal.dataset.supportThreadId = String(payload.thread_id);
+        renderSupportMessages(payload.messages);
+      });
   }
 
   function pollNotifications(forceToast) {
@@ -505,7 +537,9 @@
       .then(function (payload) {
         if (!payload) return;
         renderNotifications(payload);
-        renderSupportMessages(payload.messages);
+        if (threadId && Array.isArray(payload.messages)) {
+          renderSupportMessages(payload.messages);
+        }
         const latest = Number(payload.latest_notification_id || 0);
         if (latest > latestRealtimeNotificationId && (latestRealtimeNotificationId || forceToast)) {
           realtimeToast(payload.notifications?.[0]?.title || "New notification");
@@ -596,7 +630,11 @@
         if (!result.ok || result.data.ok === false) throw new Error(result.data.error || "Could not send message.");
         form.reset();
         form.querySelector("[data-support-file-clear]")?.click();
-        renderSupportMessages(result.data.messages || (result.data.message ? [result.data.message] : []));
+        if (Array.isArray(result.data.messages) && result.data.messages.length) {
+          renderSupportMessages(result.data.messages);
+        } else if (result.data.message) {
+          appendSupportMessage(result.data.message);
+        }
         pollNotifications(true);
       })
       .catch(function (error) {
@@ -663,6 +701,7 @@
   closeNotifications();
   setupSupportFilePreview();
   setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
+  refreshSupportMessages();
 
   const ring = document.querySelector(".mining-ring");
   const progressCircle = document.querySelector(".ring-progress");
