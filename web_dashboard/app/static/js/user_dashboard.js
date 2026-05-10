@@ -25,6 +25,17 @@
   const documentTypeSelect = document.querySelector("[data-document-type]");
   const dualDocumentFields = document.querySelector("[data-dual-document-fields]");
   const passportDocumentField = document.querySelector("[data-passport-document-field]");
+  const profitWithdrawModal = document.querySelector("[data-profit-withdraw-modal]");
+  const profitWithdrawOpenButton = document.querySelector("[data-profit-withdraw-open]");
+  const profitWithdrawCloseButtons = document.querySelectorAll("[data-profit-withdraw-close]");
+  const profitWithdrawForm = document.querySelector("[data-profit-withdraw-form]");
+  const profitWithdrawFields = document.querySelector("[data-profit-withdraw-fields]");
+  const profitWithdrawConfirm = document.querySelector("[data-profit-withdraw-confirm]");
+  const profitWithdrawConfirmText = document.querySelector("[data-profit-withdraw-confirm-text]");
+  const profitWithdrawConfirmSubmit = document.querySelector("[data-profit-withdraw-confirm-submit]");
+  const profitWithdrawConfirmCancel = document.querySelector("[data-profit-withdraw-confirm-cancel]");
+  const profitWithdrawMessage = document.querySelector("[data-profit-withdraw-message]");
+  const profitWithdrawPrimaryActions = document.querySelector("[data-profit-withdraw-primary-actions]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
   const maxVerificationImageSize = 5 * 1024 * 1024;
   const unverifiedWarningStorageKey = "novahash_unverified_warning_last_seen";
@@ -35,6 +46,7 @@
     passport: "صورة جواز السفر",
   };
   let unverifiedWarningTimer = null;
+  let pendingProfitWithdrawFormData = null;
 
   function formatFileSize(size) {
     if (!Number.isFinite(size)) return "";
@@ -182,6 +194,48 @@
       return;
     }
     scheduleUnverifiedWarning(unverifiedWarningIntervalMs - elapsedMs);
+  }
+
+  function setProfitWithdrawModalOpen(isOpen) {
+    if (!profitWithdrawModal) return;
+    profitWithdrawModal.classList.toggle("is-open", isOpen);
+    profitWithdrawModal.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("profit-withdraw-modal-open", isOpen);
+    if (!isOpen) {
+      resetProfitWithdrawForm();
+    }
+  }
+
+  function setProfitWithdrawMessage(message, isError) {
+    if (!profitWithdrawMessage) return;
+    profitWithdrawMessage.textContent = message || "";
+    profitWithdrawMessage.hidden = !message;
+    profitWithdrawMessage.classList.toggle("is-error", Boolean(isError));
+  }
+
+  function setProfitWithdrawLoading(isLoading) {
+    if (!profitWithdrawConfirmSubmit) return;
+    profitWithdrawConfirmSubmit.disabled = isLoading;
+    profitWithdrawConfirmSubmit.textContent = isLoading ? "جاري الإرسال..." : "تأكيد";
+  }
+
+  function resetProfitWithdrawForm() {
+    pendingProfitWithdrawFormData = null;
+    profitWithdrawForm?.reset();
+    if (profitWithdrawFields) profitWithdrawFields.hidden = false;
+    if (profitWithdrawConfirm) profitWithdrawConfirm.hidden = true;
+    if (profitWithdrawPrimaryActions) profitWithdrawPrimaryActions.hidden = false;
+    setProfitWithdrawLoading(false);
+    setProfitWithdrawMessage("", false);
+  }
+
+  function formatArabicCountdown(totalSeconds) {
+    const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds || 0)));
+    const days = Math.floor(safeSeconds / 86400);
+    const hours = Math.floor((safeSeconds % 86400) / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+    return `${days.toString().padStart(2, "0")} يوم ${hours.toString().padStart(2, "0")} ساعة ${minutes.toString().padStart(2, "0")} دقيقة ${seconds.toString().padStart(2, "0")} ثانية`;
   }
 
   function setVerificationModalOpen(modal, isOpen) {
@@ -941,6 +995,18 @@
     }, 250);
   });
 
+  document.querySelectorAll("[data-withdraw-countdown]").forEach(function (counter) {
+    let remaining = Math.max(0, Number(counter.dataset.remainingSeconds || 0));
+    function renderCountdown() {
+      counter.textContent = remaining > 0 ? formatArabicCountdown(remaining) : "دورة السحب مكتملة";
+      remaining = Math.max(0, remaining - 1);
+    }
+    renderCountdown();
+    if (remaining > 0) {
+      window.setInterval(renderCountdown, 1000);
+    }
+  });
+
   const copyToast = document.querySelector("[data-copy-toast]") || document.getElementById("copyFeedback");
   let copyToastTimer = null;
 
@@ -1218,5 +1284,95 @@
     if (planProofImage) planProofImage.src = planProofObjectUrl;
     if (planProofName) planProofName.textContent = file.name;
     if (planProofPreview) planProofPreview.hidden = false;
+  });
+
+  profitWithdrawOpenButton?.addEventListener("click", function () {
+    const canWithdraw = profitWithdrawOpenButton.dataset.canWithdraw === "true";
+    if (!canWithdraw) {
+      const message = profitWithdrawOpenButton.dataset.withdrawBlockMessage || "لا يمكن إرسال طلب السحب حالياً.";
+      const status = document.querySelector("[data-withdraw-action-status]");
+      if (status) status.textContent = message;
+      showCopyToast(message, true);
+      return;
+    }
+    setProfitWithdrawModalOpen(true);
+  });
+
+  profitWithdrawCloseButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      setProfitWithdrawModalOpen(false);
+    });
+  });
+
+  profitWithdrawModal?.addEventListener("click", function (event) {
+    if (event.target === profitWithdrawModal) {
+      setProfitWithdrawModalOpen(false);
+    }
+  });
+
+  profitWithdrawForm?.addEventListener("submit", function (event) {
+    event.preventDefault();
+    const formData = new FormData(profitWithdrawForm);
+    const amount = String(formData.get("amount") || "").trim();
+    const walletAddress = String(formData.get("wallet_address") || "").trim();
+    const network = String(formData.get("network") || "").trim();
+    if (!amount || Number(amount) <= 0 || !walletAddress || !network) {
+      setProfitWithdrawMessage("يرجى إدخال المبلغ وعنوان المحفظة والشبكة.", true);
+      return;
+    }
+
+    pendingProfitWithdrawFormData = formData;
+    if (profitWithdrawConfirmText) {
+      profitWithdrawConfirmText.textContent = `هل أنت متأكد من إرسال طلب سحب أرباح بقيمة ${amount} إلى المحفظة ${walletAddress} عبر شبكة ${network}؟`;
+    }
+    if (profitWithdrawFields) profitWithdrawFields.hidden = true;
+    if (profitWithdrawConfirm) profitWithdrawConfirm.hidden = false;
+    if (profitWithdrawPrimaryActions) profitWithdrawPrimaryActions.hidden = true;
+    setProfitWithdrawMessage("", false);
+  });
+
+  profitWithdrawConfirmCancel?.addEventListener("click", function () {
+    pendingProfitWithdrawFormData = null;
+    if (profitWithdrawFields) profitWithdrawFields.hidden = false;
+    if (profitWithdrawConfirm) profitWithdrawConfirm.hidden = true;
+    if (profitWithdrawPrimaryActions) profitWithdrawPrimaryActions.hidden = false;
+    setProfitWithdrawMessage("", false);
+  });
+
+  profitWithdrawConfirmSubmit?.addEventListener("click", function () {
+    if (!profitWithdrawForm || !pendingProfitWithdrawFormData) return;
+    setProfitWithdrawLoading(true);
+    fetch(profitWithdrawForm.action, {
+      method: "POST",
+      body: pendingProfitWithdrawFormData,
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "fetch",
+      },
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "تعذر إرسال طلب السحب.");
+          }
+          return data;
+        });
+      })
+      .then(function (data) {
+        setProfitWithdrawMessage(data.message || "تم إرسال طلب السحب بنجاح وسيتم مراجعته من الإدارة.", false);
+        if (profitWithdrawConfirm) profitWithdrawConfirm.hidden = true;
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 1500);
+      })
+      .catch(function (error) {
+        setProfitWithdrawMessage(error.message, true);
+        if (profitWithdrawConfirm) profitWithdrawConfirm.hidden = true;
+        if (profitWithdrawFields) profitWithdrawFields.hidden = false;
+        if (profitWithdrawPrimaryActions) profitWithdrawPrimaryActions.hidden = false;
+      })
+      .finally(function () {
+        setProfitWithdrawLoading(false);
+      });
   });
 })();

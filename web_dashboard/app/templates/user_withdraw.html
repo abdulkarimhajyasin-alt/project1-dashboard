@@ -2,24 +2,101 @@
 
 {% block title %}السحب - لوحة التعدين{% endblock %}
 {% block page_title %}السحب{% endblock %}
-{% block page_description %}تابع نسبة الوصول إلى الحد الأدنى للسحب ودورة السحب الحالية.{% endblock %}
+{% block page_description %}تابع دورة السحب الحالية واطلب سحب أرباحك بعد اكتمالها.{% endblock %}
 
 {% block content %}
 <section class="mining-withdraw-panel">
   <div>
     <p class="mining-kicker">سحب الأرباح</p>
-    <h2>نسبة الوصول إلى الحد الأدنى للسحب</h2>
-    <span>الحد الأدنى الحالي: ${{ '%.2f'|format(min_withdrawal) }}</span>
+    <h2>تقدم دورة السحب الحالية</h2>
+    <span>
+      {% if withdrawal_cycle_days %}
+      تبدأ الدورة من {{ format_datetime_for_timezone(withdrawal_cycle_start, user.timezone or 'UTC') }}
+      {% else %}
+      فعّل باقة تعدين لبدء دورة السحب.
+      {% endif %}
+    </span>
   </div>
-  <div class="withdraw-progress" data-withdraw="{{ withdraw_percent }}">
+  <div class="withdraw-progress" data-withdraw="{{ withdrawal_progress_percent }}">
     <span></span>
-    <strong>{{ withdraw_percent }}%</strong>
+    <strong>{{ withdrawal_progress_percent }}%</strong>
   </div>
 </section>
 
 <section class="mining-stats-grid">
   <article class="mining-stat-card"><span>الأرباح المتاحة</span><strong>${{ '%.4f'|format(user.profits or 0) }}</strong><small>Available Yield</small></article>
   <article class="mining-stat-card"><span>الباقة الحالية</span><strong>{{ user.plan if user.plan != 'none' else 'بدون باقة' }}</strong><small>Active Plan</small></article>
-  <article class="mining-stat-card"><span>دورة السحب</span><strong>{{ 'حسب الباقة' if user.plan != 'none' else 'غير متاح' }}</strong><small>Withdrawal Cycle</small></article>
+  <article class="mining-stat-card">
+    <span>دورة السحب</span>
+    <strong>{{ 'كل ' ~ withdrawal_cycle_days ~ ' يوم' if withdrawal_cycle_days else 'غير متاح' }}</strong>
+    <small data-withdraw-countdown data-remaining-seconds="{{ withdrawal_remaining_seconds }}">
+      {% if withdrawal_cycle_days %}
+      جاري حساب الوقت المتبقي...
+      {% else %}
+      Withdrawal Cycle
+      {% endif %}
+    </small>
+  </article>
 </section>
+
+<section class="withdraw-action-panel">
+  <div class="withdraw-action-status" data-withdraw-action-status>
+    {% if not user.verified %}
+    لا يمكنك سحب الأرباح قبل توثيق الحساب.
+    {% elif not withdrawal_cycle_days %}
+    لا توجد باقة فعالة تسمح بالسحب حالياً.
+    {% elif withdrawal_remaining_seconds > 0 %}
+    يمكنك طلب السحب بعد انتهاء دورة السحب الحالية.
+    {% elif (user.profits or 0) <= 0 %}
+    لا توجد أرباح متاحة للسحب.
+    {% else %}
+    دورة السحب مكتملة ويمكنك إرسال طلب السحب للإدارة.
+    {% endif %}
+  </div>
+  <button
+    class="withdraw-profit-button"
+    type="button"
+    data-profit-withdraw-open
+    data-can-withdraw="{{ 'true' if can_withdraw else 'false' }}"
+    data-withdraw-block-message="{% if not user.verified %}لا يمكنك سحب الأرباح قبل توثيق الحساب.{% elif not withdrawal_cycle_days %}لا توجد باقة فعالة تسمح بالسحب حالياً.{% elif withdrawal_remaining_seconds > 0 %}دورة السحب لم تنتهِ بعد.{% elif (user.profits or 0) <= 0 %}لا توجد أرباح متاحة للسحب.{% else %}{% endif %}"
+  >
+    سحب الأرباح
+  </button>
+</section>
+
+<div class="user-system-modal profit-withdraw-modal" data-profit-withdraw-modal role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="profitWithdrawTitle">
+  <section class="user-system-dialog profit-withdraw-dialog">
+    <button class="user-system-close" type="button" data-profit-withdraw-close aria-label="إغلاق">X</button>
+    <p class="mining-kicker">Withdraw Profits</p>
+    <h2 id="profitWithdrawTitle">طلب سحب الأرباح</h2>
+    <form class="profit-withdraw-form" method="post" action="/user/withdraw/profits" data-profit-withdraw-form>
+      <div class="profit-withdraw-fields" data-profit-withdraw-fields>
+        <label>
+          أدخل المبلغ
+          <input type="number" name="amount" min="0.01" step="0.01" placeholder="0.00" required>
+        </label>
+        <label>
+          أدخل عنوان محفظتك
+          <input type="text" name="wallet_address" autocomplete="off" required>
+        </label>
+        <label>
+          أدخل الشبكة
+          <input type="text" name="network" placeholder="TRC20" autocomplete="off" required>
+        </label>
+      </div>
+      <div class="profit-withdraw-confirm" data-profit-withdraw-confirm hidden>
+        <p data-profit-withdraw-confirm-text></p>
+        <div class="profit-withdraw-actions">
+          <button class="withdraw-confirm-button" type="button" data-profit-withdraw-confirm-submit>تأكيد</button>
+          <button class="withdraw-cancel-button" type="button" data-profit-withdraw-confirm-cancel>إلغاء</button>
+        </div>
+      </div>
+      <p class="profit-withdraw-message" data-profit-withdraw-message hidden></p>
+      <div class="profit-withdraw-actions" data-profit-withdraw-primary-actions>
+        <button class="withdraw-submit-button" type="submit">سحب</button>
+        <button class="withdraw-cancel-button" type="button" data-profit-withdraw-close>إلغاء</button>
+      </div>
+    </form>
+  </section>
+</div>
 {% endblock %}

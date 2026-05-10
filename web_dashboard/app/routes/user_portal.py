@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 import json
-from datetime import datetime
-from decimal import Decimal
+from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 from urllib.parse import urlencode, urlsplit
 
@@ -35,6 +35,11 @@ router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="app/templates")
 app_settings = get_settings()
 MIN_WITHDRAWAL = Decimal("10.00")
+WITHDRAWAL_CYCLE_DAYS = {
+    "silver": 20,
+    "gold": 15,
+    "vip": 10,
+}
 MAX_VERIFICATION_IMAGE_SIZE = 5 * 1024 * 1024
 MAX_DEPOSIT_PROOF_SIZE = 5 * 1024 * 1024
 DOCUMENT_TYPES = {
@@ -50,6 +55,68 @@ IMAGE_SIGNATURES = (
     b"RIFF",
     b"BM",
 )
+
+
+def get_withdrawal_cycle_days(plan: str | None) -> int:
+    return WITHDRAWAL_CYCLE_DAYS.get((plan or "").lower(), 0)
+
+
+def parse_withdrawal_amount(value: str | Decimal | int | float | None) -> Decimal:
+    try:
+        amount = Decimal(str(value or "").strip())
+    except (InvalidOperation, ValueError):
+        raise ValueError("يرجى إدخال مبلغ سحب صحيح.")
+
+    if amount <= 0:
+        raise ValueError("يجب أن يكون مبلغ السحب أكبر من 0.")
+    return amount.quantize(Decimal("0.01"))
+
+
+def get_withdrawal_cycle_start(user: User, db: Session) -> datetime:
+    last_approved_withdrawal = (
+        db.query(Record)
+        .filter(Record.user_id == user.id, Record.record_type == "profit_withdraw")
+        .order_by(Record.created_at.desc())
+        .first()
+    )
+    if last_approved_withdrawal:
+        return last_approved_withdrawal.created_at
+
+    last_approved_deposit = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "deposit",
+            PendingRequest.status == "approved",
+        )
+        .order_by(PendingRequest.updated_at.desc(), PendingRequest.created_at.desc())
+        .first()
+    )
+    if last_approved_deposit:
+        return last_approved_deposit.updated_at or last_approved_deposit.created_at
+
+    return user.created_at or datetime.utcnow()
+
+
+def build_withdrawal_cycle_status(user: User, db: Session) -> dict:
+    now = datetime.utcnow()
+    cycle_days = get_withdrawal_cycle_days(user.plan)
+    cycle_start = get_withdrawal_cycle_start(user, db)
+    cycle_end = cycle_start + timedelta(days=cycle_days) if cycle_days else cycle_start
+    total_seconds = max(1, cycle_days * 24 * 60 * 60)
+    elapsed_seconds = max(0, int((now - cycle_start).total_seconds()))
+    remaining = max(0, int((cycle_end - now).total_seconds())) if cycle_days else 0
+    progress = 100 if not cycle_days else min(100, int((elapsed_seconds / total_seconds) * 100))
+    available_profits = Decimal(user.profits or 0)
+
+    return {
+        "withdrawal_cycle_start": cycle_start,
+        "withdrawal_cycle_end": cycle_end,
+        "withdrawal_cycle_days": cycle_days,
+        "withdrawal_progress_percent": progress,
+        "withdrawal_remaining_seconds": remaining,
+        "can_withdraw": bool(user.verified and cycle_days and remaining == 0 and available_profits > 0),
+    }
 
 
 def make_referral_code() -> str:
@@ -75,6 +142,7 @@ def build_register_context(request: Request, ref: str = "", error: str | None = 
 
 def build_user_context(request: Request, user: User, active_user_page: str, db: Session) -> dict:
     withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
+    withdrawal_cycle = build_withdrawal_cycle_status(user, db)
     referrals_count = len(user.referrals)
     mining_status = build_mining_status(user, db)
     rank_info = get_referral_rank_info(referrals_count)
@@ -92,11 +160,13 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "platform_name": PLATFORM_NAME,
         "platform_tagline": PLATFORM_TAGLINE,
         "active_user_page": active_user_page,
+        "format_datetime_for_timezone": format_datetime_for_timezone,
         "progress_percent": mining_status["progress_percent"],
         "can_start": mining_status["can_start"],
         "mining_status": mining_status,
         "withdraw_percent": withdraw_percent,
         "min_withdrawal": MIN_WITHDRAWAL,
+        **withdrawal_cycle,
         "referral_url": referral_url,
         "invite_message": referral_share["invite_message"],
         "whatsapp_share_url": referral_share["whatsapp_share_url"],
@@ -596,6 +666,98 @@ def submit_deposit_request(
 def withdraw_page(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     settle_due_mining_cycle(user, db)
     return templates.TemplateResponse("user_withdraw.html", build_user_context(request, user, "withdraw", db))
+
+
+@router.post("/withdraw/profits")
+def submit_profit_withdrawal_request(
+    request: Request,
+    amount: str = Form(""),
+    wallet_address: str = Form(""),
+    network: str = Form(""),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    settle_due_mining_cycle(user, db)
+    clean_wallet = wallet_address.strip()
+    clean_network = network.strip()
+
+    try:
+        clean_amount = parse_withdrawal_amount(amount)
+        if not user.verified:
+            raise ValueError("لا يمكنك سحب الأرباح قبل توثيق الحساب.")
+        withdrawal_cycle = build_withdrawal_cycle_status(user, db)
+        if not withdrawal_cycle["withdrawal_cycle_days"]:
+            raise ValueError("لا توجد باقة فعالة تسمح بسحب الأرباح.")
+        if withdrawal_cycle["withdrawal_remaining_seconds"] > 0:
+            raise ValueError("دورة السحب لم تنتهِ بعد.")
+        if Decimal(user.profits or 0) <= 0:
+            raise ValueError("لا توجد أرباح متاحة للسحب.")
+        if clean_amount > Decimal(user.profits or 0):
+            raise ValueError("المبلغ المطلوب يتجاوز الأرباح المتاحة للسحب.")
+        if not clean_wallet:
+            raise ValueError("يرجى إدخال عنوان المحفظة.")
+        if not clean_network:
+            raise ValueError("يرجى إدخال الشبكة.")
+        existing_pending = (
+            db.query(PendingRequest)
+            .filter(
+                PendingRequest.user_id == user.id,
+                PendingRequest.request_type == "withdraw",
+                PendingRequest.status == "pending",
+            )
+            .first()
+        )
+        if existing_pending:
+            raise ValueError("لديك طلب سحب أرباح قيد المراجعة بالفعل.")
+    except ValueError as exc:
+        if wants_json_response(request):
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+        return RedirectResponse(url=f"/user/withdraw?{urlencode({'withdraw_error': str(exc)})}", status_code=303)
+
+    pending_request = PendingRequest(
+        user_id=user.id,
+        request_type="withdraw",
+        amount=clean_amount,
+        status="pending",
+        full_name=user.username or user.name,
+        timezone=user.timezone or "UTC",
+        details_json=json.dumps(
+            {
+                "نوع الطلب": "سحب أرباح",
+                "اسم المستخدم": get_user_display_name(user),
+                "المبلغ": f"{clean_amount:.2f} USDT",
+                "عنوان المحفظة": clean_wallet,
+                "الشبكة": clean_network,
+                "الباقة": plan_label(user.plan),
+            },
+            ensure_ascii=False,
+        ),
+    )
+    db.add(pending_request)
+    create_admin_notification(
+        db,
+        title="طلب سحب أرباح جديد",
+        message=f"طلب سحب أرباح جديد من {get_user_display_name(user)} بقيمة {clean_amount:.2f}.",
+        target_url="/notifications#pending-withdraw",
+        kind="withdraw",
+        data={
+            "User": get_user_display_name(user),
+            "Amount": f"{clean_amount:.2f} USDT",
+            "Wallet address": clean_wallet,
+            "Network": clean_network,
+            "Status": "pending",
+        },
+    )
+    db.commit()
+
+    if wants_json_response(request):
+        return JSONResponse(
+            {
+                "ok": True,
+                "message": "تم إرسال طلب السحب بنجاح وسيتم مراجعته من الإدارة.",
+            }
+        )
+    return RedirectResponse(url="/user/withdraw?withdraw_sent=1", status_code=303)
 
 
 @router.get("/referral", response_class=HTMLResponse)

@@ -361,6 +361,19 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                     notes=f"Approved by admin: {admin.username}",
                 )
             )
+            create_user_notification(
+                db,
+                user_id=pending_request.user.id,
+                title="تمت الموافقة على طلب سحب الأرباح",
+                message=f"تمت الموافقة على طلب سحب الأرباح بقيمة {amount:.2f} USDT.",
+                target_url="/user/withdraw",
+                kind="withdraw",
+                data={
+                    "Status": "approved",
+                    "Amount": f"{amount:.2f} USDT",
+                    "Reviewed by": admin.username,
+                },
+            )
         elif pending_request.request_type == "capital_withdraw" and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) - amount)
@@ -417,6 +430,26 @@ def reject_pending_request(
                 message=message,
                 target_url="/user/account",
                 kind="verification",
+                data={
+                    "Status": "rejected",
+                    "Reason": clean_reason or "No reason provided",
+                    "Reviewed by": admin.username,
+                },
+            )
+        elif pending_request.request_type == "withdraw" and pending_request.user:
+            clean_reason = reject_reason.strip()
+            if clean_reason:
+                update_pending_request_detail(pending_request, "Rejection reason", clean_reason)
+            message = "تم رفض طلب سحب الأرباح."
+            if clean_reason:
+                message = f"{message} السبب: {clean_reason}"
+            create_user_notification(
+                db,
+                user_id=pending_request.user.id,
+                title="تم رفض طلب سحب الأرباح",
+                message=message,
+                target_url="/user/withdraw",
+                kind="withdraw",
                 data={
                     "Status": "rejected",
                     "Reason": clean_reason or "No reason provided",
