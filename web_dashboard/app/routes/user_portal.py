@@ -624,8 +624,8 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
 @router.get("/plans", response_class=HTMLResponse)
 def plans_page(
     request: Request,
-    deposit_error: str = "",
-    deposit_sent: str = "",
+    plan_request_error: str = "",
+    plan_request_sent: str = "",
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -633,8 +633,8 @@ def plans_page(
     context = build_user_context(request, user, "plans", db)
     context.update(
         {
-            "deposit_error": deposit_error,
-            "deposit_sent": deposit_sent == "1",
+            "plan_request_error": plan_request_error,
+            "plan_request_sent": plan_request_sent == "1",
             "deposit_wallet_address": app_settings.usdt_wallet_address,
             "min_deposit_amount": MIN_DEPOSIT_AMOUNT,
         }
@@ -649,22 +649,25 @@ PLAN_DEPOSIT_AMOUNTS = {
 }
 
 
-@router.post("/plans/deposit")
-def submit_deposit_request(
+@router.post("/plans/subscribe")
+def submit_plan_subscription_request(
     selected_plan: str = Form(""),
+    amount: str = Form(""),
+    network: str = Form("TRC20"),
+    proof: UploadFile = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     selected_plan = selected_plan.strip().lower()
     if selected_plan not in {"silver", "gold", "vip"}:
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'deposit_error': 'الباقة غير صحيحة.'})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': 'الباقة غير صحيحة.'})}",
             status_code=303,
         )
 
     if user.plan and user.plan.lower() != "none":
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'deposit_error': 'لديك باقة مفعلة بالفعل.'})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': 'لديك باقة مفعلة بالفعل.'})}",
             status_code=303,
         )
 
@@ -672,30 +675,61 @@ def submit_deposit_request(
         db.query(PendingRequest)
         .filter(
             PendingRequest.user_id == user.id,
-            PendingRequest.request_type == "deposit",
+            PendingRequest.request_type.in_(["deposit", "plan_subscription"]),
             PendingRequest.status == "pending",
         )
         .first()
     )
     if existing_pending:
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'deposit_error': 'لديك طلب اشتراك قيد المراجعة من قبل الإدارة.'})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': 'لديك طلب اشتراك قيد المراجعة من قبل الإدارة.'})}",
             status_code=303,
         )
 
-    clean_amount = PLAN_DEPOSIT_AMOUNTS[selected_plan]
+    try:
+        user_amount = parse_deposit_amount(amount)
+    except ValueError as e:
+        return RedirectResponse(
+            url=f"/user/plans?{urlencode({'plan_request_error': str(e)})}",
+            status_code=303,
+        )
+
+    expected_amount = PLAN_DEPOSIT_AMOUNTS[selected_plan]
+    if user_amount != expected_amount:
+        return RedirectResponse(
+            url=f"/user/plans?{urlencode({'plan_request_error': f'المبلغ يجب أن يكون {expected_amount:.2f} USDT لهذه الباقة.'})}",
+            status_code=303,
+        )
+
+    if network.strip().upper() != "TRC20":
+        return RedirectResponse(
+            url=f"/user/plans?{urlencode({'plan_request_error': 'الشبكة يجب أن تكون TRC20 فقط.'})}",
+            status_code=303,
+        )
+
+    try:
+        proof_data = read_deposit_proof_image(proof)
+    except ValueError as e:
+        return RedirectResponse(
+            url=f"/user/plans?{urlencode({'plan_request_error': str(e)})}",
+            status_code=303,
+        )
+
     pending_request = PendingRequest(
         user_id=user.id,
-        request_type="deposit",
-        amount=clean_amount,
+        request_type="plan_subscription",
+        amount=user_amount,
         status="pending",
         full_name=user.username or user.name,
         timezone=user.timezone or "UTC",
+        front_image_data=proof_data["data"],
+        front_image_mime_type=proof_data["mime_type"],
+        front_image_size=proof_data["size"],
         details_json=json.dumps(
             {
                 "اسم المستخدم": get_user_display_name(user),
                 "الباقة المختارة": plan_label(selected_plan),
-                "المبلغ": f"{clean_amount:.2f} USDT",
+                "المبلغ": f"{user_amount:.2f} USDT",
                 "شبكة التحويل": "TRC20",
             },
             ensure_ascii=False,
@@ -706,19 +740,19 @@ def submit_deposit_request(
     create_admin_notification(
         db,
         title="طلب اشتراك جديد",
-        message=f"طلب اشتراك بقيمة {clean_amount:.2f} USDT من {get_user_display_name(user)}",
-        target_url="/notifications#pending-deposit",
-        kind="deposit",
+        message=f"طلب اشتراك بقيمة {user_amount:.2f} USDT من {get_user_display_name(user)}",
+        target_url="/notifications#pending-plan_subscription",
+        kind="plan_subscription",
         data={
             "User": get_user_display_name(user),
-            "Amount": f"{clean_amount:.2f} USDT",
+            "Amount": f"{user_amount:.2f} USDT",
             "Selected plan": plan_label(selected_plan),
             "Wallet address": app_settings.usdt_wallet_address,
             "Payment network": "TRC20",
         },
     )
     db.commit()
-    return RedirectResponse(url="/user/plans?deposit_sent=1", status_code=303)
+    return RedirectResponse(url="/user/plans?plan_request_sent=1", status_code=303)
 
 
 @router.get("/withdraw", response_class=HTMLResponse)

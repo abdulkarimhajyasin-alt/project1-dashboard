@@ -48,6 +48,12 @@ PENDING_REQUEST_SECTIONS = {
         "amount_label": "المبلغ",
         "empty": "لا توجد طلبات إيداع معلقة.",
     },
+    "plan_subscription": {
+        "title": "طلبات الاشتراك",
+        "badge": "اشتراك",
+        "amount_label": "المبلغ",
+        "empty": "لا توجد طلبات اشتراك معلقة.",
+    },
     "withdraw": {
         "title": "طلبات السحب",
         "badge": "سحب",
@@ -339,7 +345,7 @@ def admin_notifications_poll(
 def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
     if pending_request and pending_request.status == "pending":
-        if pending_request.request_type == "deposit" and pending_request.user and pending_request.amount:
+        if pending_request.request_type in {"deposit", "plan_subscription"} and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
             final_plan = determine_plan_for_amount(amount)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) + amount)

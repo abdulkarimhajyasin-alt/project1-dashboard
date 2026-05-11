@@ -5,11 +5,11 @@
 {% block page_description %}اختر باقة التعدين المناسبة لرأس المال ودورة السحب التي تريدها.{% endblock %}
 
 {% block content %}
-{% if deposit_sent %}
+{% if plan_request_sent %}
 <div class="plan-deposit-alert success">تم إرسال طلب الاشتراك بنجاح. سيظهر لدى الإدارة بحالة pending للمراجعة.</div>
 {% endif %}
-{% if deposit_error %}
-<div class="plan-deposit-alert error">{{ deposit_error }}</div>
+{% if plan_request_error %}
+<div class="plan-deposit-alert error">{{ plan_request_error }}</div>
 {% endif %}
 
 <section class="mining-plans">
@@ -18,32 +18,83 @@
     <h3>الباقة الفضية</h3>
     <strong>$10 - $100</strong>
     <p>دورة السحب كل 20 يوم</p>
-    <form method="post" action="/user/plans/deposit">
-      <input type="hidden" name="selected_plan" value="silver">
-      <button type="submit">طلب اشتراك</button>
-    </form>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-open="silver">طلب اشتراك</button>
   </article>
   <article class="featured">
     <span>Gold</span>
     <h3>الباقة الذهبية</h3>
     <strong>$101 - $300</strong>
     <p>دورة السحب كل 15 يوم</p>
-    <form method="post" action="/user/plans/deposit">
-      <input type="hidden" name="selected_plan" value="gold">
-      <button type="submit">طلب اشتراك</button>
-    </form>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-open="gold">طلب اشتراك</button>
   </article>
   <article>
     <span>VIP</span>
     <h3>باقة VIP</h3>
     <strong>$301+</strong>
     <p>دورة السحب كل 10 أيام</p>
-    <form method="post" action="/user/plans/deposit">
-      <input type="hidden" name="selected_plan" value="vip">
-      <button type="submit">طلب اشتراك</button>
-    </form>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-open="vip">طلب اشتراك</button>
   </article>
 </section>
+
+<div class="plan-deposit-modal" data-plan-subscribe-modal aria-hidden="true">
+  <section class="plan-deposit-dialog" role="dialog" aria-modal="true" aria-labelledby="planDepositTitle">
+    <button class="plan-deposit-close" type="button" data-plan-subscribe-close aria-label="إغلاق">X</button>
+    <p class="mining-kicker">Plan Subscription</p>
+    <h2 id="planDepositTitle">إرسال طلب الاشتراك</h2>
+    <form method="post" action="/user/plans/subscribe" enctype="multipart/form-data" class="plan-deposit-form" data-plan-subscribe-form>
+      <div class="plan-transfer-message">
+        <p>الرجاء تحويل المبلغ المطلوب إلى العنوان أدناه على شبكة <strong>TRC20</strong>، ثم رفع صورة إثبات التحويل.</p>
+      </div>
+
+      <div class="plan-wallet-box">
+        <label class="plan-wallet-label">عنوان المحفظة</label>
+        <div class="plan-wallet-copy">
+          <code data-plan-wallet-address>{{ deposit_wallet_address or 'TFuFGGiWGUFB4Z1sCSZiVfjkxhUWJmZ6nQ' }}</code>
+          <button type="button" class="plan-wallet-copy-btn" data-plan-wallet-copy aria-label="نسخ">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="plan-network-box">
+        <span>شبكة التحويل</span>
+        <label>
+          <input type="radio" name="network" value="TRC20" checked disabled>
+          TRC20
+        </label>
+        <input type="hidden" name="network" value="TRC20">
+      </div>
+
+      <div>
+        <label>
+          <span>المبلغ المطلوب (USDT)</span>
+          <input type="text" name="amount" placeholder="0.00" inputmode="decimal" data-plan-amount readonly>
+        </label>
+      </div>
+
+      <div>
+        <label>
+          <span class="plan-proof-instruction">صورة إثبات التحويل <span style="color: #ef4444;">*</span></span>
+          <input type="file" name="proof" accept="image/*" required data-plan-proof-input>
+        </label>
+        <div class="plan-proof-preview" hidden data-plan-proof-preview>
+          <img src="" alt="معاينة" data-plan-proof-image>
+          <div>
+            <span data-plan-proof-name></span>
+            <small data-plan-proof-size></small>
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" name="selected_plan" data-plan-selected-plan>
+
+      <button type="submit" class="plan-deposit-submit" data-plan-subscribe-submit>إرسال الطلب</button>
+    </form>
+  </section>
+</div>
 
 <script>
   window.setTimeout(function () {
