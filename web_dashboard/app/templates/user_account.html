@@ -93,12 +93,8 @@
         <input type="text" name="username" value="{{ user.username or '' }}" required autocomplete="username">
       </label>
       <label>
-        مكان الإقامة
-        <select name="residence_country" required>
-          {% for country in countries %}
-          <option value="{{ country }}" {{ "selected" if country == user.residence_country else "" }}>{{ country }}</option>
-          {% endfor %}
-        </select>
+        البريد الإلكتروني
+        <input type="email" name="email" value="{{ user.email or '' }}" required autocomplete="email">
       </label>
       <button class="mining-primary-button" type="submit">حفظ التغييرات</button>
     </form>

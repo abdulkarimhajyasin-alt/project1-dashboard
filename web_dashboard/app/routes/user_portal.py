@@ -1,5 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
 import json
+import re
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
@@ -970,14 +971,13 @@ def update_account_security(
 def update_account_profile(
     name: str = Form(...),
     username: str = Form(...),
-    residence_country: str = Form(...),
+    email: str = Form(...),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     clean_name = name.strip()
     clean_username = username.strip().lower()
-    clean_country = residence_country.strip()
-    timezone = get_country_timezone(clean_country)
+    clean_email = email.strip().lower()
 
     if not clean_name:
         return RedirectResponse(
@@ -991,6 +991,12 @@ def update_account_profile(
             status_code=303,
         )
 
+    if not clean_email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", clean_email):
+        return RedirectResponse(
+            url=f"/user/account?profile_error=يرجى إدخال بريد إلكتروني صالح.",
+            status_code=303,
+        )
+
     existing_user = db.query(User).filter(User.username == clean_username, User.id != user.id).first()
     if existing_user:
         return RedirectResponse(
@@ -998,18 +1004,16 @@ def update_account_profile(
             status_code=303,
         )
 
-    if not timezone:
+    existing_email = db.query(User).filter(User.email == clean_email, User.id != user.id).first()
+    if existing_email:
         return RedirectResponse(
-            url=f"/user/account?profile_error=يرجى اختيار مكان الإقامة من القائمة.",
+            url=f"/user/account?profile_error=هذا البريد الإلكتروني مستخدم بالفعل.",
             status_code=303,
         )
 
     user.name = clean_name
     user.username = clean_username
-    user.residence_country = clean_country
-    user.timezone = timezone
-    if user.email == f"{user.username}@novahash.local":
-        user.email = f"{clean_username}@novahash.local"
+    user.email = clean_email
 
     db.add(user)
     db.commit()
