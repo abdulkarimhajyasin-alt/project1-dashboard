@@ -18,7 +18,27 @@
 <section class="mining-placeholders">
   <article>
     <h2>إعدادات الأمان</h2>
-    <p>تحديث كلمة المرور وإعدادات الأمان ستكون متاحة في المرحلة التالية.</p>
+    {% if security_error %}
+    <div class="support-chat-error">{{ security_error }}</div>
+    {% endif %}
+    {% if security_success %}
+    <div class="verification-success-message">تم تحديث كلمة المرور بنجاح.</div>
+    {% endif %}
+    <form method="post" action="/user/account/security" class="security-settings-form">
+      <label>
+        كلمة المرور الحالية
+        <input type="password" name="current_password" required autocomplete="current-password">
+      </label>
+      <label>
+        كلمة مرور جديدة
+        <input type="password" name="new_password" required autocomplete="new-password">
+      </label>
+      <label>
+        تأكيد كلمة المرور الجديدة
+        <input type="password" name="confirm_password" required autocomplete="new-password">
+      </label>
+      <button class="mining-primary-button" type="submit">تحديث كلمة المرور</button>
+    </form>
   </article>
   <article>
     <h2>إعدادات الملف الشخصي</h2>

@@ -922,10 +922,45 @@ def account_page(
         {
             "verification_error": verification_error,
             "verification_sent": verification_sent == "1",
+            "security_error": request.query_params.get("security_error", ""),
+            "security_success": request.query_params.get("security_success", "") == "1",
             "document_types": DOCUMENT_TYPES,
         }
     )
     return templates.TemplateResponse("user_account.html", context)
+
+
+@router.post("/account/security")
+def update_account_security(
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not user.password_hash or not verify_password(current_password, user.password_hash):
+        return RedirectResponse(
+            url=f"/user/account?security_error=كلمة المرور الحالية غير صحيحة.",
+            status_code=303,
+        )
+
+    if new_password != confirm_password:
+        return RedirectResponse(
+            url=f"/user/account?security_error=كلمة المرور الجديدة وتأكيدها غير متطابقين.",
+            status_code=303,
+        )
+
+    if len(new_password) < 8:
+        return RedirectResponse(
+            url=f"/user/account?security_error=يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل.",
+            status_code=303,
+        )
+
+    user.password_hash = hash_password(new_password)
+    db.add(user)
+    db.commit()
+
+    return RedirectResponse(url="/user/account?security_success=1", status_code=303)
 
 
 @router.post("/account/verification")
