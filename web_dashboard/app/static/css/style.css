@@ -2335,6 +2335,88 @@ th {
   transform: translateY(-4px);
 }
 
+.security-card {
+  cursor: pointer;
+  display: grid;
+  min-height: 180px;
+  padding: 22px;
+  position: relative;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.security-card:hover,
+.security-card:focus-visible {
+  border-color: rgba(103, 232, 249, 0.42);
+  box-shadow: 0 24px 80px rgba(56, 189, 248, 0.16);
+  transform: translateY(-4px);
+  outline: none;
+}
+
+.security-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  gap: 18px;
+}
+
+.security-card h2,
+.security-card p {
+  margin: 0;
+}
+
+.security-card h2 {
+  font-size: 1.6rem;
+}
+
+.security-card p {
+  color: #a8b9cd;
+  line-height: 1.6;
+}
+
+.security-card-action {
+  color: #7dd3fc;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.user-security-dialog {
+  max-width: 560px;
+  padding: 34px;
+}
+
+.security-dialog-description {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  margin: 0 0 20px;
+}
+
+.security-modal-form {
+  display: grid;
+  gap: 18px;
+}
+
+.security-modal-form label {
+  display: grid;
+  gap: 10px;
+}
+
+.security-modal-form input {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  background: rgba(7, 14, 28, 0.82);
+  color: #ffffff;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.security-modal-form input:focus {
+  border-color: rgba(103, 232, 249, 0.5);
+  outline: none;
+}
+
 .mining-stat-card span,
 .mining-stat-card small {
   color: #8ea5bb;

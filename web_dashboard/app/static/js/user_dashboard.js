@@ -36,6 +36,9 @@
   const profitWithdrawConfirmCancel = document.querySelector("[data-profit-withdraw-confirm-cancel]");
   const profitWithdrawMessage = document.querySelector("[data-profit-withdraw-message]");
   const profitWithdrawPrimaryActions = document.querySelector("[data-profit-withdraw-primary-actions]");
+  const securityCard = document.querySelector("[data-user-security-card]");
+  const securityModal = document.querySelector("[data-user-security-modal]");
+  const securityModalCloseButtons = document.querySelectorAll("[data-user-security-modal-close]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
   const maxVerificationImageSize = 5 * 1024 * 1024;
   const unverifiedWarningStorageKey = "novahash_unverified_warning_last_seen";
@@ -206,11 +209,47 @@
     }
   }
 
+  function initializeSecurityModal() {
+    if (!securityModal) return;
+    securityCard?.addEventListener("click", function () {
+      setSecurityModalOpen(true);
+    });
+    securityCard?.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setSecurityModalOpen(true);
+      }
+    });
+
+    securityModalCloseButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        setSecurityModalOpen(false);
+      });
+    });
+
+    securityModal.addEventListener("click", function (event) {
+      if (event.target === securityModal) {
+        setSecurityModalOpen(false);
+      }
+    });
+
+    if (securityModal.hasAttribute("data-user-security-auto-open")) {
+      setSecurityModalOpen(true);
+    }
+  }
+
   function setProfitWithdrawMessage(message, isError) {
     if (!profitWithdrawMessage) return;
     profitWithdrawMessage.textContent = message || "";
     profitWithdrawMessage.hidden = !message;
     profitWithdrawMessage.classList.toggle("is-error", Boolean(isError));
+  }
+
+  function setSecurityModalOpen(isOpen) {
+    if (!securityModal) return;
+    securityModal.classList.toggle("is-open", isOpen);
+    securityModal.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("security-modal-open", isOpen);
   }
 
   function setProfitWithdrawLoading(isLoading) {
@@ -737,6 +776,7 @@
       setUnverifiedWarningOpen(false, true);
       setVerificationModalOpen(verificationModal, false);
       setVerificationModalOpen(verificationConfirmModal, false);
+      setSecurityModalOpen(false);
     }
   });
 
@@ -751,6 +791,7 @@
   setupSupportFilePreview();
   setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
   loadSupportMessages();
+  initializeSecurityModal();
 
   const ring = document.querySelector(".mining-ring");
   const progressCircle = document.querySelector(".ring-progress");
