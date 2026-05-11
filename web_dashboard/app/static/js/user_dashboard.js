@@ -1448,6 +1448,9 @@
 
   planOpenButtons.forEach(function (button) {
     button.addEventListener("click", function () {
+      if (button.disabled || button.getAttribute("aria-disabled") === "true") {
+        return;
+      }
       const plan = button.dataset.plan || "silver";
       console.debug("[plans-modal] trigger clicked", plan);
       if (selectedPlanInput) selectedPlanInput.value = plan;

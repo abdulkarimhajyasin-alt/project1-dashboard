@@ -2687,6 +2687,20 @@ th {
   transform: translateY(-2px);
 }
 
+.mining-plans button:disabled,
+.mining-plans button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.mining-plans button:disabled:hover,
+.mining-plans button[aria-disabled="true"]:hover {
+  background: rgba(18, 52, 82, 0.72);
+  border-color: rgba(103, 232, 249, 0.18);
+  transform: none;
+}
+
 .mining-plans,
 .mining-placeholders {
   display: grid;

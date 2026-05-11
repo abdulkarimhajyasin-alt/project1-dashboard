@@ -11,6 +11,9 @@
 {% if plan_request_error %}
 <div class="plan-deposit-alert error">{{ plan_request_error }}</div>
 {% endif %}
+{% if plan_subscription_block_message %}
+<div class="plan-deposit-alert error" data-plan-block-alert>{{ plan_subscription_block_message }}</div>
+{% endif %}
 
 <section class="mining-plans">
   <article>
@@ -18,24 +21,25 @@
     <h3>الباقة الفضية</h3>
     <strong>$10 - $100</strong>
     <p>دورة السحب كل 20 يوم</p>
-    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="silver" data-plan-label="الباقة الفضية">طلب اشتراك</button>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="silver" data-plan-label="الباقة الفضية" {% if not can_submit_plan_subscription %}disabled aria-disabled="true" title="{{ plan_subscription_block_message }}"{% endif %}>طلب اشتراك</button>
   </article>
   <article class="featured">
     <span>Gold</span>
     <h3>الباقة الذهبية</h3>
     <strong>$101 - $300</strong>
     <p>دورة السحب كل 15 يوم</p>
-    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="gold" data-plan-label="الباقة الذهبية">طلب اشتراك</button>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="gold" data-plan-label="الباقة الذهبية" {% if not can_submit_plan_subscription %}disabled aria-disabled="true" title="{{ plan_subscription_block_message }}"{% endif %}>طلب اشتراك</button>
   </article>
   <article>
     <span>VIP</span>
     <h3>باقة VIP</h3>
     <strong>$301+</strong>
     <p>دورة السحب كل 10 أيام</p>
-    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="vip" data-plan-label="باقة VIP">طلب اشتراك</button>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="vip" data-plan-label="باقة VIP" {% if not can_submit_plan_subscription %}disabled aria-disabled="true" title="{{ plan_subscription_block_message }}"{% endif %}>طلب اشتراك</button>
   </article>
 </section>
 
+{% if can_submit_plan_subscription %}
 <div class="plan-deposit-modal" data-plan-subscribe-modal aria-hidden="true">
   <section class="plan-deposit-dialog" role="dialog" aria-modal="true" aria-labelledby="planDepositTitle">
     <button class="plan-deposit-close" type="button" data-plan-subscribe-close aria-label="إغلاق">X</button>
@@ -95,10 +99,11 @@
     </form>
   </section>
 </div>
+{% endif %}
 
 <script>
   window.setTimeout(function () {
-    document.querySelectorAll('.plan-deposit-alert').forEach(function (alert) {
+    document.querySelectorAll('.plan-deposit-alert:not([data-plan-block-alert])').forEach(function (alert) {
       alert.style.transition = 'opacity 0.4s ease';
       alert.style.opacity = '0';
       window.setTimeout(function () {

@@ -36,6 +36,8 @@ router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="app/templates")
 app_settings = get_settings()
 MIN_WITHDRAWAL = Decimal("10.00")
+PENDING_PLAN_SUBSCRIPTION_MESSAGE = "لديك طلب اشتراك قيد المراجعة حالياً. يرجى انتظار موافقة الإدارة قبل إرسال طلب جديد."
+ACTIVE_PLAN_SUBSCRIPTION_MESSAGE = "لديك باقة مفعّلة حالياً. لا يمكنك إرسال طلب اشتراك جديد قبل انتهاء أو حذف الاشتراك الحالي."
 WITHDRAWAL_CYCLE_DAYS = {
     "silver": 20,
     "gold": 15,
@@ -630,6 +632,23 @@ def plans_page(
     db: Session = Depends(get_db),
 ):
     settle_due_mining_cycle(user, db)
+    has_active_plan = bool(user.plan and user.plan.lower() != "none")
+    has_pending_plan_subscription = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "plan_subscription",
+            PendingRequest.status == "pending",
+        )
+        .first()
+        is not None
+    )
+    plan_subscription_block_message = ""
+    if has_active_plan:
+        plan_subscription_block_message = ACTIVE_PLAN_SUBSCRIPTION_MESSAGE
+    elif has_pending_plan_subscription:
+        plan_subscription_block_message = PENDING_PLAN_SUBSCRIPTION_MESSAGE
+
     context = build_user_context(request, user, "plans", db)
     context.update(
         {
@@ -637,6 +656,10 @@ def plans_page(
             "plan_request_sent": plan_request_sent == "1",
             "deposit_wallet_address": app_settings.usdt_wallet_address,
             "min_deposit_amount": MIN_DEPOSIT_AMOUNT,
+            "has_active_plan": has_active_plan,
+            "has_pending_plan_subscription": has_pending_plan_subscription,
+            "can_submit_plan_subscription": not has_active_plan and not has_pending_plan_subscription,
+            "plan_subscription_block_message": plan_subscription_block_message,
         }
     )
     return templates.TemplateResponse("user_plans.html", context)
@@ -660,7 +683,7 @@ def submit_plan_subscription_request(
 
     if user.plan and user.plan.lower() != "none":
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'plan_request_error': 'لديك باقة مفعلة بالفعل.'})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': ACTIVE_PLAN_SUBSCRIPTION_MESSAGE})}",
             status_code=303,
         )
 
@@ -668,14 +691,14 @@ def submit_plan_subscription_request(
         db.query(PendingRequest)
         .filter(
             PendingRequest.user_id == user.id,
-            PendingRequest.request_type.in_(["deposit", "plan_subscription"]),
+            PendingRequest.request_type == "plan_subscription",
             PendingRequest.status == "pending",
         )
         .first()
     )
     if existing_pending:
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'plan_request_error': 'لديك طلب اشتراك قيد المراجعة من قبل الإدارة.'})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': PENDING_PLAN_SUBSCRIPTION_MESSAGE})}",
             status_code=303,
         )
 
