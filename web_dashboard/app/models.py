@@ -160,7 +160,7 @@ class PendingRequest(Base):
 
     @property
     def deposit_proof_images(self) -> list[dict[str, str]]:
-        if self.request_type == "deposit" and self.front_image_data:
+        if self.request_type in {"deposit", "plan_subscription"} and self.front_image_data:
             return [{"type": "proof", "label": "صورة إثبات التحويل"}]
         return []
 

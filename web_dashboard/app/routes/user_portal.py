@@ -724,6 +724,7 @@ def submit_plan_subscription_request(
                 "الباقة المختارة": plan_label(selected_plan),
                 "المبلغ": f"{user_amount:.2f} USDT",
                 "شبكة التحويل": "TRC20",
+                "عنوان المحفظة": app_settings.usdt_wallet_address,
             },
             ensure_ascii=False,
         ),

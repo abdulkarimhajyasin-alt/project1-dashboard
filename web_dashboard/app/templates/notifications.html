@@ -124,6 +124,10 @@
       </div>
       {% endif %}
       <div>
+        <dt>نوع الطلب</dt>
+        <dd>{{ request_type }}</dd>
+      </div>
+      <div>
         <dt>الحالة</dt>
         <dd>{{ item.status }}</dd>
       </div>
@@ -142,7 +146,7 @@
       {% endif %}
       {% endfor %}
     </dl>
-    {% if request_type == 'deposit' and item.deposit_proof_images %}
+    {% if request_type in ['deposit', 'plan_subscription'] and item.deposit_proof_images %}
     <div class="verification-proof-grid">
       {% for image in item.deposit_proof_images %}
       <button type="button" class="verification-proof-button" data-admin-image-src="/pending-requests/{{ item.id }}/image/{{ image.type }}" data-admin-image-title="{{ image.label }}">

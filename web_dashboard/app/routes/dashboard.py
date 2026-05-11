@@ -489,10 +489,10 @@ def pending_request_image(
     db: Session = Depends(get_db),
 ):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
-    if not pending_request or pending_request.request_type not in {"verification", "deposit"}:
+    if not pending_request or pending_request.request_type not in {"verification", "deposit", "plan_subscription"}:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    if pending_request.request_type == "deposit":
+    if pending_request.request_type in {"deposit", "plan_subscription"}:
         if image_type != "proof" or not pending_request.front_image_data:
             raise HTTPException(status_code=404, detail="Image not found")
         return Response(
