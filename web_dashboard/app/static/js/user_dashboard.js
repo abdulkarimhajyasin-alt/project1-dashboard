@@ -1375,18 +1375,18 @@
     verificationForm.requestSubmit();
   });
 
-  const planModal = document.querySelector("[data-plan-modal]");
-  const planOpenButtons = document.querySelectorAll("[data-plan-open]");
-  const planCloseButtons = document.querySelectorAll("[data-plan-close]");
-  const selectedPlanInput = document.querySelector("[data-selected-plan]");
-  const planTitle = document.querySelector("[data-plan-title]");
+  const planModal = document.querySelector("[data-plan-subscribe-modal]");
+  const planOpenButtons = document.querySelectorAll("[data-plan-subscribe-trigger]");
+  const planCloseButtons = document.querySelectorAll("[data-plan-subscribe-close]");
+  const selectedPlanInput = document.querySelector("[data-plan-selected-plan]");
+  const planTitle = document.querySelector("[data-plan-selected-label]");
   const planAmountInput = document.querySelector("[data-plan-amount]");
   const planTransferAmount = document.querySelector("[data-plan-transfer-amount]");
   const planSwitchNotice = document.querySelector("[data-plan-switch-notice]");
-  const walletAddressElement = document.querySelector("[data-wallet-address]");
-  const walletCopyButton = document.querySelector("[data-wallet-copy]");
+  const walletAddressElement = document.querySelector("[data-plan-wallet-address]");
+  const walletCopyButton = document.querySelector("[data-plan-wallet-copy]");
   const walletCopyStatus = document.querySelector("[data-wallet-copy-status]");
-  const planProofInput = document.querySelector("[data-plan-proof]");
+  const planProofInput = document.querySelector("[data-plan-proof-input]");
   const planProofPreview = document.querySelector("[data-plan-proof-preview]");
   const planProofImage = document.querySelector("[data-plan-proof-image]");
   const planProofName = document.querySelector("[data-plan-proof-name]");
@@ -1442,9 +1442,11 @@
 
   planOpenButtons.forEach(function (button) {
     button.addEventListener("click", function () {
-      const plan = button.dataset.planOpen || "silver";
+      const plan = button.dataset.plan || "silver";
+      console.debug("[plans-modal] trigger clicked", plan);
       if (selectedPlanInput) selectedPlanInput.value = plan;
       if (planTitle) planTitle.textContent = button.dataset.planLabel || planLabel(plan);
+      if (planAmountInput) planAmountInput.value = button.dataset.planAmount || "";
       updatePlanSwitchNotice();
       setPlanModalOpen(true);
     });
