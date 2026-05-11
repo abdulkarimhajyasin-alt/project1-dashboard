@@ -18,21 +18,21 @@
     <h3>الباقة الفضية</h3>
     <strong>$10 - $100</strong>
     <p>دورة السحب كل 20 يوم</p>
-    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="silver" data-plan-label="الباقة الفضية" data-plan-amount="10.00">طلب اشتراك</button>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="silver" data-plan-label="الباقة الفضية">طلب اشتراك</button>
   </article>
   <article class="featured">
     <span>Gold</span>
     <h3>الباقة الذهبية</h3>
     <strong>$101 - $300</strong>
     <p>دورة السحب كل 15 يوم</p>
-    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="gold" data-plan-label="الباقة الذهبية" data-plan-amount="101.00">طلب اشتراك</button>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="gold" data-plan-label="الباقة الذهبية">طلب اشتراك</button>
   </article>
   <article>
     <span>VIP</span>
     <h3>باقة VIP</h3>
     <strong>$301+</strong>
     <p>دورة السحب كل 10 أيام</p>
-    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="vip" data-plan-label="باقة VIP" data-plan-amount="301.00">طلب اشتراك</button>
+    <button type="button" class="plan-subscribe-button" data-plan-subscribe-trigger data-plan="vip" data-plan-label="باقة VIP">طلب اشتراك</button>
   </article>
 </section>
 
@@ -42,8 +42,15 @@
     <p class="mining-kicker">Plan Subscription</p>
     <h2 id="planDepositTitle">إرسال طلب الاشتراك <span data-plan-selected-label></span></h2>
     <form method="post" action="/user/plans/subscribe" enctype="multipart/form-data" class="plan-deposit-form" data-plan-subscribe-form>
+      <div>
+        <label>
+          <span>المبلغ المطلوب (USDT)</span>
+          <input type="text" name="amount" placeholder="0.00" inputmode="decimal" data-plan-amount>
+        </label>
+      </div>
+
       <div class="plan-transfer-message">
-        <p>الرجاء تحويل المبلغ المطلوب إلى العنوان أدناه على شبكة <strong>TRC20</strong>، ثم رفع صورة إثبات التحويل.</p>
+        <p data-plan-transfer-message>قم بإدخال المبلغ المطلوب ثم حوّله إلى عنوان المحفظة التالي</p>
       </div>
 
       <div class="plan-wallet-box">
@@ -66,13 +73,6 @@
           TRC20
         </label>
         <input type="hidden" name="network" value="TRC20">
-      </div>
-
-      <div>
-        <label>
-          <span>المبلغ المطلوب (USDT)</span>
-          <input type="text" name="amount" placeholder="0.00" inputmode="decimal" data-plan-amount readonly>
-        </label>
       </div>
 
       <div>

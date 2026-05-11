@@ -1380,8 +1380,8 @@
   const planCloseButtons = document.querySelectorAll("[data-plan-subscribe-close]");
   const selectedPlanInput = document.querySelector("[data-plan-selected-plan]");
   const planTitle = document.querySelector("[data-plan-selected-label]");
-  const planAmountInput = document.querySelector("[data-plan-amount]");
-  const planTransferAmount = document.querySelector("[data-plan-transfer-amount]");
+  const planAmountInput = document.querySelector("input[data-plan-amount]");
+  const planTransferMessage = document.querySelector("[data-plan-transfer-message]");
   const planSwitchNotice = document.querySelector("[data-plan-switch-notice]");
   const walletAddressElement = document.querySelector("[data-plan-wallet-address]");
   const walletCopyButton = document.querySelector("[data-plan-wallet-copy]");
@@ -1415,10 +1415,16 @@
   }
 
   function updatePlanSwitchNotice() {
-    if (!selectedPlanInput || !planAmountInput || !planSwitchNotice) return;
-    const amount = Number(planAmountInput.value);
-    if (planTransferAmount) {
-      planTransferAmount.textContent = Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : "0.00";
+    if (!planAmountInput) return;
+    const rawAmount = planAmountInput.value.trim();
+    const amount = Number(rawAmount);
+    if (planTransferMessage) {
+      planTransferMessage.textContent = rawAmount
+        ? `قم بتحويل ${rawAmount} USDT إلى عنوان المحفظة التالي`
+        : "قم بإدخال المبلغ المطلوب ثم حوّله إلى عنوان المحفظة التالي";
+    }
+    if (!selectedPlanInput || !planSwitchNotice) {
+      return;
     }
     const finalPlan = planForAmount(amount);
     if (finalPlan && finalPlan !== selectedPlanInput.value) {
@@ -1446,9 +1452,10 @@
       console.debug("[plans-modal] trigger clicked", plan);
       if (selectedPlanInput) selectedPlanInput.value = plan;
       if (planTitle) planTitle.textContent = button.dataset.planLabel || planLabel(plan);
-      if (planAmountInput) planAmountInput.value = button.dataset.planAmount || "";
+      if (planAmountInput) planAmountInput.value = "";
       updatePlanSwitchNotice();
       setPlanModalOpen(true);
+      planAmountInput?.focus();
     });
   });
 
