@@ -20,7 +20,7 @@ from app.mining import build_mining_status, cycle_earning_ratio, get_referral_ra
 from app.models import Notification, PendingRequest, Record, User
 from app.notifications import build_notifications_poll_payload, create_admin_notification, get_user_notifications_context
 from app.config import get_settings
-from app.plans import MIN_DEPOSIT_AMOUNT, determine_plan_for_amount, parse_deposit_amount, plan_label
+from app.plans import MIN_DEPOSIT_AMOUNT, determine_plan_for_amount, parse_deposit_amount, plan_label, validate_amount_for_plan
 from app.security import hash_password, verify_password
 from app.support_chat import (
     SupportAttachmentError,
@@ -642,13 +642,6 @@ def plans_page(
     return templates.TemplateResponse("user_plans.html", context)
 
 
-PLAN_DEPOSIT_AMOUNTS = {
-    "silver": Decimal("10.00"),
-    "gold": Decimal("101.00"),
-    "vip": Decimal("301.00"),
-}
-
-
 @router.post("/plans/subscribe")
 def submit_plan_subscription_request(
     selected_plan: str = Form(""),
@@ -687,17 +680,17 @@ def submit_plan_subscription_request(
         )
 
     try:
-        user_amount = parse_deposit_amount(amount)
-    except ValueError as e:
+        user_amount = Decimal(str(amount or "").strip()).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'plan_request_error': str(e)})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': 'يرجى إدخال مبلغ صحيح.'})}",
             status_code=303,
         )
 
-    expected_amount = PLAN_DEPOSIT_AMOUNTS[selected_plan]
-    if user_amount != expected_amount:
+    is_valid_amount, amount_error = validate_amount_for_plan(selected_plan, user_amount)
+    if not is_valid_amount:
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'plan_request_error': f'المبلغ يجب أن يكون {expected_amount:.2f} USDT لهذه الباقة.'})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': amount_error})}",
             status_code=303,
         )
 
