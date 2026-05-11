@@ -25,9 +25,14 @@
       <span class="security-card-action">افتح الآن</span>
     </div>
   </article>
-  <article>
-    <h2>إعدادات الملف الشخصي</h2>
-    <p>يمكنك متابعة بياناتك الحالية هنا، وسيتم إضافة التعديل المباشر لاحقاً.</p>
+  <article class="profile-card security-card" role="button" tabindex="0" data-user-profile-card>
+    <div class="security-card-content">
+      <div>
+        <h2>إعدادات الملف الشخصي</h2>
+        <p>حدّث بياناتك الأساسية مثل الاسم واسم المستخدم ومكان الإقامة من واجهة آمنة.</p>
+      </div>
+      <span class="security-card-action">تعديل الآن</span>
+    </div>
   </article>
   <article class="verification-entry-card">
     <h2>توثيق حسابي</h2>
@@ -62,6 +67,40 @@
         <input type="password" name="confirm_password" required autocomplete="new-password">
       </label>
       <button class="mining-primary-button" type="submit">تحديث كلمة المرور</button>
+    </form>
+  </section>
+</div>
+
+<div class="user-system-modal user-profile-modal" data-user-profile-modal aria-hidden="true" {% if profile_error or profile_success %}data-user-profile-auto-open{% endif %}>
+  <section class="user-system-dialog user-profile-dialog user-security-dialog" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <button class="user-system-close" type="button" data-user-profile-modal-close aria-label="إغلاق">X</button>
+    <p class="mining-kicker">الملف الشخصي</p>
+    <h2 id="profileModalTitle">تحديث بيانات الحساب</h2>
+    <p class="security-dialog-description">حدّث معلوماتك الأساسية لتعزيز تخصيص العرض وحماية حسابك.</p>
+    {% if profile_error %}
+    <div class="support-chat-error">{{ profile_error }}</div>
+    {% endif %}
+    {% if profile_success %}
+    <div class="verification-success-message">تم حفظ بيانات الملف الشخصي بنجاح.</div>
+    {% endif %}
+    <form method="post" action="/user/account/profile" class="security-modal-form">
+      <label>
+        الاسم الكامل
+        <input type="text" name="name" value="{{ user.name }}" required autocomplete="name">
+      </label>
+      <label>
+        اسم المستخدم
+        <input type="text" name="username" value="{{ user.username or '' }}" required autocomplete="username">
+      </label>
+      <label>
+        مكان الإقامة
+        <select name="residence_country" required>
+          {% for country in countries %}
+          <option value="{{ country }}" {{ "selected" if country == user.residence_country else "" }}>{{ country }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="mining-primary-button" type="submit">حفظ التغييرات</button>
     </form>
   </section>
 </div>

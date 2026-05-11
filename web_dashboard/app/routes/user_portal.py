@@ -924,7 +924,10 @@ def account_page(
             "verification_sent": verification_sent == "1",
             "security_error": request.query_params.get("security_error", ""),
             "security_success": request.query_params.get("security_success", "") == "1",
+            "profile_error": request.query_params.get("profile_error", ""),
+            "profile_success": request.query_params.get("profile_success", "") == "1",
             "document_types": DOCUMENT_TYPES,
+            "countries": COUNTRY_TIMEZONE_CHOICES,
         }
     )
     return templates.TemplateResponse("user_account.html", context)
@@ -961,6 +964,57 @@ def update_account_security(
     db.commit()
 
     return RedirectResponse(url="/user/account?security_success=1", status_code=303)
+
+
+@router.post("/account/profile")
+def update_account_profile(
+    name: str = Form(...),
+    username: str = Form(...),
+    residence_country: str = Form(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    clean_name = name.strip()
+    clean_username = username.strip().lower()
+    clean_country = residence_country.strip()
+    timezone = get_country_timezone(clean_country)
+
+    if not clean_name:
+        return RedirectResponse(
+            url=f"/user/account?profile_error=يرجى إدخال اسم صحيح.",
+            status_code=303,
+        )
+
+    if not clean_username or any(char.isspace() for char in clean_username):
+        return RedirectResponse(
+            url=f"/user/account?profile_error=يرجى إدخال اسم مستخدم صالح بدون مسافات.",
+            status_code=303,
+        )
+
+    existing_user = db.query(User).filter(User.username == clean_username, User.id != user.id).first()
+    if existing_user:
+        return RedirectResponse(
+            url=f"/user/account?profile_error=اسم المستخدم هذا مستخدم بالفعل.",
+            status_code=303,
+        )
+
+    if not timezone:
+        return RedirectResponse(
+            url=f"/user/account?profile_error=يرجى اختيار مكان الإقامة من القائمة.",
+            status_code=303,
+        )
+
+    user.name = clean_name
+    user.username = clean_username
+    user.residence_country = clean_country
+    user.timezone = timezone
+    if user.email == f"{user.username}@novahash.local":
+        user.email = f"{clean_username}@novahash.local"
+
+    db.add(user)
+    db.commit()
+
+    return RedirectResponse(url="/user/account?profile_success=1", status_code=303)
 
 
 @router.post("/account/verification")

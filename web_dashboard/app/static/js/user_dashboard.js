@@ -12,8 +12,6 @@
   const supportFileInputs = document.querySelectorAll("[data-support-file-input]");
   const userMessageModal = document.querySelector("[data-user-message-modal]");
   const unverifiedWarningModal = document.querySelector("[data-unverified-warning-modal]");
-  const unverifiedWarningCloseButtons = document.querySelectorAll("[data-unverified-warning-close]");
-  const unverifiedWarningVerifyButton = document.querySelector("[data-unverified-warning-verify]");
   const verificationModal = document.querySelector("[data-user-verification-modal]");
   const verificationOpenButton = document.querySelector("[data-user-verification-open]");
   const verificationCloseButtons = document.querySelectorAll("[data-user-verification-close]");
@@ -39,7 +37,12 @@
   const securityCard = document.querySelector("[data-user-security-card]");
   const securityModal = document.querySelector("[data-user-security-modal]");
   const securityModalCloseButtons = document.querySelectorAll("[data-user-security-modal-close]");
+  const profileCard = document.querySelector("[data-user-profile-card]");
+  const profileModal = document.querySelector("[data-user-profile-modal]");
+  const profileModalCloseButtons = document.querySelectorAll("[data-user-profile-modal-close]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
+  const unverifiedWarningCloseButtons = document.querySelectorAll("[data-unverified-warning-close]");
+  const unverifiedWarningVerifyButton = document.querySelector("[data-unverified-warning-verify]");
   const maxVerificationImageSize = 5 * 1024 * 1024;
   const unverifiedWarningStorageKey = "novahash_unverified_warning_last_seen";
   const unverifiedWarningIntervalMs = 60 * 60 * 1000;
@@ -238,6 +241,35 @@
     }
   }
 
+  function initializeProfileModal() {
+    if (!profileModal) return;
+    profileCard?.addEventListener("click", function () {
+      setProfileModalOpen(true);
+    });
+    profileCard?.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setProfileModalOpen(true);
+      }
+    });
+
+    profileModalCloseButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        setProfileModalOpen(false);
+      });
+    });
+
+    profileModal.addEventListener("click", function (event) {
+      if (event.target === profileModal) {
+        setProfileModalOpen(false);
+      }
+    });
+
+    if (profileModal.hasAttribute("data-user-profile-auto-open")) {
+      setProfileModalOpen(true);
+    }
+  }
+
   function setProfitWithdrawMessage(message, isError) {
     if (!profitWithdrawMessage) return;
     profitWithdrawMessage.textContent = message || "";
@@ -250,6 +282,13 @@
     securityModal.classList.toggle("is-open", isOpen);
     securityModal.setAttribute("aria-hidden", String(!isOpen));
     body.classList.toggle("security-modal-open", isOpen);
+  }
+
+  function setProfileModalOpen(isOpen) {
+    if (!profileModal) return;
+    profileModal.classList.toggle("is-open", isOpen);
+    profileModal.setAttribute("aria-hidden", String(!isOpen));
+    body.classList.toggle("profile-modal-open", isOpen);
   }
 
   function setProfitWithdrawLoading(isLoading) {
@@ -792,6 +831,7 @@
   setSupportChatOpen(supportChatModal ? supportChatModal.classList.contains("is-open") : false);
   loadSupportMessages();
   initializeSecurityModal();
+  initializeProfileModal();
 
   const ring = document.querySelector(".mining-ring");
   const progressCircle = document.querySelector(".ring-progress");
