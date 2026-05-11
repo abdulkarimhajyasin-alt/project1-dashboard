@@ -17,10 +17,13 @@
       {% endif %}
     </span>
   </div>
-  <div class="withdraw-progress" data-withdraw="{{ withdrawal_progress_percent }}">
+  <div class="withdraw-progress" data-withdraw="{{ withdraw_percent }}">
     <span></span>
-    <strong>{{ withdrawal_progress_percent }}%</strong>
+    <strong>{{ withdraw_percent }}%</strong>
   </div>
+  <p style="margin-top: 12px; color: #cbd5e1;">
+    أرباحك الحالية ${{ '%.4f'|format(user.profits or 0) }} من الحد الأدنى ${{ '%.2f'|format(min_withdrawal) }}
+  </p>
 </section>
 
 <section class="mining-stats-grid">
