@@ -664,6 +664,27 @@ def submit_deposit_request(
     if selected_plan not in {"silver", "gold", "vip"}:
         selected_plan = final_plan
 
+    if user.plan and user.plan.lower() != "none":
+        return RedirectResponse(
+            url=f"/user/plans?{urlencode({'deposit_error': 'لديك باقة مفعلة بالفعل.'})}",
+            status_code=303,
+        )
+
+    existing_pending = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "deposit",
+            PendingRequest.status == "pending",
+        )
+        .first()
+    )
+    if existing_pending:
+        return RedirectResponse(
+            url=f"/user/plans?{urlencode({'deposit_error': 'لديك طلب اشتراك قيد المراجعة من قبل الإدارة.'})}",
+            status_code=303,
+        )
+
     pending_request = PendingRequest(
         user_id=user.id,
         request_type="deposit",
