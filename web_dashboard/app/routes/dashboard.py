@@ -219,6 +219,36 @@ def update_pending_request_detail(pending_request: PendingRequest, key: str, val
     pending_request.details_json = json.dumps(details, ensure_ascii=False)
 
 
+def update_pending_request_details(pending_request: PendingRequest, values: dict[str, str]) -> None:
+    try:
+        details = json.loads(pending_request.details_json or "{}")
+    except json.JSONDecodeError:
+        details = {}
+    if not isinstance(details, dict):
+        details = {}
+    for key, value in values.items():
+        if value:
+            details[key] = value
+    pending_request.details_json = json.dumps(details, ensure_ascii=False)
+
+
+def clean_rejection_reason(reason: str) -> str:
+    return " ".join((reason or "").split())[:500]
+
+
+def request_prefers_json(request: Request) -> bool:
+    accept = request.headers.get("accept", "")
+    requested_with = request.headers.get("x-requested-with", "")
+    return "application/json" in accept.lower() or requested_with.lower() == "xmlhttprequest"
+
+
+def missing_rejection_reason_response(request: Request):
+    message = "Rejection reason is required."
+    if request_prefers_json(request):
+        return JSONResponse({"ok": False, "error": message}, status_code=400)
+    return RedirectResponse(url=f"/notifications?{urlencode({'reject_error': message})}", status_code=303)
+
+
 def get_support_notification_message(support_message: SupportMessage) -> str:
     if support_message.has_attachment_data:
         return "صورة" if support_message.is_image else "ملف"
@@ -436,23 +466,30 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
 @router.post("/pending-requests/{request_id}/reject")
 def reject_pending_request(
     request_id: int,
+    request: Request,
     reject_reason: str = Form(""),
     admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).with_for_update().first()
     if pending_request and pending_request.status == "pending":
+        clean_reason = clean_rejection_reason(reject_reason)
+        if not clean_reason:
+            return missing_rejection_reason_response(request)
+
         pending_request.status = "rejected"
+        update_pending_request_details(
+            pending_request,
+            {
+                "rejection_reason": clean_reason,
+                "rejected_at": datetime.utcnow().isoformat(),
+            },
+        )
         if pending_request.request_type == "verification" and pending_request.user:
             pending_request.user.verified = False
             pending_request.user.verification_status = "rejected"
             pending_request.user.verification_approved_at = None
-            clean_reason = reject_reason.strip()
-            if clean_reason:
-                update_pending_request_detail(pending_request, "Rejection reason", clean_reason)
-            message = "Your account verification request has been rejected."
-            if clean_reason:
-                message = f"{message} Reason: {clean_reason}"
+            message = f"Your account verification request has been rejected. Reason: {clean_reason}"
             create_user_notification(
                 db,
                 user_id=pending_request.user.id,
@@ -462,22 +499,18 @@ def reject_pending_request(
                 kind="verification",
                 data={
                     "Status": "rejected",
-                    "Reason": clean_reason or "No reason provided",
+                    "Reason": clean_reason,
                     "Reviewed by": admin.username,
                 },
             )
         elif pending_request.request_type in {"deposit", "plan_subscription"} and pending_request.user:
             amount = money(pending_request.amount or 0)
-            clean_reason = reject_reason.strip()
-            if clean_reason:
-                update_pending_request_detail(pending_request, "Rejection reason", clean_reason)
             message = (
                 "Your plan subscription request was rejected."
                 if pending_request.request_type == "plan_subscription"
                 else "Your deposit request was rejected."
             )
-            if clean_reason:
-                message = f"{message} Reason: {clean_reason}"
+            message = f"{message} Reason: {clean_reason}"
             create_user_notification(
                 db,
                 user_id=pending_request.user.id,
@@ -488,14 +521,11 @@ def reject_pending_request(
                 data={
                     "Status": "rejected",
                     "Amount": f"{amount:.2f} USDT" if amount else "-",
-                    "Reason": clean_reason or "No reason provided",
+                    "Reason": clean_reason,
                     "Reviewed by": admin.username,
                 },
             )
         elif pending_request.request_type == "withdraw" and pending_request.user:
-            clean_reason = reject_reason.strip()
-            if clean_reason:
-                update_pending_request_detail(pending_request, "Rejection reason", clean_reason)
             message = "تم رفض طلب سحب الأرباح."
             if clean_reason:
                 message = f"{message} السبب: {clean_reason}"
@@ -508,11 +538,13 @@ def reject_pending_request(
                 kind="withdraw",
                 data={
                     "Status": "rejected",
-                    "Reason": clean_reason or "No reason provided",
+                    "Reason": clean_reason,
                     "Reviewed by": admin.username,
                 },
             )
         db.commit()
+        if request_prefers_json(request):
+            return JSONResponse({"ok": True})
     return RedirectResponse(url="/notifications", status_code=303)
 
 

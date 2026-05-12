@@ -245,8 +245,7 @@
           <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/accept" data-sensitive-confirm="approve" data-sensitive-title="Approve verification request" data-sensitive-message="Approve this user's verification request?" data-sensitive-confirm-label="Approve verification">
             <button class="pending-accept" type="submit">Approve</button>
           </form>
-          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/reject" class="pending-reject-form" data-sensitive-confirm="reject" data-sensitive-title="Reject verification request" data-sensitive-message="Reject this user's verification request?" data-sensitive-confirm-label="Reject verification">
-            <textarea name="reject_reason" rows="3" placeholder="Optional reason shown to the user"></textarea>
+          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/reject" class="pending-reject-form" data-sensitive-confirm="reject" data-rejection-reason-required="true" data-sensitive-title="Reject verification request" data-sensitive-message="Reject this user's verification request?" data-sensitive-confirm-label="Reject verification">
             <button class="pending-reject" type="submit">Reject</button>
           </form>
         </div>

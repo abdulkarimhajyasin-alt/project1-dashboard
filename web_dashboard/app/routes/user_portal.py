@@ -267,6 +267,16 @@ def detail_value(details: dict[str, str], *keys: str) -> str:
     return ""
 
 
+def detail_datetime(details: dict[str, str], *keys: str) -> datetime | None:
+    value = detail_value(details, *keys)
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
 def serialize_user_request_history_item(request_item: PendingRequest) -> dict:
     details = pending_request_details(request_item)
     request_type = request_item.request_type
@@ -275,7 +285,8 @@ def serialize_user_request_history_item(request_item: PendingRequest) -> dict:
     plan_name = detail_value(details, "Activated plan", "Final plan", "الباقة النهائية", "الباقة المختارة", "الباقة")
     wallet = detail_value(details, "Wallet address", "عنوان المحفظة")
     network = detail_value(details, "Network", "Payment network", "شبكة التحويل", "الشبكة")
-    rejection_reason = detail_value(details, "Rejection reason", "Reason", "سبب الرفض")
+    rejection_reason = detail_value(details, "rejection_reason", "Rejection reason", "Reason", "سبب الرفض")
+    rejected_at = detail_datetime(details, "rejected_at", "Rejected at", "تاريخ الرفض")
 
     if request_type in {"plan_subscription", "deposit"}:
         primary = plan_name or REQUEST_TYPE_LABELS.get(request_type, request_type)
@@ -300,8 +311,13 @@ def serialize_user_request_history_item(request_item: PendingRequest) -> dict:
         visible_details.append({"label": "Network", "value": network})
     if request_type == "verification" and request_item.legal_full_name:
         visible_details.append({"label": "Full name", "value": request_item.legal_full_name})
-    if rejection_reason:
-        visible_details.append({"label": "Rejection reason", "value": rejection_reason})
+    if status == "rejected":
+        visible_details.append(
+            {
+                "label": "Rejection reason",
+                "value": rejection_reason or "No rejection reason was provided.",
+            }
+        )
 
     return {
         "id": request_item.id,
@@ -317,6 +333,7 @@ def serialize_user_request_history_item(request_item: PendingRequest) -> dict:
         "updated_at": request_item.updated_at,
         "details": visible_details,
         "rejection_reason": rejection_reason,
+        "rejected_at": rejected_at or (request_item.updated_at if status == "rejected" else None),
     }
 
 

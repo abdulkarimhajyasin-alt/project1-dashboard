@@ -23,6 +23,8 @@
   const sensitiveActionKicker = sensitiveActionModal?.querySelector("[data-sensitive-action-kicker]");
   const sensitiveActionTitle = sensitiveActionModal?.querySelector("[data-sensitive-action-title]");
   const sensitiveActionMessage = sensitiveActionModal?.querySelector("[data-sensitive-action-message]");
+  const sensitiveRejectionField = sensitiveActionModal?.querySelector("[data-sensitive-rejection-field]");
+  const sensitiveRejectionReason = sensitiveActionModal?.querySelector("[data-sensitive-rejection-reason]");
   const sensitiveActionConfirm = sensitiveActionModal?.querySelector("[data-sensitive-action-confirm]");
   const sensitiveActionError = sensitiveActionModal?.querySelector("[data-sensitive-action-error]");
   const sensitiveActionCancelButtons = Array.from(sensitiveActionModal?.querySelectorAll("[data-sensitive-action-cancel]") || []);
@@ -209,6 +211,13 @@
         sensitiveActionError.hidden = true;
         sensitiveActionError.textContent = "";
       }
+      if (sensitiveRejectionField) {
+        sensitiveRejectionField.hidden = true;
+      }
+      if (sensitiveRejectionReason) {
+        sensitiveRejectionReason.value = "";
+        sensitiveRejectionReason.required = false;
+      }
     }
   };
 
@@ -232,6 +241,7 @@
       submitter?.classList.contains("danger-button") ||
       submitter?.classList.contains("red");
     const variant = submitterIsDestructive ? "reject" : form.dataset.sensitiveConfirm || "approve";
+    const needsRejectionReason = variant === "reject" && form.dataset.rejectionReasonRequired === "true";
     const submitterLabel = getSubmitterLabel(submitter);
     pendingSensitiveForm = form;
     pendingSensitiveSubmitter = submitter || null;
@@ -250,6 +260,14 @@
     if (sensitiveActionConfirm) {
       sensitiveActionConfirm.disabled = false;
       sensitiveActionConfirm.textContent = form.dataset.sensitiveConfirmLabel || submitterLabel || "Confirm";
+    }
+    if (sensitiveRejectionField) {
+      sensitiveRejectionField.hidden = !needsRejectionReason;
+    }
+    if (sensitiveRejectionReason) {
+      const existingReason = form.querySelector("[name='reject_reason']")?.value || "";
+      sensitiveRejectionReason.value = needsRejectionReason ? existingReason : "";
+      sensitiveRejectionReason.required = needsRejectionReason;
     }
     if (sensitiveActionError) {
       sensitiveActionError.hidden = true;
@@ -271,6 +289,17 @@
       form.appendChild(hidden);
     }
     hidden.value = submitter.value || "";
+  };
+
+  const writeRejectionReasonToForm = (form, reason) => {
+    let input = form.querySelector("[name='reject_reason']");
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "reject_reason";
+      form.append(input);
+    }
+    input.value = reason;
   };
 
   const setActiveMiningState = (message, type = "loading") => {
@@ -483,6 +512,19 @@
         sensitiveActionError.textContent = "No action is waiting for confirmation.";
       }
       return;
+    }
+
+    if (pendingSensitiveForm.dataset.rejectionReasonRequired === "true") {
+      const reason = sensitiveRejectionReason?.value?.trim() || "";
+      if (!reason) {
+        if (sensitiveActionError) {
+          sensitiveActionError.hidden = false;
+          sensitiveActionError.textContent = "Please enter a rejection reason before confirming.";
+        }
+        sensitiveRejectionReason?.focus();
+        return;
+      }
+      writeRejectionReasonToForm(pendingSensitiveForm, reason);
     }
 
     sensitiveActionConfirm.disabled = true;

@@ -45,6 +45,12 @@
           <dt>Last Update</dt>
           <dd>{{ format_datetime_for_timezone(item.updated_at, user.timezone or 'UTC') }}</dd>
         </div>
+        {% if item.status == 'rejected' %}
+        <div>
+          <dt>Rejected Date</dt>
+          <dd>{{ format_datetime_for_timezone(item.rejected_at, user.timezone or 'UTC') }}</dd>
+        </div>
+        {% endif %}
         {% for detail in item.details %}
         <div class="{{ 'is-rejection-reason' if detail.label == 'Rejection reason' else '' }}">
           <dt>{{ detail.label }}</dt>

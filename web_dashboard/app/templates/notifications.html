@@ -3,6 +3,9 @@
 {% block page_title %}الطلبات المعلقة{% endblock %}
 
 {% block content %}
+{% if request.query_params.get("reject_error") %}
+<div class="admin-flash admin-flash-error" role="alert">{{ request.query_params.get("reject_error") }}</div>
+{% endif %}
 <section class="pending-requests-page">
   <article class="pending-summary-card">
     <div>
@@ -59,7 +62,7 @@
                   <form method="post" action="/pending-requests/{{ item.id }}/accept" data-sensitive-confirm="approve" data-sensitive-title="Approve pending request" data-sensitive-message="Approve this {{ request_type }} request for {{ item.user.username if item.user and item.user.username else item.user.name if item.user else 'this user' }}? This may update user financial or verification state." data-sensitive-confirm-label="Approve request">
                     <button class="pending-accept" type="submit">Approve</button>
                   </form>
-                  <form method="post" action="/pending-requests/{{ item.id }}/reject" data-sensitive-confirm="reject" data-sensitive-title="Reject pending request" data-sensitive-message="Reject this {{ request_type }} request for {{ item.user.username if item.user and item.user.username else item.user.name if item.user else 'this user' }}?" data-sensitive-confirm-label="Reject request">
+                  <form method="post" action="/pending-requests/{{ item.id }}/reject" data-sensitive-confirm="reject" data-rejection-reason-required="true" data-sensitive-title="Reject pending request" data-sensitive-message="Reject this {{ request_type }} request for {{ item.user.username if item.user and item.user.username else item.user.name if item.user else 'this user' }}?" data-sensitive-confirm-label="Reject request">
                     <button class="pending-reject" type="submit">Reject</button>
                   </form>
                 </div>
@@ -175,13 +178,7 @@
       <form method="post" action="/pending-requests/{{ item.id }}/accept" data-sensitive-confirm="approve" data-sensitive-title="Approve pending request" data-sensitive-message="Approve this {{ request_type }} request for {{ item.user.username if item.user and item.user.username else item.user.name if item.user else 'this user' }}? This may update user financial or verification state." data-sensitive-confirm-label="Approve request">
         <button class="pending-accept" type="submit">Approve</button>
       </form>
-      <form method="post" action="/pending-requests/{{ item.id }}/reject" class="pending-reject-form" data-sensitive-confirm="reject" data-sensitive-title="Reject pending request" data-sensitive-message="Reject this {{ request_type }} request for {{ item.user.username if item.user and item.user.username else item.user.name if item.user else 'this user' }}?" data-sensitive-confirm-label="Reject request">
-        {% if request_type == 'verification' %}
-        <label>
-          Rejection reason
-          <textarea name="reject_reason" rows="3" placeholder="Optional reason shown to the user"></textarea>
-        </label>
-        {% endif %}
+      <form method="post" action="/pending-requests/{{ item.id }}/reject" class="pending-reject-form" data-sensitive-confirm="reject" data-rejection-reason-required="true" data-sensitive-title="Reject pending request" data-sensitive-message="Reject this {{ request_type }} request for {{ item.user.username if item.user and item.user.username else item.user.name if item.user else 'this user' }}?" data-sensitive-confirm-label="Reject request">
         <button class="pending-reject" type="submit">Reject</button>
       </form>
     </div>
