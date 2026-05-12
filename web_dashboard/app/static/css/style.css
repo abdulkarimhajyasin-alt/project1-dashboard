@@ -3260,6 +3260,84 @@ body.plan-modal-open {
   gap: 14px;
 }
 
+.verification-entry-card--verified {
+  border-color: rgba(37, 246, 164, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(37, 246, 164, 0.08);
+}
+
+.verification-entry-card--pending {
+  border-color: rgba(250, 204, 21, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.08);
+}
+
+.verification-entry-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.verification-entry-heading h2 {
+  margin: 0 0 6px;
+}
+
+.verification-state-icon {
+  align-items: center;
+  background: rgba(37, 246, 164, 0.12);
+  border: 1px solid rgba(37, 246, 164, 0.32);
+  border-radius: 999px;
+  color: #25f6a4;
+  display: inline-flex;
+  flex: 0 0 42px;
+  font-size: 22px;
+  font-weight: 900;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.verification-entry-card--pending .verification-state-icon {
+  background: rgba(250, 204, 21, 0.12);
+  border-color: rgba(250, 204, 21, 0.32);
+  color: #fde68a;
+}
+
+.verification-entry-card--action_required .verification-state-icon {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.32);
+  color: #67e8f9;
+}
+
+.verification-state-badge,
+.verification-status-pill {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.verification-state-badge {
+  background: rgba(103, 232, 249, 0.1);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  color: #dff7ff;
+}
+
+.verification-status-pill {
+  justify-self: start;
+}
+
+.verification-status-pill.is-verified {
+  background: rgba(37, 246, 164, 0.12);
+  border: 1px solid rgba(37, 246, 164, 0.3);
+  color: #dfffea;
+}
+
+.verification-status-pill.is-pending {
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  color: #fde68a;
+}
+
 .verification-open-button {
   background: linear-gradient(135deg, #25f6a4, #38bdf8);
   border-radius: 8px;

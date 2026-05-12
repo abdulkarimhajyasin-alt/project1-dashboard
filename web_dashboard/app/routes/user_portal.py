@@ -995,11 +995,30 @@ def account_page(
     db: Session = Depends(get_db),
 ):
     settle_due_mining_cycle(user, db)
+    has_pending_verification = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "verification",
+            PendingRequest.status == "pending",
+        )
+        .first()
+        is not None
+    )
+    if user.verified:
+        verification_state = "verified"
+    elif has_pending_verification or user.verification_status == "pending":
+        verification_state = "pending"
+    else:
+        verification_state = "action_required"
     context = build_user_context(request, user, "account", db)
     context.update(
         {
             "verification_error": verification_error,
             "verification_sent": verification_sent == "1",
+            "verification_state": verification_state,
+            "can_submit_verification": verification_state == "action_required",
+            "has_pending_verification": verification_state == "pending",
             "security_error": request.query_params.get("security_error", ""),
             "security_success": request.query_params.get("security_success", "") == "1",
             "profile_error": request.query_params.get("profile_error", ""),
@@ -1108,6 +1127,27 @@ def submit_account_verification(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if user.verified:
+        return RedirectResponse(
+            url=f"/user/account?{urlencode({'verification_error': 'حسابك موثق بالفعل ولا يحتاج إلى طلب توثيق جديد.'})}",
+            status_code=303,
+        )
+
+    existing_pending = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == "verification",
+            PendingRequest.status == "pending",
+        )
+        .first()
+    )
+    if existing_pending or user.verification_status == "pending":
+        return RedirectResponse(
+            url=f"/user/account?{urlencode({'verification_error': 'طلب التوثيق قيد المراجعة بالفعل.'})}",
+            status_code=303,
+        )
+
     clean_name = legal_full_name.strip()
     clean_country = (user.residence_country or "").strip()
     timezone = user.timezone or get_country_timezone(clean_country) or "UTC"
