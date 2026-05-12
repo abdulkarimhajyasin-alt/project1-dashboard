@@ -846,7 +846,6 @@
   const endTimeText = document.querySelector("[data-end-time]");
   const missedTimeText = document.querySelector("[data-missed-time]");
   const earningRatioText = document.querySelector("[data-earning-ratio]");
-  const expectedEarnedIncomeText = document.querySelector("[data-expected-earned-income]");
   const liveBalanceText = document.querySelector("[data-live-balance]");
   const liveBalanceMode = document.querySelector("[data-live-balance-mode]");
   const miningCoreNote = document.querySelector("[data-mining-core-note]");
@@ -939,7 +938,7 @@
   function updateLiveBalanceFromStatus(status) {
     if (!liveBalanceText || !status) return;
     const currentTotalBalance = parseMoneyNumber(status.current_total_balance ?? liveBalanceText.dataset.currentTotalBalance);
-    const expectedEarnedIncome = parseMoneyNumber(status.expected_earned_income ?? liveBalanceText.dataset.expectedEarnedIncome);
+    const expectedEarnedIncome = parseMoneyNumber(status.expected_earned_income ?? liveBalanceText.dataset.liveExpectedEarnedIncome);
     const activeSeconds = Number(status.active_seconds || liveBalanceText.dataset.activeSeconds || 0);
     const actualStartAt = status.actual_start_time_iso
       ? Date.parse(status.actual_start_time_iso)
@@ -961,7 +960,7 @@
     };
 
     liveBalanceText.dataset.currentTotalBalance = String(currentTotalBalance);
-    liveBalanceText.dataset.expectedEarnedIncome = String(expectedEarnedIncome);
+    liveBalanceText.dataset.liveExpectedEarnedIncome = String(expectedEarnedIncome);
     liveBalanceText.dataset.activeSeconds = String(activeSeconds);
     liveBalanceText.dataset.actualStartAt = status.actual_start_time_iso || "";
     liveBalanceText.dataset.endAt = status.end_time_iso || "";
@@ -1002,7 +1001,7 @@
       completed: false,
       current_total_balance: liveBalanceText.dataset.currentTotalBalance || "0",
       end_time_iso: liveBalanceText.dataset.endAt || "",
-      expected_earned_income: liveBalanceText.dataset.expectedEarnedIncome || "0",
+      expected_earned_income: liveBalanceText.dataset.liveExpectedEarnedIncome || "0",
       status: liveBalanceText.dataset.cycleStatus || "ready",
     });
   }
@@ -1070,7 +1069,6 @@
       if (remainingText) remainingText.textContent = currentCanStart ? "00:00:00" : remainingLabel;
       if (missedTimeText) missedTimeText.textContent = currentCanStart ? "00:00:00" : missedLabel;
       if (earningRatioText) earningRatioText.textContent = formatRatioPercent(status.earning_ratio);
-      if (expectedEarnedIncomeText) expectedEarnedIncomeText.textContent = formatMoney(status.expected_earned_income, 4);
       updateLiveBalanceFromStatus(status);
       if (countdownText) {
         if (status.completed) {

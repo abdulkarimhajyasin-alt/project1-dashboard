@@ -85,18 +85,18 @@ def get_withdrawal_cycle_start(user: User, db: Session) -> datetime:
     if last_approved_withdrawal:
         return last_approved_withdrawal.created_at
 
-    last_approved_deposit = (
+    last_approved_activation = (
         db.query(PendingRequest)
         .filter(
             PendingRequest.user_id == user.id,
-            PendingRequest.request_type == "deposit",
+            PendingRequest.request_type.in_(("plan_subscription", "deposit")),
             PendingRequest.status == "approved",
         )
         .order_by(PendingRequest.updated_at.desc(), PendingRequest.created_at.desc())
         .first()
     )
-    if last_approved_deposit:
-        return last_approved_deposit.updated_at or last_approved_deposit.created_at
+    if last_approved_activation:
+        return last_approved_activation.updated_at or last_approved_activation.created_at
 
     return user.created_at or datetime.utcnow()
 

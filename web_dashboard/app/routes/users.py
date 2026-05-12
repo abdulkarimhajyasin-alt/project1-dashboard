@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.mining import build_mining_status, get_referral_rank_info
+from app.mining import build_mining_status, get_referral_rank_info, sync_active_cycle_with_user_capital
 from app.models import Admin, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
 from app.routes.user_portal import build_withdrawal_cycle_status
@@ -410,6 +410,7 @@ def adjust_user_balance(
         user.profits = max(Decimal("0"), Decimal(user.profits or 0) + delta)
     else:
         user.capital = max(Decimal("0"), Decimal(user.capital or 0) + delta)
+        sync_active_cycle_with_user_capital(user, db)
 
     db.add(
         Record(

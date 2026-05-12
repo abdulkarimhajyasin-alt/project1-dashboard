@@ -361,6 +361,24 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                 )
             )
             update_pending_request_detail(pending_request, "Activated plan", plan_label(final_plan))
+            create_user_notification(
+                db,
+                user_id=pending_request.user.id,
+                title="Plan subscription approved" if pending_request.request_type == "plan_subscription" else "Deposit approved",
+                message=(
+                    f"Your {plan_label(final_plan)} subscription was approved for {amount:.2f} USDT."
+                    if pending_request.request_type == "plan_subscription"
+                    else f"Your deposit was approved for {amount:.2f} USDT. Activated plan: {plan_label(final_plan)}."
+                ),
+                target_url="/user/plans",
+                kind=pending_request.request_type,
+                data={
+                    "Status": "approved",
+                    "Amount": f"{amount:.2f} USDT",
+                    "Activated plan": plan_label(final_plan),
+                    "Reviewed by": admin.username,
+                },
+            )
         elif pending_request.request_type == "withdraw" and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
             pending_request.user.profits = max(Decimal("0"), Decimal(pending_request.user.profits or 0) - amount)
@@ -444,6 +462,32 @@ def reject_pending_request(
                 kind="verification",
                 data={
                     "Status": "rejected",
+                    "Reason": clean_reason or "No reason provided",
+                    "Reviewed by": admin.username,
+                },
+            )
+        elif pending_request.request_type in {"deposit", "plan_subscription"} and pending_request.user:
+            amount = money(pending_request.amount or 0)
+            clean_reason = reject_reason.strip()
+            if clean_reason:
+                update_pending_request_detail(pending_request, "Rejection reason", clean_reason)
+            message = (
+                "Your plan subscription request was rejected."
+                if pending_request.request_type == "plan_subscription"
+                else "Your deposit request was rejected."
+            )
+            if clean_reason:
+                message = f"{message} Reason: {clean_reason}"
+            create_user_notification(
+                db,
+                user_id=pending_request.user.id,
+                title="Plan subscription rejected" if pending_request.request_type == "plan_subscription" else "Deposit rejected",
+                message=message,
+                target_url="/user/plans",
+                kind=pending_request.request_type,
+                data={
+                    "Status": "rejected",
+                    "Amount": f"{amount:.2f} USDT" if amount else "-",
                     "Reason": clean_reason or "No reason provided",
                     "Reviewed by": admin.username,
                 },

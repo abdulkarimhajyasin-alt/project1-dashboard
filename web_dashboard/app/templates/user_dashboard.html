@@ -72,7 +72,7 @@
       <strong
         data-live-balance
         data-current-total-balance="{{ '%.8f'|format(mining_status.current_total_balance or 0) }}"
-        data-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
+        data-live-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
         data-active-seconds="{{ mining_status.active_seconds or 0 }}"
         data-actual-start-at="{{ mining_status.actual_start_time_iso }}"
         data-end-at="{{ mining_status.end_time_iso }}"
