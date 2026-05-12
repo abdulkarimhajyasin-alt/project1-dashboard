@@ -11,6 +11,7 @@ from urllib.parse import quote, urlencode
 
 from app.database import get_db
 from app.dependencies import get_current_admin
+from app.financial_state import build_admin_financial_summary, sync_user_active_capital
 from app.mining import (
     calculate_cycle_income,
     cycle_actual_start,
@@ -21,9 +22,6 @@ from app.mining import (
     money,
     progress_percent,
     remaining_seconds,
-    settle_due_mining_cycles,
-    sync_active_cycle_with_user_capital,
-    utc_now,
 )
 from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import build_notifications_poll_payload, create_user_notification, get_admin_notifications_context
@@ -76,23 +74,11 @@ PENDING_REQUEST_SECTIONS = {
 
 
 def get_admin_metrics(db: Session) -> dict:
-    settle_due_mining_cycles(db)
-    now = utc_now()
+    financial_summary = build_admin_financial_summary(db)
     users_count = db.query(User).count()
     active_users_count = db.query(User).filter(User.status == "active").count()
     records_count = db.query(Record).count()
     total_amount = db.query(func.coalesce(func.sum(Record.amount), 0)).scalar()
-    total_capital = db.query(func.coalesce(func.sum(User.capital), 0)).scalar()
-    total_profits = db.query(func.coalesce(func.sum(User.profits), 0)).scalar()
-    active_cycles = (
-        db.query(MiningCycle)
-        .filter(
-            MiningCycle.status == "active",
-            MiningCycle.completed_at.is_(None),
-            func.coalesce(MiningCycle.cycle_window_end, MiningCycle.end_at) > now,
-        )
-        .count()
-    )
     latest_records = db.query(Record).order_by(Record.created_at.desc()).limit(5).all()
     top_referral_users = sorted(db.query(User).all(), key=lambda item: len(item.referrals), reverse=True)[:5]
     stored_settings = {item.key: item.value for item in db.query(AppSetting).all()}
@@ -103,9 +89,9 @@ def get_admin_metrics(db: Session) -> dict:
         "active_users_count": active_users_count,
         "records_count": records_count,
         "total_amount": total_amount,
-        "total_capital": total_capital,
-        "total_profits": total_profits,
-        "active_cycles": active_cycles,
+        "total_capital": financial_summary["total_capital"],
+        "total_profits": financial_summary["total_profits"],
+        "active_cycles": financial_summary["active_cycles"],
         "latest_records": latest_records,
         "top_referral_users": top_referral_users,
         "get_referral_rank_info": get_referral_rank_info,
@@ -150,7 +136,7 @@ def serialize_active_mining_cycle(cycle: MiningCycle) -> dict:
 
 
 def get_active_mining_cycles(db: Session) -> list[MiningCycle]:
-    now = utc_now()
+    now = datetime.utcnow()
     return (
         db.query(MiningCycle)
         .options(joinedload(MiningCycle.user))
@@ -380,7 +366,7 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
             final_plan = determine_plan_for_amount(amount)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) + amount)
             pending_request.user.plan = final_plan
-            sync_active_cycle_with_user_capital(pending_request.user, db)
+            sync_user_active_capital(pending_request.user, db)
             db.add(
                 Record(
                     user_id=pending_request.user.id,

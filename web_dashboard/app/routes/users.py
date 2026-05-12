@@ -11,10 +11,10 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
-from app.mining import build_mining_status, get_referral_rank_info, sync_active_cycle_with_user_capital
+from app.financial_state import build_admin_financial_summary, build_user_financial_state, sync_user_active_capital
+from app.mining import get_referral_rank_info
 from app.models import Admin, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
-from app.routes.user_portal import build_withdrawal_cycle_status
 from app.support_chat import get_or_create_support_thread
 
 
@@ -95,16 +95,15 @@ def get_active_miner_ids(db: Session) -> set[int]:
 
 def get_users_metrics(db: Session) -> dict:
     active_miner_ids = get_active_miner_ids(db)
-    total_capital = db.query(func.coalesce(func.sum(User.capital), 0)).scalar() or Decimal("0")
-    total_profits = db.query(func.coalesce(func.sum(User.profits), 0)).scalar() or Decimal("0")
+    financial_summary = build_admin_financial_summary(db, settle_due_cycles=False)
     return {
         "total_users": db.query(User).count(),
         "active_users": db.query(User).filter(User.status == "active").count(),
         "verified_users": db.query(User).filter(User.verified.is_(True)).count(),
         "active_miners": len(active_miner_ids),
-        "total_capital": total_capital,
-        "total_profits": total_profits,
-        "total_balances": Decimal(total_capital or 0) + Decimal(total_profits or 0),
+        "total_capital": financial_summary["total_capital"],
+        "total_profits": financial_summary["total_profits"],
+        "total_balances": financial_summary["total_balances"],
     }
 
 
@@ -296,8 +295,9 @@ def user_children(user_id: int, admin: Admin = Depends(get_current_admin), db: S
 def user_details(user_id: int, request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = get_admin_user(db, user_id)
     records = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
-    mining_status = build_mining_status(user, db)
-    withdrawal_cycle = build_withdrawal_cycle_status(user, db)
+    financial_state = build_user_financial_state(user, db)
+    mining_status = financial_state["mining_status"]
+    withdrawal_cycle = financial_state["withdrawal_cycle"]
     pending_verification_request = (
         db.query(PendingRequest)
         .filter(
@@ -317,15 +317,16 @@ def user_details(user_id: int, request: Request, admin: Admin = Depends(get_curr
             "user": user,
             "records": records,
             "transaction_count": len(records),
-            "total_balance": Decimal(user.capital or 0) + Decimal(user.profits or 0),
+            "total_balance": financial_state["total_balance"],
             "telegram_id": getattr(user, "telegram_id", None) or "-",
             "mining_status": mining_status,
+            "financial_state": financial_state,
             "next_profit_countdown": format_admin_duration(mining_status.get("remaining_seconds")),
             "withdrawal_cycle": withdrawal_cycle,
             "next_withdraw_countdown": format_admin_duration(withdrawal_cycle.get("withdrawal_remaining_seconds")),
             "pending_verification_request": pending_verification_request,
             "delete_protected": is_protected_admin_user(user, admin),
-            "referral_rank_info": get_referral_rank_info(len(user.referrals)),
+            "referral_rank_info": financial_state["referral_rank_info"],
             **get_admin_notifications_context(db),
         },
     )
@@ -410,7 +411,7 @@ def adjust_user_balance(
         user.profits = max(Decimal("0"), Decimal(user.profits or 0) + delta)
     else:
         user.capital = max(Decimal("0"), Decimal(user.capital or 0) + delta)
-        sync_active_cycle_with_user_capital(user, db)
+        sync_user_active_capital(user, db)
 
     db.add(
         Record(

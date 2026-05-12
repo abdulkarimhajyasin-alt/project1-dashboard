@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 from urllib.parse import urlencode, urlsplit
@@ -9,14 +9,15 @@ from urllib.parse import urlencode, urlsplit
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.branding import PLATFORM_NAME, PLATFORM_TAGLINE, build_referral_share_context
 from app.countries import COUNTRY_TIMEZONE_CHOICES, get_country_timezone
 from app.database import get_db
 from app.dependencies import get_current_user, is_maintenance_enabled
-from app.mining import build_mining_status, cycle_earning_ratio, get_referral_rank_info, settle_due_mining_cycle, start_mining_cycle
+from app.financial_state import MIN_WITHDRAWAL, build_user_financial_state, build_withdrawal_cycle_status
+from app.mining import build_mining_status, cycle_earning_ratio, settle_due_mining_cycle, start_mining_cycle
 from app.models import Notification, PendingRequest, Record, User
 from app.notifications import build_notifications_poll_payload, create_admin_notification, get_user_notifications_context
 from app.config import get_settings
@@ -35,14 +36,8 @@ from app.utils import format_datetime_for_timezone
 router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="app/templates")
 app_settings = get_settings()
-MIN_WITHDRAWAL = Decimal("10.00")
 PENDING_PLAN_SUBSCRIPTION_MESSAGE = "لديك طلب اشتراك قيد المراجعة حالياً. يرجى انتظار موافقة الإدارة قبل إرسال طلب جديد."
 ACTIVE_PLAN_SUBSCRIPTION_MESSAGE = "لديك باقة مفعّلة حالياً. لا يمكنك إرسال طلب اشتراك جديد قبل انتهاء أو حذف الاشتراك الحالي."
-WITHDRAWAL_CYCLE_DAYS = {
-    "silver": 20,
-    "gold": 15,
-    "vip": 10,
-}
 MAX_VERIFICATION_IMAGE_SIZE = 5 * 1024 * 1024
 MAX_DEPOSIT_PROOF_SIZE = 5 * 1024 * 1024
 DOCUMENT_TYPES = {
@@ -76,10 +71,6 @@ def ensure_no_pending_request(db: Session, user: User, request_type: str, messag
         raise ValueError(message)
 
 
-def get_withdrawal_cycle_days(plan: str | None) -> int:
-    return WITHDRAWAL_CYCLE_DAYS.get((plan or "").lower(), 0)
-
-
 def parse_withdrawal_amount(value: str | Decimal | int | float | None) -> Decimal:
     try:
         amount = Decimal(str(value or "").strip())
@@ -89,72 +80,6 @@ def parse_withdrawal_amount(value: str | Decimal | int | float | None) -> Decima
     if amount <= 0:
         raise ValueError("يجب أن يكون مبلغ السحب أكبر من 0.")
     return amount.quantize(Decimal("0.01"))
-
-
-def get_withdrawal_cycle_start(user: User, db: Session) -> datetime:
-    last_approved_withdrawal = (
-        db.query(Record)
-        .filter(Record.user_id == user.id, Record.record_type == "profit_withdraw")
-        .order_by(Record.created_at.desc())
-        .first()
-    )
-    if last_approved_withdrawal:
-        return last_approved_withdrawal.created_at
-
-    last_approved_activation = (
-        db.query(PendingRequest)
-        .filter(
-            PendingRequest.user_id == user.id,
-            PendingRequest.request_type.in_(("plan_subscription", "deposit")),
-            PendingRequest.status == "approved",
-        )
-        .order_by(PendingRequest.updated_at.desc(), PendingRequest.created_at.desc())
-        .first()
-    )
-    if last_approved_activation:
-        return last_approved_activation.updated_at or last_approved_activation.created_at
-
-    return user.created_at or datetime.utcnow()
-
-
-def build_withdrawal_cycle_status(user: User, db: Session) -> dict:
-    now = datetime.utcnow()
-    cycle_days = get_withdrawal_cycle_days(user.plan)
-    cycle_start = get_withdrawal_cycle_start(user, db)
-    cycle_end = cycle_start + timedelta(days=cycle_days) if cycle_days else cycle_start
-    total_seconds = max(1, cycle_days * 24 * 60 * 60)
-    elapsed_seconds = max(0, int((now - cycle_start).total_seconds()))
-    remaining = max(0, int((cycle_end - now).total_seconds())) if cycle_days else 0
-    progress = 100 if not cycle_days else min(100, int((elapsed_seconds / total_seconds) * 100))
-    available_profits = Decimal(user.profits or 0)
-    manual_unlock = bool(user.manual_withdrawal_unlock)
-    has_pending_withdrawal = (
-        db.query(PendingRequest)
-        .filter(
-            PendingRequest.user_id == user.id,
-            PendingRequest.request_type == "withdraw",
-            PendingRequest.status == "pending",
-        )
-        .first()
-        is not None
-    )
-
-    return {
-        "withdrawal_cycle_start": cycle_start,
-        "withdrawal_cycle_end": cycle_end,
-        "withdrawal_cycle_days": cycle_days,
-        "withdrawal_progress_percent": progress,
-        "withdrawal_remaining_seconds": remaining,
-        "manual_withdrawal_unlock": manual_unlock,
-        "has_pending_withdrawal": has_pending_withdrawal,
-        "can_withdraw": bool(
-            user.verified
-            and cycle_days
-            and (remaining == 0 or manual_unlock)
-            and available_profits > 0
-            and not has_pending_withdrawal
-        ),
-    }
 
 
 def make_referral_code() -> str:
@@ -180,14 +105,11 @@ def build_register_context(request: Request, ref: str = "", error: str | None = 
 
 def build_user_context(request: Request, user: User, active_user_page: str, db: Session) -> dict:
     withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
-    withdrawal_cycle = build_withdrawal_cycle_status(user, db)
-    referrals_count = len(user.referrals)
-    mining_status = build_mining_status(user, db)
-    rank_info = get_referral_rank_info(referrals_count)
-    total_referral_earnings = db.query(func.coalesce(func.sum(Record.amount), 0)).filter(
-        Record.user_id == user.id,
-        Record.record_type == "referral_reward",
-    ).scalar()
+    financial_state = build_user_financial_state(user, db)
+    withdrawal_cycle = financial_state["withdrawal_cycle"]
+    mining_status = financial_state["mining_status"]
+    referrals_count = financial_state["referrals_count"]
+    rank_info = financial_state["referral_rank_info"]
     referral_url = get_referral_url(request, user)
     referral_share = build_referral_share_context(referral_url)
     next_rank_target = referrals_count + int(rank_info.get("remaining") or 0)
@@ -202,6 +124,7 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "progress_percent": mining_status["progress_percent"],
         "can_start": mining_status["can_start"],
         "mining_status": mining_status,
+        "financial_state": financial_state,
         "withdraw_percent": withdraw_percent,
         "min_withdrawal": MIN_WITHDRAWAL,
         **withdrawal_cycle,
@@ -213,7 +136,7 @@ def build_user_context(request: Request, user: User, active_user_page: str, db: 
         "referrals_count": referrals_count,
         "referral_rank_info": rank_info,
         "rank_progress_percent": rank_progress_percent,
-        "total_referral_earnings": total_referral_earnings or Decimal("0"),
+        "total_referral_earnings": financial_state["total_referral_earnings"],
         "user_is_verified": bool(user.verified),
         "verification_status": user.verification_status,
         "maintenance_enabled": is_maintenance_enabled(db),
