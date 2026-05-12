@@ -712,6 +712,18 @@ def submit_plan_subscription_request(
 
     is_valid_amount, amount_error = validate_amount_for_plan(selected_plan, user_amount)
     if not is_valid_amount:
+        matching_plan = determine_plan_for_amount(user_amount)
+        plan_rank = {"silver": 1, "gold": 2, "vip": 3}
+        if plan_rank.get(matching_plan, 0) > plan_rank.get(selected_plan, 0):
+            matching_label = {
+                "silver": "الباقة الفضية",
+                "gold": "الباقة الذهبية",
+                "vip": "باقة VIP",
+            }.get(matching_plan, plan_label(matching_plan))
+            amount_error = (
+                f"المبلغ الذي أدخلته يقع ضمن حدود {matching_label}. "
+                f"يرجى اختيار {matching_label} قبل إرسال الطلب."
+            )
         return RedirectResponse(
             url=f"/user/plans?{urlencode({'plan_request_error': amount_error})}",
             status_code=303,

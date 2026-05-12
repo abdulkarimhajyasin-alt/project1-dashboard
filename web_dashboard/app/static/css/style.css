@@ -2943,6 +2943,37 @@ th {
   padding: 11px 12px;
 }
 
+.plan-upgrade-prompt {
+  background: linear-gradient(135deg, rgba(37, 246, 164, 0.12), rgba(56, 189, 248, 0.1));
+  border: 1px solid rgba(37, 246, 164, 0.28);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: #dff7ff;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.plan-upgrade-prompt[hidden] {
+  display: none;
+}
+
+.plan-upgrade-prompt p {
+  color: #dff7ff;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.plan-upgrade-prompt button {
+  background: linear-gradient(90deg, #25f6a4, #38bdf8);
+  border: 0;
+  border-radius: 8px;
+  color: #02111f;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
 .plan-proof-preview {
   align-items: center;
   background: rgba(15, 23, 42, 0.55);
@@ -4909,13 +4940,40 @@ body.admin-modal-open {
 
 @media (max-width: 680px) {
   .plan-deposit-modal {
-    align-items: center;
-    padding: 10px;
+    align-items: flex-start;
+    overflow-x: hidden;
+    padding: max(6px, env(safe-area-inset-top)) 10px 10px;
   }
 
   .plan-deposit-dialog {
-    max-height: calc(100vh - 20px);
-    padding: 22px 16px;
+    margin: 6px auto 0;
+    max-height: calc(100vh - 16px);
+    max-height: calc(100svh - 16px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 16px 12px 14px;
+    width: 100%;
+  }
+
+  .plan-deposit-dialog h2 {
+    font-size: 20px;
+    line-height: 1.35;
+    margin: 4px 42px 12px 0;
+  }
+
+  .plan-deposit-form {
+    gap: 10px;
+  }
+
+  .plan-transfer-message,
+  .plan-proof-instruction,
+  .plan-upgrade-prompt {
+    padding: 9px 10px;
+  }
+
+  .plan-wallet-box,
+  .plan-network-box {
+    padding: 10px;
   }
 
   .plan-wallet-copy,
@@ -4923,7 +4981,9 @@ body.admin-modal-open {
     grid-template-columns: 1fr;
   }
 
-  .plan-wallet-copy button {
+  .plan-wallet-copy button,
+  .plan-deposit-submit,
+  .plan-upgrade-prompt button {
     min-height: 44px;
   }
 }

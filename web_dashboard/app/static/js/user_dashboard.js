@@ -1378,11 +1378,15 @@
   const planModal = document.querySelector("[data-plan-subscribe-modal]");
   const planOpenButtons = document.querySelectorAll("[data-plan-subscribe-trigger]");
   const planCloseButtons = document.querySelectorAll("[data-plan-subscribe-close]");
+  const planForm = document.querySelector("[data-plan-subscribe-form]");
   const selectedPlanInput = document.querySelector("[data-plan-selected-plan]");
   const planTitle = document.querySelector("[data-plan-selected-label]");
   const planAmountInput = document.querySelector("input[data-plan-amount]");
   const planTransferMessage = document.querySelector("[data-plan-transfer-message]");
   const planSwitchNotice = document.querySelector("[data-plan-switch-notice]");
+  const planUpgradePrompt = document.querySelector("[data-plan-upgrade-prompt]");
+  const planUpgradeMessage = document.querySelector("[data-plan-upgrade-message]");
+  const planUpgradeConfirmButton = document.querySelector("[data-plan-upgrade-confirm]");
   const walletAddressElement = document.querySelector("[data-plan-wallet-address]");
   const walletCopyButton = document.querySelector("[data-plan-wallet-copy]");
   const walletCopyStatus = document.querySelector("[data-wallet-copy-status]");
@@ -1411,7 +1415,38 @@
   }
 
   function planLabel(plan) {
-    return { silver: "Silver", gold: "Gold", vip: "VIP" }[plan] || plan;
+    return { silver: "الباقة الفضية", gold: "الباقة الذهبية", vip: "باقة VIP" }[plan] || plan;
+  }
+
+  function planLevel(plan) {
+    return { silver: 1, gold: 2, vip: 3 }[plan] || 0;
+  }
+
+  function isHigherPlan(targetPlan, currentPlan) {
+    return planLevel(targetPlan) > planLevel(currentPlan);
+  }
+
+  function setSelectedPlan(plan, label) {
+    if (selectedPlanInput) selectedPlanInput.value = plan;
+    if (planTitle) planTitle.textContent = label || planLabel(plan);
+  }
+
+  function hidePlanUpgradePrompt() {
+    if (planUpgradePrompt) {
+      planUpgradePrompt.hidden = true;
+      delete planUpgradePrompt.dataset.targetPlan;
+    }
+    if (planUpgradeMessage) planUpgradeMessage.textContent = "";
+    if (planUpgradeConfirmButton) planUpgradeConfirmButton.textContent = "";
+  }
+
+  function showPlanUpgradePrompt(targetPlan) {
+    if (!planUpgradePrompt || !planUpgradeMessage || !planUpgradeConfirmButton) return;
+    const label = planLabel(targetPlan);
+    planUpgradePrompt.hidden = false;
+    planUpgradePrompt.dataset.targetPlan = targetPlan;
+    planUpgradeMessage.textContent = `المبلغ الذي أدخلته يقع ضمن حدود ${label}. هل تريد متابعة الاشتراك في ${label}؟`;
+    planUpgradeConfirmButton.textContent = `تأكيد المتابعة في ${label}`;
   }
 
   function updatePlanSwitchNotice() {
@@ -1423,17 +1458,23 @@
         ? `قم بتحويل ${rawAmount} USDT إلى عنوان المحفظة التالي`
         : "قم بإدخال المبلغ المطلوب ثم حوّله إلى عنوان المحفظة التالي";
     }
-    if (!selectedPlanInput || !planSwitchNotice) {
+    if (!selectedPlanInput) {
       return;
     }
     const finalPlan = planForAmount(amount);
-    if (finalPlan && finalPlan !== selectedPlanInput.value) {
-      planSwitchNotice.hidden = false;
-      planSwitchNotice.textContent = `سيتم تحويل الطلب إلى ${planLabel(finalPlan)} حسب المبلغ المدخل.`;
+    if (finalPlan && isHigherPlan(finalPlan, selectedPlanInput.value)) {
+      showPlanUpgradePrompt(finalPlan);
+      if (planSwitchNotice) {
+        planSwitchNotice.hidden = true;
+        planSwitchNotice.textContent = "";
+      }
       return;
     }
-    planSwitchNotice.hidden = true;
-    planSwitchNotice.textContent = "";
+    hidePlanUpgradePrompt();
+    if (planSwitchNotice) {
+      planSwitchNotice.hidden = true;
+      planSwitchNotice.textContent = "";
+    }
   }
 
   function clearPlanProofPreview() {
@@ -1453,8 +1494,7 @@
       }
       const plan = button.dataset.plan || "silver";
       console.debug("[plans-modal] trigger clicked", plan);
-      if (selectedPlanInput) selectedPlanInput.value = plan;
-      if (planTitle) planTitle.textContent = button.dataset.planLabel || planLabel(plan);
+      setSelectedPlan(plan, button.dataset.planLabel);
       if (planAmountInput) planAmountInput.value = "";
       updatePlanSwitchNotice();
       setPlanModalOpen(true);
@@ -1464,17 +1504,39 @@
 
   planCloseButtons.forEach(function (button) {
     button.addEventListener("click", function () {
+      hidePlanUpgradePrompt();
       setPlanModalOpen(false);
     });
   });
 
   planModal?.addEventListener("click", function (event) {
     if (event.target === planModal) {
+      hidePlanUpgradePrompt();
       setPlanModalOpen(false);
     }
   });
 
   planAmountInput?.addEventListener("input", updatePlanSwitchNotice);
+
+  planUpgradeConfirmButton?.addEventListener("click", function () {
+    const targetPlan = planUpgradePrompt?.dataset.targetPlan || "";
+    if (!targetPlan) return;
+    setSelectedPlan(targetPlan);
+    hidePlanUpgradePrompt();
+    updatePlanSwitchNotice();
+    planAmountInput?.focus();
+  });
+
+  planForm?.addEventListener("submit", function (event) {
+    if (!planAmountInput || !selectedPlanInput) return;
+    const amount = Number(planAmountInput.value.trim());
+    const finalPlan = planForAmount(amount);
+    if (finalPlan && isHigherPlan(finalPlan, selectedPlanInput.value)) {
+      event.preventDefault();
+      showPlanUpgradePrompt(finalPlan);
+      planUpgradeConfirmButton?.focus();
+    }
+  });
 
   walletCopyButton?.addEventListener("click", function () {
     const walletAddress = walletAddressElement?.textContent?.trim() || "";
