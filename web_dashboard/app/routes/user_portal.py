@@ -233,6 +233,93 @@ def decimal_display(value: Decimal | int | str | None, places: int = 4) -> str:
     return f"{Decimal(value or 0):.{places}f}"
 
 
+REQUEST_HISTORY_TYPES = ("plan_subscription", "withdraw", "verification", "deposit")
+REQUEST_TYPE_LABELS = {
+    "plan_subscription": "Plan Subscription",
+    "withdraw": "Withdrawal",
+    "verification": "Verification",
+    "deposit": "Legacy Deposit",
+}
+REQUEST_STATUS_LABELS = {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+}
+
+
+def pending_request_details(request_item: PendingRequest) -> dict[str, str]:
+    if not request_item.details_json:
+        return {}
+    try:
+        data = json.loads(request_item.details_json)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(key): str(value) for key, value in data.items()}
+
+
+def detail_value(details: dict[str, str], *keys: str) -> str:
+    for key in keys:
+        value = details.get(key)
+        if value:
+            return value
+    return ""
+
+
+def serialize_user_request_history_item(request_item: PendingRequest) -> dict:
+    details = pending_request_details(request_item)
+    request_type = request_item.request_type
+    status = (request_item.status or "pending").lower()
+    amount_label = f"{Decimal(request_item.amount or 0):.2f} USDT" if request_item.amount is not None else "-"
+    plan_name = detail_value(details, "Activated plan", "Final plan", "الباقة النهائية", "الباقة المختارة", "الباقة")
+    wallet = detail_value(details, "Wallet address", "عنوان المحفظة")
+    network = detail_value(details, "Network", "Payment network", "شبكة التحويل", "الشبكة")
+    rejection_reason = detail_value(details, "Rejection reason", "Reason", "سبب الرفض")
+
+    if request_type in {"plan_subscription", "deposit"}:
+        primary = plan_name or REQUEST_TYPE_LABELS.get(request_type, request_type)
+        secondary = amount_label
+    elif request_type == "withdraw":
+        primary = amount_label
+        secondary = network or "Withdrawal request"
+    elif request_type == "verification":
+        primary = request_item.document_type_label
+        secondary = request_item.legal_full_name or request_item.full_name or "Account verification"
+        amount_label = "-"
+    else:
+        primary = REQUEST_TYPE_LABELS.get(request_type, request_type.replace("_", " ").title())
+        secondary = amount_label
+
+    visible_details = []
+    if plan_name and request_type in {"plan_subscription", "deposit", "withdraw"}:
+        visible_details.append({"label": "Plan", "value": plan_name})
+    if wallet:
+        visible_details.append({"label": "Wallet", "value": wallet})
+    if network:
+        visible_details.append({"label": "Network", "value": network})
+    if request_type == "verification" and request_item.legal_full_name:
+        visible_details.append({"label": "Full name", "value": request_item.legal_full_name})
+    if rejection_reason:
+        visible_details.append({"label": "Rejection reason", "value": rejection_reason})
+
+    return {
+        "id": request_item.id,
+        "request_type": request_type,
+        "type_label": REQUEST_TYPE_LABELS.get(request_type, request_type.replace("_", " ").title()),
+        "status": status,
+        "status_label": REQUEST_STATUS_LABELS.get(status, status.title()),
+        "amount_label": amount_label,
+        "plan_name": plan_name or "-",
+        "primary": primary,
+        "secondary": secondary,
+        "submitted_at": request_item.created_at,
+        "updated_at": request_item.updated_at,
+        "details": visible_details,
+        "rejection_reason": rejection_reason,
+    }
+
+
 def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
     timezone_name = status["timezone"]
     if completed_cycle is not None:
@@ -988,6 +1075,23 @@ def history_page(request: Request, user: User = Depends(get_current_user), db: S
     settle_due_mining_cycle(user, db)
     context = build_user_context(request, user, "history", db)
     context["records"] = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
+    request_items = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type.in_(REQUEST_HISTORY_TYPES),
+        )
+        .order_by(PendingRequest.created_at.desc(), PendingRequest.id.desc())
+        .all()
+    )
+    request_history = [serialize_user_request_history_item(item) for item in request_items]
+    context["request_history"] = request_history
+    context["request_history_counts"] = {
+        "total": len(request_history),
+        "pending": sum(1 for item in request_history if item["status"] == "pending"),
+        "approved": sum(1 for item in request_history if item["status"] == "approved"),
+        "rejected": sum(1 for item in request_history if item["status"] == "rejected"),
+    }
     return templates.TemplateResponse("user_history.html", context)
 
 

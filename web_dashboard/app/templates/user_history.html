@@ -1,15 +1,75 @@
 {% extends "user_base.html" %}
 
-{% block title %}السجل - لوحة التعدين{% endblock %}
-{% block page_title %}السجل{% endblock %}
-{% block page_description %}تابع سجل العمليات والمكافآت المرتبطة بحسابك.{% endblock %}
+{% block title %}Request History - {{ platform_name|default("NovaHash") }}{% endblock %}
+{% block page_title %}سجل الطلبات{% endblock %}
+{% block page_description %}تابع طلبات الاشتراك والسحب والتوثيق من مكان واحد واضح ومنظم.{% endblock %}
 
 {% block content %}
-<section class="admin-panel-card">
+<section class="request-history-shell">
+  <article class="request-history-hero">
+    <div>
+      <p class="mining-kicker">Request Center</p>
+      <h2>تاريخ طلبات الحساب</h2>
+      <p>كل طلب ترسله إلى الإدارة يظهر هنا بحالته الحالية وتفاصيله الأساسية.</p>
+    </div>
+    <div class="request-history-summary" aria-label="Request status summary">
+      <span><strong>{{ request_history_counts.total }}</strong> Total</span>
+      <span class="is-pending"><strong>{{ request_history_counts.pending }}</strong> Pending</span>
+      <span class="is-approved"><strong>{{ request_history_counts.approved }}</strong> Approved</span>
+      <span class="is-rejected"><strong>{{ request_history_counts.rejected }}</strong> Rejected</span>
+    </div>
+  </article>
+
+  {% if request_history %}
+  <div class="request-history-grid">
+    {% for item in request_history %}
+    <article class="request-history-card status-{{ item.status }}">
+      <header>
+        <div>
+          <span class="request-type-pill">{{ item.type_label }}</span>
+          <h3>{{ item.primary }}</h3>
+          <p>{{ item.secondary }}</p>
+        </div>
+        <span class="request-status-badge is-{{ item.status }}">{{ item.status_label }}</span>
+      </header>
+      <dl class="request-history-details">
+        <div>
+          <dt>Amount</dt>
+          <dd>{{ item.amount_label }}</dd>
+        </div>
+        <div>
+          <dt>Submitted</dt>
+          <dd>{{ format_datetime_for_timezone(item.submitted_at, user.timezone or 'UTC') }}</dd>
+        </div>
+        <div>
+          <dt>Last Update</dt>
+          <dd>{{ format_datetime_for_timezone(item.updated_at, user.timezone or 'UTC') }}</dd>
+        </div>
+        {% for detail in item.details %}
+        <div class="{{ 'is-rejection-reason' if detail.label == 'Rejection reason' else '' }}">
+          <dt>{{ detail.label }}</dt>
+          <dd>{{ detail.value }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <article class="request-history-empty">
+    <p class="mining-kicker">No Activity Yet</p>
+    <h2>No requests submitted yet</h2>
+    <p>عند إرسال طلب اشتراك أو سحب أو توثيق، سيظهر هنا مع حالته وتفاصيله.</p>
+    <a href="/user/plans">استعراض الباقات</a>
+  </article>
+  {% endif %}
+</section>
+
+<section class="admin-panel-card user-ledger-panel">
   <div class="admin-panel-header">
     <div>
       <p class="mining-kicker">User Ledger</p>
-      <h2>سجل العمليات</h2>
+      <h2>سجل العمليات المالية</h2>
     </div>
   </div>
   <div class="admin-table-wrap">
@@ -32,7 +92,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="4" class="empty">لا توجد عمليات حتى الآن.</td>
+          <td colspan="4" class="empty">لا توجد عمليات مالية حتى الآن.</td>
         </tr>
         {% endfor %}
       </tbody>
