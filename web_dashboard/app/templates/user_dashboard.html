@@ -100,8 +100,6 @@
   </article>
 
   <section class="mining-stats-grid">
-    <article class="mining-stat-card"><span>Full Daily Income</span><strong data-counter="{{ '%.4f'|format(mining_status.full_daily_income or 0) }}">${{ '%.4f'|format(mining_status.full_daily_income or 0) }}</strong><small>Before Time Deduction</small></article>
-    <article class="mining-stat-card"><span>Expected Earned Income</span><strong data-expected-earned-income data-counter="{{ '%.4f'|format(mining_status.expected_earned_income or 0) }}">${{ '%.4f'|format(mining_status.expected_earned_income or 0) }}</strong><small>After Time Deduction</small></article>
     <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
     <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.8f'|format(total_referral_earnings or 0) }}">${{ '%.8f'|format(total_referral_earnings or 0) }}</strong><small>All Levels</small></article>
     <article class="mining-stat-card"><span>Referral Rank</span><strong>{{ referral_rank_info.rank }}</strong><small>{{ referral_rank_info.remaining }} to {{ referral_rank_info.next_rank or "Max Rank" }}</small></article>
