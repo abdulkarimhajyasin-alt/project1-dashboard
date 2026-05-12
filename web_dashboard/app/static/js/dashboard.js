@@ -1,5 +1,7 @@
 (() => {
   const body = document.body;
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+  const nativeFetch = window.fetch.bind(window);
   const drawer = document.querySelector("[data-admin-drawer]");
   const overlay = document.querySelector("[data-drawer-overlay]");
   const openButtons = Array.from(document.querySelectorAll("[data-drawer-open]"));
@@ -33,6 +35,19 @@
   let pendingDeleteUserForm = null;
   let pendingSensitiveForm = null;
   let pendingSensitiveSubmitter = null;
+
+  window.fetch = (input, init = {}) => {
+    const requestUrl = typeof input === "string" ? input : input?.url || "";
+    const url = new URL(requestUrl, window.location.href);
+    const method = String(init.method || input?.method || "GET").toUpperCase();
+    const isUnsafe = !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method);
+    if (csrfToken && isUnsafe && url.origin === window.location.origin) {
+      const headers = new Headers(init.headers || input?.headers || {});
+      headers.set("X-CSRF-Token", csrfToken);
+      init = { ...init, headers };
+    }
+    return nativeFetch(input, init);
+  };
 
   const formatFileSize = (size) => {
     if (!Number.isFinite(size)) {
@@ -873,6 +888,13 @@
       const form = document.createElement("form");
       form.method = "post";
       form.action = action;
+      if (csrfToken) {
+        const csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf_token";
+        csrfInput.value = csrfToken;
+        form.append(csrfInput);
+      }
 
       const button = document.createElement("button");
       button.className = buttonClass;

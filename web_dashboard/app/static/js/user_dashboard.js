@@ -1,5 +1,7 @@
 ﻿(function () {
   const body = document.body;
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+  const nativeFetch = window.fetch.bind(window);
   const userDrawer = document.querySelector("[data-user-drawer]");
   const userOverlay = document.querySelector("[data-user-drawer-overlay]");
   const userOpenButtons = document.querySelectorAll("[data-user-drawer-open]");
@@ -54,6 +56,20 @@
   let unverifiedWarningTimer = null;
   let pendingProfitWithdrawFormData = null;
   let verificationSubmitting = false;
+
+  window.fetch = function (input, init) {
+    const options = init || {};
+    const requestUrl = typeof input === "string" ? input : input?.url || "";
+    const url = new URL(requestUrl, window.location.href);
+    const method = String(options.method || input?.method || "GET").toUpperCase();
+    const isUnsafe = !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method);
+    if (csrfToken && isUnsafe && url.origin === window.location.origin) {
+      const headers = new Headers(options.headers || input?.headers || {});
+      headers.set("X-CSRF-Token", csrfToken);
+      return nativeFetch(input, { ...options, headers });
+    }
+    return nativeFetch(input, options);
+  };
 
   function formatFileSize(size) {
     if (!Number.isFinite(size)) return "";

@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
+from app.csrf import CSRFMiddleware
 from app.database import SessionLocal, init_db
 from app.dependencies import LoginRedirect
 from app.models import Admin
@@ -22,6 +23,7 @@ if not app_settings.is_configured:
     raise RuntimeError("DATABASE_URL and SECRET_KEY environment variables are required.")
 
 app = FastAPI(title=app_settings.app_name)
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=app_settings.secret_key,
