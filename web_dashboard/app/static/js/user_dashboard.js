@@ -1379,14 +1379,6 @@
   const planOpenButtons = document.querySelectorAll("[data-plan-subscribe-trigger]");
   const planCloseButtons = document.querySelectorAll("[data-plan-subscribe-close]");
   const planForm = document.querySelector("[data-plan-subscribe-form]");
-  const selectedPlanInput = document.querySelector("[data-plan-selected-plan]");
-  const planTitle = document.querySelector("[data-plan-selected-label]");
-  const planAmountInput = document.querySelector("input[data-plan-amount]");
-  const planTransferMessage = document.querySelector("[data-plan-transfer-message]");
-  const planSwitchNotice = document.querySelector("[data-plan-switch-notice]");
-  const planUpgradePrompt = document.querySelector("[data-plan-upgrade-prompt]");
-  const planUpgradeMessage = document.querySelector("[data-plan-upgrade-message]");
-  const planUpgradeConfirmButton = document.querySelector("[data-plan-upgrade-confirm]");
   const walletAddressElement = document.querySelector("[data-plan-wallet-address]");
   const walletCopyButton = document.querySelector("[data-plan-wallet-copy]");
   const walletCopyStatus = document.querySelector("[data-wallet-copy-status]");
@@ -1398,6 +1390,10 @@
 
   if (planModal && planModal.parentElement !== body) {
     body.appendChild(planModal);
+  }
+
+  function getPlanElement(selector) {
+    return planModal?.querySelector(selector) || document.querySelector(selector);
   }
 
   function setPlanModalOpen(isOpen) {
@@ -1427,53 +1423,65 @@
   }
 
   function setSelectedPlan(plan, label) {
-    if (selectedPlanInput) selectedPlanInput.value = plan;
-    if (planTitle) planTitle.textContent = label || planLabel(plan);
+    const currentSelectedPlanInput = getPlanElement("[data-plan-selected-plan]");
+    const currentPlanTitle = getPlanElement("[data-plan-selected-label]");
+    if (currentSelectedPlanInput) currentSelectedPlanInput.value = plan;
+    if (currentPlanTitle) currentPlanTitle.textContent = label || planLabel(plan);
   }
 
   function hidePlanUpgradePrompt() {
-    if (planUpgradePrompt) {
-      planUpgradePrompt.hidden = true;
-      delete planUpgradePrompt.dataset.targetPlan;
+    const currentUpgradePrompt = getPlanElement("[data-plan-upgrade-prompt]");
+    const currentUpgradeMessage = getPlanElement("[data-plan-upgrade-message]");
+    const currentUpgradeConfirmButton = getPlanElement("[data-plan-upgrade-confirm]");
+    if (currentUpgradePrompt) {
+      currentUpgradePrompt.hidden = true;
+      delete currentUpgradePrompt.dataset.targetPlan;
     }
-    if (planUpgradeMessage) planUpgradeMessage.textContent = "";
-    if (planUpgradeConfirmButton) planUpgradeConfirmButton.textContent = "";
+    if (currentUpgradeMessage) currentUpgradeMessage.textContent = "";
+    if (currentUpgradeConfirmButton) currentUpgradeConfirmButton.textContent = "";
   }
 
   function showPlanUpgradePrompt(targetPlan) {
-    if (!planUpgradePrompt || !planUpgradeMessage || !planUpgradeConfirmButton) return;
+    const currentUpgradePrompt = getPlanElement("[data-plan-upgrade-prompt]");
+    const currentUpgradeMessage = getPlanElement("[data-plan-upgrade-message]");
+    const currentUpgradeConfirmButton = getPlanElement("[data-plan-upgrade-confirm]");
+    if (!currentUpgradePrompt || !currentUpgradeMessage || !currentUpgradeConfirmButton) return;
     const label = planLabel(targetPlan);
-    planUpgradePrompt.hidden = false;
-    planUpgradePrompt.dataset.targetPlan = targetPlan;
-    planUpgradeMessage.textContent = `المبلغ الذي أدخلته يقع ضمن حدود ${label}. هل تريد متابعة الاشتراك في ${label}؟`;
-    planUpgradeConfirmButton.textContent = `تأكيد المتابعة في ${label}`;
+    currentUpgradePrompt.hidden = false;
+    currentUpgradePrompt.dataset.targetPlan = targetPlan;
+    currentUpgradeMessage.textContent = `المبلغ الذي أدخلته يقع ضمن حدود ${label}. هل تريد متابعة الاشتراك في ${label}؟`;
+    currentUpgradeConfirmButton.textContent = `تأكيد المتابعة في ${label}`;
   }
 
   function updatePlanSwitchNotice() {
-    if (!planAmountInput) return;
-    const rawAmount = planAmountInput.value.trim();
+    const currentAmountInput = getPlanElement("input[data-plan-amount]");
+    const currentSelectedPlanInput = getPlanElement("[data-plan-selected-plan]");
+    const currentTransferMessage = getPlanElement("[data-plan-transfer-message]");
+    const currentSwitchNotice = getPlanElement("[data-plan-switch-notice]");
+    if (!currentAmountInput) return;
+    const rawAmount = currentAmountInput.value.trim();
     const amount = Number(rawAmount);
-    if (planTransferMessage) {
-      planTransferMessage.textContent = rawAmount
+    if (currentTransferMessage) {
+      currentTransferMessage.textContent = rawAmount
         ? `قم بتحويل ${rawAmount} USDT إلى عنوان المحفظة التالي`
         : "قم بإدخال المبلغ المطلوب ثم حوّله إلى عنوان المحفظة التالي";
     }
-    if (!selectedPlanInput) {
+    if (!currentSelectedPlanInput) {
       return;
     }
     const finalPlan = planForAmount(amount);
-    if (finalPlan && isHigherPlan(finalPlan, selectedPlanInput.value)) {
+    if (finalPlan && isHigherPlan(finalPlan, currentSelectedPlanInput.value)) {
       showPlanUpgradePrompt(finalPlan);
-      if (planSwitchNotice) {
-        planSwitchNotice.hidden = true;
-        planSwitchNotice.textContent = "";
+      if (currentSwitchNotice) {
+        currentSwitchNotice.hidden = true;
+        currentSwitchNotice.textContent = "";
       }
       return;
     }
     hidePlanUpgradePrompt();
-    if (planSwitchNotice) {
-      planSwitchNotice.hidden = true;
-      planSwitchNotice.textContent = "";
+    if (currentSwitchNotice) {
+      currentSwitchNotice.hidden = true;
+      currentSwitchNotice.textContent = "";
     }
   }
 
@@ -1495,10 +1503,11 @@
       const plan = button.dataset.plan || "silver";
       console.debug("[plans-modal] trigger clicked", plan);
       setSelectedPlan(plan, button.dataset.planLabel);
-      if (planAmountInput) planAmountInput.value = "";
+      const currentAmountInput = getPlanElement("input[data-plan-amount]");
+      if (currentAmountInput) currentAmountInput.value = "";
       updatePlanSwitchNotice();
       setPlanModalOpen(true);
-      planAmountInput?.focus();
+      currentAmountInput?.focus();
     });
   });
 
@@ -1510,31 +1519,49 @@
   });
 
   planModal?.addEventListener("click", function (event) {
+    if (event.target?.matches?.("[data-plan-upgrade-confirm]")) {
+      const currentUpgradePrompt = getPlanElement("[data-plan-upgrade-prompt]");
+      const currentAmountInput = getPlanElement("input[data-plan-amount]");
+      const targetPlan = currentUpgradePrompt?.dataset.targetPlan || "";
+      if (!targetPlan) return;
+      setSelectedPlan(targetPlan);
+      hidePlanUpgradePrompt();
+      updatePlanSwitchNotice();
+      currentAmountInput?.focus();
+      return;
+    }
     if (event.target === planModal) {
       hidePlanUpgradePrompt();
       setPlanModalOpen(false);
     }
   });
 
-  planAmountInput?.addEventListener("input", updatePlanSwitchNotice);
+  function handlePlanAmountChange(event) {
+    if (event.target?.matches?.("input[data-plan-amount]")) {
+      updatePlanSwitchNotice();
+    }
+  }
 
-  planUpgradeConfirmButton?.addEventListener("click", function () {
-    const targetPlan = planUpgradePrompt?.dataset.targetPlan || "";
-    if (!targetPlan) return;
-    setSelectedPlan(targetPlan);
-    hidePlanUpgradePrompt();
-    updatePlanSwitchNotice();
-    planAmountInput?.focus();
+  ["input", "change", "keyup", "blur"].forEach(function (eventName) {
+    planModal?.addEventListener(eventName, handlePlanAmountChange, true);
   });
 
+  planModal?.addEventListener("paste", function (event) {
+    if (event.target?.matches?.("input[data-plan-amount]")) {
+      window.setTimeout(updatePlanSwitchNotice, 0);
+    }
+  }, true);
+
   planForm?.addEventListener("submit", function (event) {
-    if (!planAmountInput || !selectedPlanInput) return;
-    const amount = Number(planAmountInput.value.trim());
+    const currentAmountInput = getPlanElement("input[data-plan-amount]");
+    const currentSelectedPlanInput = getPlanElement("[data-plan-selected-plan]");
+    if (!currentAmountInput || !currentSelectedPlanInput) return;
+    const amount = Number(currentAmountInput.value.trim());
     const finalPlan = planForAmount(amount);
-    if (finalPlan && isHigherPlan(finalPlan, selectedPlanInput.value)) {
+    if (finalPlan && isHigherPlan(finalPlan, currentSelectedPlanInput.value)) {
       event.preventDefault();
       showPlanUpgradePrompt(finalPlan);
-      planUpgradeConfirmButton?.focus();
+      getPlanElement("[data-plan-upgrade-confirm]")?.focus();
     }
   });
 
