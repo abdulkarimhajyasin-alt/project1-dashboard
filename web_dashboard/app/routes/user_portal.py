@@ -60,6 +60,22 @@ IMAGE_SIGNATURES = (
 )
 
 
+def ensure_no_pending_request(db: Session, user: User, request_type: str, message: str) -> None:
+    db.query(User).filter(User.id == user.id).with_for_update().first()
+    existing_pending = (
+        db.query(PendingRequest)
+        .filter(
+            PendingRequest.user_id == user.id,
+            PendingRequest.request_type == request_type,
+            PendingRequest.status == "pending",
+        )
+        .with_for_update()
+        .first()
+    )
+    if existing_pending:
+        raise ValueError(message)
+
+
 def get_withdrawal_cycle_days(plan: str | None) -> int:
     return WITHDRAWAL_CYCLE_DAYS.get((plan or "").lower(), 0)
 
@@ -687,24 +703,17 @@ def submit_plan_subscription_request(
             status_code=303,
         )
 
-    if user.plan and user.plan.lower() != "none":
+    try:
+        ensure_no_pending_request(db, user, "plan_subscription", PENDING_PLAN_SUBSCRIPTION_MESSAGE)
+    except ValueError as exc:
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'plan_request_error': ACTIVE_PLAN_SUBSCRIPTION_MESSAGE})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': str(exc)})}",
             status_code=303,
         )
 
-    existing_pending = (
-        db.query(PendingRequest)
-        .filter(
-            PendingRequest.user_id == user.id,
-            PendingRequest.request_type == "plan_subscription",
-            PendingRequest.status == "pending",
-        )
-        .first()
-    )
-    if existing_pending:
+    if user.plan and user.plan.lower() != "none":
         return RedirectResponse(
-            url=f"/user/plans?{urlencode({'plan_request_error': PENDING_PLAN_SUBSCRIPTION_MESSAGE})}",
+            url=f"/user/plans?{urlencode({'plan_request_error': ACTIVE_PLAN_SUBSCRIPTION_MESSAGE})}",
             status_code=303,
         )
 
@@ -826,17 +835,7 @@ def submit_profit_withdrawal_request(
             raise ValueError("يرجى إدخال عنوان المحفظة.")
         if not clean_network:
             raise ValueError("يرجى إدخال الشبكة.")
-        existing_pending = (
-            db.query(PendingRequest)
-            .filter(
-                PendingRequest.user_id == user.id,
-                PendingRequest.request_type == "withdraw",
-                PendingRequest.status == "pending",
-            )
-            .first()
-        )
-        if existing_pending:
-            raise ValueError("لديك طلب سحب أرباح قيد المراجعة بالفعل.")
+        ensure_no_pending_request(db, user, "withdraw", "لديك طلب سحب أرباح قيد المراجعة بالفعل.")
     except ValueError as exc:
         if wants_json_response(request):
             return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
@@ -1139,16 +1138,15 @@ def submit_account_verification(
             status_code=303,
         )
 
-    existing_pending = (
-        db.query(PendingRequest)
-        .filter(
-            PendingRequest.user_id == user.id,
-            PendingRequest.request_type == "verification",
-            PendingRequest.status == "pending",
+    try:
+        ensure_no_pending_request(db, user, "verification", "طلب التوثيق قيد المراجعة بالفعل.")
+    except ValueError as exc:
+        return RedirectResponse(
+            url=f"/user/account?{urlencode({'verification_error': str(exc)})}",
+            status_code=303,
         )
-        .first()
-    )
-    if existing_pending or user.verification_status == "pending":
+
+    if user.verification_status == "pending":
         return RedirectResponse(
             url=f"/user/account?{urlencode({'verification_error': 'طلب التوثيق قيد المراجعة بالفعل.'})}",
             status_code=303,

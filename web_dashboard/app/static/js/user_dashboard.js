@@ -53,6 +53,7 @@
   };
   let unverifiedWarningTimer = null;
   let pendingProfitWithdrawFormData = null;
+  let verificationSubmitting = false;
 
   function formatFileSize(size) {
     if (!Number.isFinite(size)) return "";
@@ -1386,7 +1387,10 @@
   });
 
   verificationConfirmSubmit?.addEventListener("click", function () {
-    if (!verificationForm) return;
+    if (!verificationForm || verificationSubmitting) return;
+    verificationSubmitting = true;
+    verificationConfirmSubmit.disabled = true;
+    verificationConfirmSubmit.textContent = "جاري الإرسال...";
     verificationForm.dataset.confirmed = "true";
     setVerificationModalOpen(verificationConfirmModal, false);
     verificationForm.requestSubmit();
@@ -1396,6 +1400,7 @@
   const planOpenButtons = document.querySelectorAll("[data-plan-subscribe-trigger]");
   const planCloseButtons = document.querySelectorAll("[data-plan-subscribe-close]");
   const planForm = document.querySelector("[data-plan-subscribe-form]");
+  const planSubmitButton = document.querySelector("[data-plan-subscribe-submit]");
   const walletAddressElement = document.querySelector("[data-plan-wallet-address]");
   const walletCopyButton = document.querySelector("[data-plan-wallet-copy]");
   const walletCopyStatus = document.querySelector("[data-wallet-copy-status]");
@@ -1570,6 +1575,10 @@
   }, true);
 
   planForm?.addEventListener("submit", function (event) {
+    if (planForm.dataset.submitting === "true") {
+      event.preventDefault();
+      return;
+    }
     const currentAmountInput = getPlanElement("input[data-plan-amount]");
     const currentSelectedPlanInput = getPlanElement("[data-plan-selected-plan]");
     if (!currentAmountInput || !currentSelectedPlanInput) return;
@@ -1579,6 +1588,12 @@
       event.preventDefault();
       showPlanUpgradePrompt(finalPlan);
       getPlanElement("[data-plan-upgrade-confirm]")?.focus();
+      return;
+    }
+    planForm.dataset.submitting = "true";
+    if (planSubmitButton) {
+      planSubmitButton.disabled = true;
+      planSubmitButton.textContent = "جاري الإرسال...";
     }
   });
 
@@ -1663,6 +1678,7 @@
 
   profitWithdrawConfirmSubmit?.addEventListener("click", function () {
     if (!profitWithdrawForm || !pendingProfitWithdrawFormData) return;
+    if (profitWithdrawConfirmSubmit.disabled) return;
     setProfitWithdrawLoading(true);
     fetch(profitWithdrawForm.action, {
       method: "POST",

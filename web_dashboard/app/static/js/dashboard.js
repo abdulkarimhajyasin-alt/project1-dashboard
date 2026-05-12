@@ -17,6 +17,13 @@
   const deleteUserConfirm = deleteUserModal?.querySelector("[data-delete-user-confirm]");
   const deleteUserError = deleteUserModal?.querySelector("[data-delete-user-error]");
   const deleteUserCancelButtons = Array.from(deleteUserModal?.querySelectorAll("[data-delete-user-cancel]") || []);
+  const sensitiveActionModal = document.querySelector("[data-sensitive-action-modal]");
+  const sensitiveActionKicker = sensitiveActionModal?.querySelector("[data-sensitive-action-kicker]");
+  const sensitiveActionTitle = sensitiveActionModal?.querySelector("[data-sensitive-action-title]");
+  const sensitiveActionMessage = sensitiveActionModal?.querySelector("[data-sensitive-action-message]");
+  const sensitiveActionConfirm = sensitiveActionModal?.querySelector("[data-sensitive-action-confirm]");
+  const sensitiveActionError = sensitiveActionModal?.querySelector("[data-sensitive-action-error]");
+  const sensitiveActionCancelButtons = Array.from(sensitiveActionModal?.querySelectorAll("[data-sensitive-action-cancel]") || []);
   const activeMiningOpen = document.querySelector("[data-active-mining-open]");
   const activeMiningModal = document.querySelector("[data-active-mining-modal]");
   const activeMiningState = activeMiningModal?.querySelector("[data-active-mining-state]");
@@ -24,6 +31,8 @@
   const activeMiningCount = document.querySelector("[data-active-mining-count]");
   const imageExtensions = [".gif", ".jpeg", ".jpg", ".png", ".webp"];
   let pendingDeleteUserForm = null;
+  let pendingSensitiveForm = null;
+  let pendingSensitiveSubmitter = null;
 
   const formatFileSize = (size) => {
     if (!Number.isFinite(size)) {
@@ -126,7 +135,9 @@
     modal.setAttribute("aria-hidden", String(!isOpen));
     document.body.classList.toggle(
       "admin-modal-open",
-      adminModals.some((item) => item.classList.contains("is-open")) || Boolean(deleteUserModal?.classList.contains("is-open")),
+      adminModals.some((item) => item.classList.contains("is-open")) ||
+        Boolean(deleteUserModal?.classList.contains("is-open")) ||
+        Boolean(sensitiveActionModal?.classList.contains("is-open")),
     );
   };
 
@@ -139,7 +150,9 @@
     deleteUserModal.setAttribute("aria-hidden", String(!isOpen));
     document.body.classList.toggle(
       "admin-modal-open",
-      isOpen || adminModals.some((item) => item.classList.contains("is-open")),
+      isOpen ||
+        adminModals.some((item) => item.classList.contains("is-open")) ||
+        Boolean(sensitiveActionModal?.classList.contains("is-open")),
     );
 
     if (!isOpen) {
@@ -153,6 +166,96 @@
         deleteUserError.textContent = "";
       }
     }
+  };
+
+  const setSensitiveActionModalOpen = (isOpen) => {
+    if (!sensitiveActionModal) {
+      return;
+    }
+
+    sensitiveActionModal.classList.toggle("is-open", isOpen);
+    sensitiveActionModal.setAttribute("aria-hidden", String(!isOpen));
+    document.body.classList.toggle(
+      "admin-modal-open",
+      isOpen ||
+        adminModals.some((item) => item.classList.contains("is-open")) ||
+        Boolean(deleteUserModal?.classList.contains("is-open")),
+    );
+
+    if (!isOpen) {
+      pendingSensitiveForm = null;
+      pendingSensitiveSubmitter = null;
+      sensitiveActionModal.classList.remove("is-approve", "is-reject");
+      if (sensitiveActionConfirm) {
+        sensitiveActionConfirm.disabled = false;
+        sensitiveActionConfirm.textContent = "Confirm";
+      }
+      if (sensitiveActionError) {
+        sensitiveActionError.hidden = true;
+        sensitiveActionError.textContent = "";
+      }
+    }
+  };
+
+  const getSubmitterLabel = (submitter) => {
+    return submitter?.textContent?.trim() || submitter?.value || "";
+  };
+
+  const openSensitiveActionModal = (form, submitter) => {
+    if (!sensitiveActionModal) {
+      form.dataset.sensitiveConfirmed = "true";
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit(submitter || undefined);
+      } else {
+        form.submit();
+      }
+      return;
+    }
+
+    const submitterIsDestructive =
+      submitter?.classList.contains("pending-reject") ||
+      submitter?.classList.contains("danger-button") ||
+      submitter?.classList.contains("red");
+    const variant = submitterIsDestructive ? "reject" : form.dataset.sensitiveConfirm || "approve";
+    const submitterLabel = getSubmitterLabel(submitter);
+    pendingSensitiveForm = form;
+    pendingSensitiveSubmitter = submitter || null;
+    sensitiveActionModal.classList.toggle("is-approve", variant === "approve");
+    sensitiveActionModal.classList.toggle("is-reject", variant === "reject");
+    if (sensitiveActionKicker) {
+      sensitiveActionKicker.textContent = variant === "reject" ? "Destructive confirmation" : "Financial confirmation";
+    }
+    if (sensitiveActionTitle) {
+      sensitiveActionTitle.textContent = form.dataset.sensitiveTitle || "Confirm action";
+    }
+    if (sensitiveActionMessage) {
+      const baseMessage = form.dataset.sensitiveMessage || "This action will update platform state.";
+      sensitiveActionMessage.textContent = submitterLabel ? `${baseMessage} Action: ${submitterLabel}.` : baseMessage;
+    }
+    if (sensitiveActionConfirm) {
+      sensitiveActionConfirm.disabled = false;
+      sensitiveActionConfirm.textContent = form.dataset.sensitiveConfirmLabel || submitterLabel || "Confirm";
+    }
+    if (sensitiveActionError) {
+      sensitiveActionError.hidden = true;
+      sensitiveActionError.textContent = "";
+    }
+    setSensitiveActionModalOpen(true);
+  };
+
+  const preserveSubmitterValue = (form, submitter) => {
+    if (!form || !submitter?.name) {
+      return;
+    }
+    let hidden = form.querySelector(`input[type="hidden"][data-sensitive-submit-preserve="${submitter.name}"]`);
+    if (!hidden) {
+      hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = submitter.name;
+      hidden.dataset.sensitiveSubmitPreserve = submitter.name;
+      form.appendChild(hidden);
+    }
+    hidden.value = submitter.value || "";
   };
 
   const setActiveMiningState = (message, type = "loading") => {
@@ -314,6 +417,16 @@
     setDeleteUserModalOpen(true);
   });
 
+  document.addEventListener("submit", (event) => {
+    const form = event.target.closest("[data-sensitive-confirm]");
+    if (!form || form.dataset.sensitiveConfirmed === "true") {
+      return;
+    }
+
+    event.preventDefault();
+    openSensitiveActionModal(form, event.submitter || document.activeElement);
+  });
+
   deleteUserConfirm?.addEventListener("click", () => {
     if (!pendingDeleteUserForm || pendingDeleteUserForm.dataset.deleteProtected === "true") {
       if (deleteUserError) {
@@ -345,6 +458,53 @@
   deleteUserModal?.addEventListener("click", (event) => {
     if (event.target === deleteUserModal && !deleteUserConfirm?.disabled) {
       setDeleteUserModalOpen(false);
+    }
+  });
+
+  sensitiveActionConfirm?.addEventListener("click", () => {
+    if (!pendingSensitiveForm) {
+      if (sensitiveActionError) {
+        sensitiveActionError.hidden = false;
+        sensitiveActionError.textContent = "No action is waiting for confirmation.";
+      }
+      return;
+    }
+
+    sensitiveActionConfirm.disabled = true;
+    sensitiveActionConfirm.textContent = "Processing...";
+    pendingSensitiveForm.dataset.sensitiveConfirmed = "true";
+    try {
+      if (
+        pendingSensitiveSubmitter &&
+        typeof pendingSensitiveForm.requestSubmit === "function" &&
+        pendingSensitiveSubmitter.form === pendingSensitiveForm
+      ) {
+        pendingSensitiveForm.requestSubmit(pendingSensitiveSubmitter);
+        return;
+      }
+      preserveSubmitterValue(pendingSensitiveForm, pendingSensitiveSubmitter);
+      if (typeof pendingSensitiveForm.requestSubmit === "function") {
+        pendingSensitiveForm.requestSubmit();
+      } else {
+        pendingSensitiveForm.submit();
+      }
+    } catch (error) {
+      preserveSubmitterValue(pendingSensitiveForm, pendingSensitiveSubmitter);
+      pendingSensitiveForm.submit();
+    }
+  });
+
+  sensitiveActionCancelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!sensitiveActionConfirm?.disabled) {
+        setSensitiveActionModalOpen(false);
+      }
+    });
+  });
+
+  sensitiveActionModal?.addEventListener("click", (event) => {
+    if (event.target === sensitiveActionModal && !sensitiveActionConfirm?.disabled) {
+      setSensitiveActionModalOpen(false);
     }
   });
 
@@ -685,6 +845,9 @@
       adminModals.forEach((modal) => setAdminModalOpen(modal, false));
       if (!deleteUserConfirm?.disabled) {
         setDeleteUserModalOpen(false);
+      }
+      if (!sensitiveActionConfirm?.disabled) {
+        setSensitiveActionModalOpen(false);
       }
     }
   });

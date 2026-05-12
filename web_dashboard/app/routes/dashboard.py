@@ -343,7 +343,7 @@ def admin_notifications_poll(
 
 @router.post("/pending-requests/{request_id}/accept")
 def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
-    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).with_for_update().first()
     if pending_request and pending_request.status == "pending":
         if pending_request.request_type in {"deposit", "plan_subscription"} and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
@@ -440,7 +440,7 @@ def reject_pending_request(
     admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).with_for_update().first()
     if pending_request and pending_request.status == "pending":
         pending_request.status = "rejected"
         if pending_request.request_type == "verification" and pending_request.user:
@@ -518,7 +518,7 @@ def reject_pending_request(
 
 @router.post("/pending-requests/{request_id}/save")
 def save_pending_request(request_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
-    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).first()
+    pending_request = db.query(PendingRequest).filter(PendingRequest.id == request_id).with_for_update().first()
     if pending_request and pending_request.request_type == "verification":
         apply_verification_request_to_user(pending_request, approve=False)
         db.commit()

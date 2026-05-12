@@ -46,7 +46,7 @@
         <td>{{ "%.2f"|format(record.amount) }}</td>
         <td>{{ record.created_at.strftime("%Y-%m-%d") }}</td>
         <td>
-          <form method="post" action="/records/{{ record.id }}/delete">
+          <form method="post" action="/records/{{ record.id }}/delete" data-sensitive-confirm="reject" data-sensitive-title="Delete financial record" data-sensitive-message="Delete this financial record? This action cannot be undone." data-sensitive-confirm-label="Delete record">
             <button class="danger-button" type="submit">Delete</button>
           </form>
         </td>

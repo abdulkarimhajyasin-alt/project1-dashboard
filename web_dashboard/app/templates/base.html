@@ -94,6 +94,18 @@
       </div>
     </section>
   </div>
+  <div class="admin-command-modal" id="sensitiveActionModal" data-sensitive-action-modal aria-hidden="true">
+    <section class="admin-command-dialog admin-sensitive-dialog" role="dialog" aria-modal="true" aria-labelledby="sensitiveActionTitle">
+      <p class="mining-kicker" data-sensitive-action-kicker>Secure confirmation</p>
+      <h2 id="sensitiveActionTitle" data-sensitive-action-title>Confirm action</h2>
+      <p data-sensitive-action-message>This action will update platform state.</p>
+      <p class="support-chat-error" data-sensitive-action-error hidden></p>
+      <div class="admin-delete-modal-actions">
+        <button class="admin-delete-cancel" type="button" data-sensitive-action-cancel>Cancel</button>
+        <button class="admin-delete-confirm" type="button" data-sensitive-action-confirm>Confirm</button>
+      </div>
+    </section>
+  </div>
   <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=referral-table-rows" defer></script>
   {% block scripts %}{% endblock %}
 </body>

@@ -109,7 +109,7 @@
         </div>
       </div>
       <div class="admin-finance-grid">
-        <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form">
+        <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm capital adjustment" data-sensitive-message="This will change the user's active capital and may sync the active mining cycle." data-sensitive-confirm-label="Apply adjustment">
           <input type="hidden" name="field" value="capital">
           <label>
             إضافة/خصم Balance
@@ -119,7 +119,7 @@
           <button class="admin-action-button red" type="submit" name="operation" value="subtract">Balance -</button>
         </form>
 
-        <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form">
+        <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm profit adjustment" data-sensitive-message="This will change the user's available profits balance." data-sensitive-confirm-label="Apply adjustment">
           <input type="hidden" name="field" value="profits">
           <label>
             إضافة/خصم Profit
@@ -129,7 +129,7 @@
           <button class="admin-action-button red" type="submit" name="operation" value="subtract">Profit -</button>
         </form>
 
-        <form method="post" action="/users/{{ user.id }}/plan" class="admin-plan-form">
+        <form method="post" action="/users/{{ user.id }}/plan" class="admin-plan-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm plan change" data-sensitive-message="This will update the user's active plan state." data-sensitive-confirm-label="Change plan">
           <label>
             تغيير Plan
             <select name="plan">
@@ -142,12 +142,12 @@
           <button class="admin-action-button purple" type="submit">Change Plan</button>
         </form>
 
-        <form method="post" action="/users/{{ user.id }}/reset-cycle" class="admin-plan-form">
+        <form method="post" action="/users/{{ user.id }}/reset-cycle" class="admin-plan-form" data-sensitive-confirm="reject" data-sensitive-title="Confirm cycle reset" data-sensitive-message="This will reset the user's mining cycle state." data-sensitive-confirm-label="Reset cycle">
           <span>Reset Cycle</span>
           <button class="admin-action-button slate" type="submit">Reset Cycle</button>
         </form>
 
-        <form method="post" action="/users/{{ user.id }}/manual-withdrawal-unlock" class="admin-plan-form manual-withdrawal-form">
+        <form method="post" action="/users/{{ user.id }}/manual-withdrawal-unlock" class="admin-plan-form manual-withdrawal-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm withdrawal access change" data-sensitive-message="This will change the user's manual withdrawal access state." data-sensitive-confirm-label="Apply change">
           {% if user.manual_withdrawal_unlock %}
           <input type="hidden" name="unlock_action" value="close">
           <span>السحب اليدوي مفتوح لمرة واحدة</span>
@@ -242,10 +242,10 @@
           {% endfor %}
         </div>
         <div class="pending-actions">
-          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/accept">
+          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/accept" data-sensitive-confirm="approve" data-sensitive-title="Approve verification request" data-sensitive-message="Approve this user's verification request?" data-sensitive-confirm-label="Approve verification">
             <button class="pending-accept" type="submit">Approve</button>
           </form>
-          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/reject" class="pending-reject-form">
+          <form method="post" action="/pending-requests/{{ pending_verification_request.id }}/reject" class="pending-reject-form" data-sensitive-confirm="reject" data-sensitive-title="Reject verification request" data-sensitive-message="Reject this user's verification request?" data-sensitive-confirm-label="Reject verification">
             <textarea name="reject_reason" rows="3" placeholder="Optional reason shown to the user"></textarea>
             <button class="pending-reject" type="submit">Reject</button>
           </form>

@@ -4506,6 +4506,39 @@ body.verification-modal-open {
   line-height: 1.8;
 }
 
+.admin-sensitive-dialog {
+  overflow: hidden;
+}
+
+.admin-sensitive-dialog::before {
+  background: linear-gradient(90deg, rgba(37, 246, 164, 0.85), rgba(56, 189, 248, 0.75));
+  content: "";
+  height: 3px;
+  inset: 0 0 auto;
+  position: absolute;
+}
+
+.admin-command-modal.is-reject .admin-sensitive-dialog::before {
+  background: linear-gradient(90deg, rgba(248, 113, 113, 0.95), rgba(245, 158, 11, 0.78));
+}
+
+.admin-sensitive-dialog p {
+  color: #c9d8ea;
+  line-height: 1.8;
+}
+
+.admin-command-modal.is-approve [data-sensitive-action-confirm] {
+  background: linear-gradient(135deg, #25f6a4, #0891b2) !important;
+  border: 1px solid rgba(45, 212, 191, 0.44);
+  color: #04111f !important;
+}
+
+.admin-command-modal.is-reject [data-sensitive-action-confirm] {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  border: 1px solid rgba(248, 113, 113, 0.52);
+  color: #ffffff !important;
+}
+
 .admin-delete-user-name {
   color: #ffffff;
   overflow-wrap: anywhere;
