@@ -72,14 +72,16 @@
       <strong
         data-live-balance
         data-current-total-balance="{{ '%.8f'|format(mining_status.current_total_balance or 0) }}"
+        data-live-available-yield="{{ '%.8f'|format(mining_status.live_available_yield or mining_status.current_total_balance or 0) }}"
         data-live-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
         data-active-seconds="{{ mining_status.active_seconds or 0 }}"
         data-actual-start-at="{{ mining_status.actual_start_time_iso }}"
         data-end-at="{{ mining_status.end_time_iso }}"
+        data-status-at="{{ mining_status.status_at_iso }}"
         data-cycle-status="{{ mining_status.status }}"
         data-can-start="{{ 'true' if mining_status.can_start else 'false' }}"
       >
-        ${{ '%.8f'|format(mining_status.current_total_balance or 0) }}
+        ${{ '%.8f'|format(mining_status.live_available_yield or mining_status.current_total_balance or 0) }}
       </strong>
       <small data-live-balance-mode>{{ "Live Available Yield" if not mining_status.can_start and (mining_status.expected_earned_income or 0) > 0 else "Available Yield" }}</small>
     </article>

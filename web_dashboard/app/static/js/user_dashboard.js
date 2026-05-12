@@ -858,8 +858,12 @@
     activeSeconds: 0,
     actualStartAt: 0,
     currentTotalBalance: 0,
+    earningsPerSecond: 0,
     expectedEarnedIncome: 0,
     isActive: false,
+    liveAvailableYield: 0,
+    maxLiveAvailableYield: 0,
+    statusAt: 0,
   };
 
   function clamp(value, min, max) {
@@ -908,13 +912,13 @@
   }
 
   function getVisualBalance(now) {
-    if (!liveBalanceState.isActive || !liveBalanceState.actualStartAt || liveBalanceState.activeSeconds <= 0) {
-      return liveBalanceState.currentTotalBalance;
+    if (!liveBalanceState.isActive || liveBalanceState.earningsPerSecond <= 0 || !liveBalanceState.statusAt) {
+      return liveBalanceState.liveAvailableYield;
     }
 
-    const elapsedActiveSeconds = clamp((now - liveBalanceState.actualStartAt) / 1000, 0, liveBalanceState.activeSeconds);
-    const visualEarnings = liveBalanceState.expectedEarnedIncome * (elapsedActiveSeconds / liveBalanceState.activeSeconds);
-    return liveBalanceState.currentTotalBalance + visualEarnings;
+    const elapsedSinceStatus = Math.max(0, (now - liveBalanceState.statusAt) / 1000);
+    const liveValue = liveBalanceState.liveAvailableYield + liveBalanceState.earningsPerSecond * elapsedSinceStatus;
+    return clamp(liveValue, liveBalanceState.currentTotalBalance, liveBalanceState.maxLiveAvailableYield);
   }
 
   function renderLiveBalance() {
@@ -950,20 +954,33 @@
       expectedEarnedIncome > 0 &&
       activeSeconds > 0 &&
       Number.isFinite(actualStartAt);
+    const statusAt = status.status_at_iso ? Date.parse(status.status_at_iso) : Date.now();
+    const elapsedActiveSeconds = isActive ? clamp((Date.now() - actualStartAt) / 1000, 0, activeSeconds) : 0;
+    const fallbackLiveYield = currentTotalBalance + expectedEarnedIncome * (elapsedActiveSeconds / Math.max(activeSeconds, 1));
+    const liveAvailableYield = status.live_available_yield !== undefined && status.live_available_yield !== null
+      ? parseMoneyNumber(status.live_available_yield)
+      : parseMoneyNumber(liveBalanceText.dataset.liveAvailableYield || fallbackLiveYield);
+    const maxLiveAvailableYield = currentTotalBalance + expectedEarnedIncome;
 
     liveBalanceState = {
       activeSeconds,
       actualStartAt: Number.isFinite(actualStartAt) ? actualStartAt : 0,
       currentTotalBalance,
+      earningsPerSecond: isActive ? expectedEarnedIncome / activeSeconds : 0,
       expectedEarnedIncome,
       isActive,
+      liveAvailableYield,
+      maxLiveAvailableYield,
+      statusAt: Number.isFinite(statusAt) ? statusAt : Date.now(),
     };
 
     liveBalanceText.dataset.currentTotalBalance = String(currentTotalBalance);
+    liveBalanceText.dataset.liveAvailableYield = String(liveAvailableYield);
     liveBalanceText.dataset.liveExpectedEarnedIncome = String(expectedEarnedIncome);
     liveBalanceText.dataset.activeSeconds = String(activeSeconds);
     liveBalanceText.dataset.actualStartAt = status.actual_start_time_iso || "";
     liveBalanceText.dataset.endAt = status.end_time_iso || "";
+    liveBalanceText.dataset.statusAt = status.status_at_iso || "";
     liveBalanceText.dataset.cycleStatus = status.status || "ready";
     liveBalanceText.dataset.canStart = status.can_start ? "true" : "false";
 
@@ -1002,6 +1019,8 @@
       current_total_balance: liveBalanceText.dataset.currentTotalBalance || "0",
       end_time_iso: liveBalanceText.dataset.endAt || "",
       expected_earned_income: liveBalanceText.dataset.liveExpectedEarnedIncome || "0",
+      live_available_yield: liveBalanceText.dataset.liveAvailableYield || liveBalanceText.dataset.currentTotalBalance || "0",
+      status_at_iso: liveBalanceText.dataset.statusAt || "",
       status: liveBalanceText.dataset.cycleStatus || "ready",
     });
   }

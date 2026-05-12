@@ -528,10 +528,18 @@ def build_mining_status(user: User, db: Session, now: datetime | None = None) ->
     income = calculate_cycle_income(cycle.active_capital if cycle else user.capital, cycle.referral_income if cycle else Decimal("0"))
     earning_ratio = cycle_earning_ratio(cycle) if cycle else Decimal("0")
     expected_earned_income = money(income["final_income"] * earning_ratio) if cycle else Decimal("0")
+    live_earned_income = Decimal("0")
     user_timezone = user.timezone or "UTC"
     window_start = cycle_window_start(cycle)
     window_end = cycle_window_end(cycle)
     actual_start = cycle_actual_start(cycle)
+    if cycle and actual_start and cycle.active_seconds:
+        elapsed_active_seconds = min(
+            max(0, int((now - normalize_utc(actual_start)).total_seconds())),
+            int(cycle.active_seconds),
+        )
+        live_earned_income = money(expected_earned_income * Decimal(elapsed_active_seconds) / Decimal(cycle.active_seconds))
+    live_available_yield = money(as_decimal(user.profits) + live_earned_income)
     return {
         "cycle": cycle,
         "cycle_id": cycle.cycle_uuid if cycle else "",
@@ -557,6 +565,9 @@ def build_mining_status(user: User, db: Session, now: datetime | None = None) ->
         "full_daily_income": income["final_income"],
         "expected_earned_income": expected_earned_income,
         "current_total_balance": money(user.profits),
+        "live_earned_income": live_earned_income,
+        "live_available_yield": live_available_yield,
+        "status_at_iso": cycle_to_iso(now),
         "target_income": income["target_income"],
         "timezone": user_timezone,
     }

@@ -256,6 +256,9 @@ def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
             "full_daily_income": str(full_daily_income),
             "expected_earned_income": str(completed_income),
             "current_total_balance": decimal_display(status.get("current_total_balance"), 8),
+            "live_earned_income": "0.00000000",
+            "live_available_yield": decimal_display(status.get("current_total_balance"), 8),
+            "status_at_iso": status.get("status_at_iso", ""),
             "completed": True,
             "completed_income": str(completed_income),
         }
@@ -287,6 +290,9 @@ def serialize_mining_status(status: dict, completed_cycle=None) -> dict:
         "full_daily_income": str(status["full_daily_income"]),
         "expected_earned_income": str(status["expected_earned_income"]),
         "current_total_balance": decimal_display(status.get("current_total_balance"), 8),
+        "live_earned_income": decimal_display(status.get("live_earned_income"), 8),
+        "live_available_yield": decimal_display(status.get("live_available_yield"), 8),
+        "status_at_iso": status.get("status_at_iso", ""),
         "completed": False,
         "completed_income": "0.0000",
     }
