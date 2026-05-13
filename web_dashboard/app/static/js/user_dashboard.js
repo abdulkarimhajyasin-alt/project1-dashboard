@@ -944,21 +944,27 @@
     return clamp(liveValue, liveBalanceState.currentTotalBalance, liveBalanceState.maxLiveAvailableYield);
   }
 
-  function getVisualEarnings(now) {
-    if (!liveBalanceState.isActive || liveBalanceState.earningsPerSecond <= 0 || !liveBalanceState.statusAt) {
-      return liveBalanceState.settledUserProfits + liveBalanceState.liveCycleIncome;
+  function getVisualEarnings(visualBalance) {
+    if (!liveBalanceState.isActive) {
+      return liveBalanceState.settledUserProfits;
     }
 
-    const elapsedSinceStatus = Math.max(0, (now - liveBalanceState.statusAt) / 1000);
-    const visualCycleIncome = liveBalanceState.liveCycleIncome + liveBalanceState.earningsPerSecond * elapsedSinceStatus;
-    const liveValue = liveBalanceState.settledUserProfits + clamp(visualCycleIncome, 0, liveBalanceState.expectedEarnedIncome);
-    return clamp(liveValue, liveBalanceState.settledUserProfits, liveBalanceState.maxLiveTotalEarnings);
+    const visualCycleIncome = clamp(
+      visualBalance - liveBalanceState.currentTotalBalance,
+      0,
+      liveBalanceState.expectedEarnedIncome,
+    );
+    return clamp(
+      liveBalanceState.settledUserProfits + visualCycleIncome,
+      liveBalanceState.settledUserProfits,
+      liveBalanceState.maxLiveTotalEarnings,
+    );
   }
 
   function renderLiveBalance() {
     const now = Date.now();
+    const visualBalance = getVisualBalance(now);
     if (liveBalanceText) {
-      const visualBalance = getVisualBalance(now);
       liveBalanceText.textContent = formatLiveBalance(visualBalance);
       liveBalanceText.classList.toggle("is-live", liveBalanceState.isActive);
       liveBalanceText.closest(".live-balance-card")?.classList.toggle("is-live", liveBalanceState.isActive);
@@ -967,7 +973,7 @@
       liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
     }
     if (earningsText) {
-      const visualEarnings = getVisualEarnings(now);
+      const visualEarnings = getVisualEarnings(visualBalance);
       earningsText.textContent = formatLiveBalance(visualEarnings);
       earningsText.classList.toggle("is-live", liveBalanceState.isActive);
       earningsText.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
