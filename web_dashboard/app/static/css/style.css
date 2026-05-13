@@ -578,6 +578,19 @@ th {
   font-weight: 900;
 }
 
+.admin-users-name-cell {
+  align-items: flex-end;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-users-name-cell small {
+  color: #9fb2ce;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
 .admin-users-name-link:hover {
   color: #9eeeff;
 }

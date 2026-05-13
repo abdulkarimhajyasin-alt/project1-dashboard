@@ -57,6 +57,25 @@ def get_user_label(user: User) -> str:
     return user.username or user.name or user.email or f"User #{user.id}"
 
 
+def get_verified_full_name(user: User) -> str:
+    if not user.verified:
+        return ""
+    return (user.legal_full_name or "").strip()
+
+
+def get_user_name_display(user: User) -> str:
+    return get_verified_full_name(user) or user.name or get_user_label(user)
+
+
+def get_user_name_secondary(user: User, primary_label: str | None = None) -> str:
+    primary = normalize_identifier(primary_label)
+    for value in (user.username, user.email):
+        clean_value = (value or "").strip()
+        if clean_value and normalize_identifier(clean_value) != primary:
+            return clean_value
+    return ""
+
+
 def format_admin_datetime(value, fmt: str) -> str:
     return value.strftime(fmt) if value else "-"
 
@@ -76,7 +95,7 @@ def format_admin_duration(seconds: int | None) -> str:
 
 
 def user_initials(user: User) -> str:
-    label = get_user_label(user)
+    label = get_user_name_display(user)
     parts = [part for part in label.replace("_", " ").split() if part]
     if not parts:
         return "U"
@@ -133,9 +152,11 @@ def serialize_user_tree_node(
 ) -> dict:
     rank_info = get_referral_rank_info(children_count)
     active_miner_ids = active_miner_ids or set()
+    name_display = get_user_name_display(user)
     return {
         "id": user.id,
-        "name": user.name or "-",
+        "name": name_display,
+        "name_secondary": get_user_name_secondary(user, name_display),
         "username": get_user_label(user),
         "email": user.email or "-",
         "country": user.residence_country or "-",
@@ -235,6 +256,8 @@ def users_page(request: Request, admin: Admin = Depends(get_current_admin), db: 
             "delete_protected": user.id in protected_user_ids,
             "initials": user_initials(user),
             "is_mining": user.id in active_miner_ids,
+            "display_name": get_user_name_display(user),
+            "display_name_secondary": get_user_name_secondary(user, get_user_name_display(user)),
         }
         for user in users
     ]

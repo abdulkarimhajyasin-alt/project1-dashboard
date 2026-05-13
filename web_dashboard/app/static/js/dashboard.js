@@ -1100,6 +1100,14 @@
       nameLink.className = "admin-users-name-link";
       nameLink.href = user.detail_url || `/users/${user.id}`;
       nameLink.textContent = user.name || "-";
+      const nameWrap = document.createElement("div");
+      nameWrap.className = "admin-users-name-cell";
+      nameWrap.append(nameLink);
+      if (user.name_secondary) {
+        const nameMeta = document.createElement("small");
+        nameMeta.textContent = user.name_secondary;
+        nameWrap.append(nameMeta);
+      }
 
       const plan = makeBadge((user.plan || "none").toUpperCase(), "plan");
       const status = makeBadge(user.status || "active", `status-${user.status || "active"}`);
@@ -1138,7 +1146,7 @@
       const balance = Number.parseFloat(user.capital ?? 0) + Number.parseFloat(user.profits ?? 0);
       row.append(
         makeTableCell("Username", usernameWrap),
-        makeTableCell("Name", nameLink),
+        makeTableCell("Name", nameWrap),
         makeTableCell("Country", user.country || "-"),
         makeTableCell("Plan", plan),
         makeTableCell("Status", status),
