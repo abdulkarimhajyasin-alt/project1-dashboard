@@ -863,7 +863,7 @@
   const endTimeText = document.querySelector("[data-end-time]");
   const missedTimeText = document.querySelector("[data-missed-time]");
   const earningRatioText = document.querySelector("[data-earning-ratio]");
-  const liveBalanceText = document.querySelector("[data-live-balance]");
+  const liveBalanceText = document.getElementById("live-available-yield-value") || document.querySelector("[data-live-balance]");
   const liveBalanceMode = document.querySelector("[data-live-balance-mode]");
   const earningsText = document.getElementById("dashboard-earnings-value");
   const earningsMode = document.querySelector("[data-earnings-mode]");
@@ -929,12 +929,23 @@
     return `$${Math.max(0, value).toFixed(8)}`;
   }
 
-  function formatCurrency8(value) {
-    return formatLiveBalance(value);
-  }
-
   function getDashboardEarningsElement() {
     return document.getElementById("dashboard-earnings-value");
+  }
+
+  function getLiveAvailableYieldElement() {
+    return document.getElementById("live-available-yield-value");
+  }
+
+  function syncEarningsWithLiveBalance() {
+    const earningsEl = getDashboardEarningsElement();
+    const liveBalanceEl = getLiveAvailableYieldElement();
+
+    if (earningsEl && liveBalanceEl) {
+      earningsEl.textContent = liveBalanceEl.textContent;
+      earningsEl.classList.toggle("is-live", liveBalanceState.isActive);
+      earningsEl.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+    }
   }
 
   function stopLiveBalanceAnimation() {
@@ -968,27 +979,6 @@
     };
   }
 
-  function updateDashboardEarnings(liveEarnedIncome, totalBalanceValue, now) {
-    const earningsEl = getDashboardEarningsElement();
-    if (!earningsEl) return;
-
-    const settledProfits = Number.parseFloat(earningsEl.dataset.settledProfits || "0") || 0;
-    const earningsValue = settledProfits + liveEarnedIncome;
-    earningsEl.textContent = formatCurrency8(earningsValue);
-    earningsEl.classList.toggle("is-live", liveBalanceState.isActive);
-    earningsEl.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
-
-    if (liveBalanceState.isActive && now - lastLiveEarningsDebugAt >= 1000) {
-      console.log("LIVE_TOTAL_BALANCE_TICK", totalBalanceValue);
-      console.log("LIVE_EARNINGS_TICK", {
-        settledProfits,
-        liveEarnedIncome,
-        earningsValue,
-      });
-      lastLiveEarningsDebugAt = now;
-    }
-  }
-
   function renderLiveBalance() {
     const now = Date.now();
     const liveValues = getVisualBalance(now);
@@ -996,15 +986,12 @@
       liveBalanceText.textContent = formatLiveBalance(liveValues.liveAvailableYield);
       liveBalanceText.classList.toggle("is-live", liveBalanceState.isActive);
       liveBalanceText.closest(".live-balance-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+      syncEarningsWithLiveBalance();
     }
     if (liveBalanceMode) {
       liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
     }
-    updateDashboardEarnings(
-      liveBalanceState.isActive ? liveValues.liveEarnedIncome : 0,
-      liveValues.liveAvailableYield,
-      now,
-    );
+    syncEarningsWithLiveBalance();
     if (earningsMode) {
       earningsMode.textContent = liveBalanceState.isActive ? "Live Earnings" : "Earnings";
     }
@@ -1129,6 +1116,13 @@
       status_at_iso: liveBalanceText?.dataset.statusAt || earningsText?.dataset.statusAt || "",
       status: liveBalanceText?.dataset.cycleStatus || (earningsText?.dataset.cycleActive === "true" ? "active" : "ready"),
     });
+  }
+
+  const liveAvailableYieldObserverTarget = getLiveAvailableYieldElement();
+  if (liveAvailableYieldObserverTarget) {
+    const observer = new MutationObserver(syncEarningsWithLiveBalance);
+    observer.observe(liveAvailableYieldObserverTarget, { childList: true, characterData: true, subtree: true });
+    syncEarningsWithLiveBalance();
   }
 
   if (ring) {
