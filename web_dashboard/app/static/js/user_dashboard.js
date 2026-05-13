@@ -865,7 +865,7 @@
   const earningRatioText = document.querySelector("[data-earning-ratio]");
   const liveBalanceText = document.querySelector("[data-live-balance]");
   const liveBalanceMode = document.querySelector("[data-live-balance-mode]");
-  const earningsText = document.getElementById("dashboard-earnings-value") || document.querySelector("[data-earnings-total]");
+  const earningsText = document.getElementById("dashboard-earnings-value");
   const earningsMode = document.querySelector("[data-earnings-mode]");
   const miningCoreNote = document.querySelector("[data-mining-core-note]");
   const startError = document.querySelector("[data-mining-start-error]");
@@ -873,6 +873,7 @@
   const radius = 150;
   const circumference = 2 * Math.PI * radius;
   let liveBalanceAnimationFrame = null;
+  let lastLiveEarningsDebugAt = 0;
   let liveBalanceState = {
     activeSeconds: 0,
     actualStartAt: 0,
@@ -936,36 +937,33 @@
 
   function getVisualBalance(now) {
     if (!liveBalanceState.isActive || liveBalanceState.earningsPerSecond <= 0 || !liveBalanceState.statusAt) {
-      return liveBalanceState.liveAvailableYield;
+      return {
+        liveAvailableYield: liveBalanceState.liveAvailableYield,
+        liveEarnedIncome: liveBalanceState.isActive ? liveBalanceState.liveCycleIncome : 0,
+      };
     }
 
     const elapsedSinceStatus = Math.max(0, (now - liveBalanceState.statusAt) / 1000);
-    const liveValue = liveBalanceState.liveAvailableYield + liveBalanceState.earningsPerSecond * elapsedSinceStatus;
-    return clamp(liveValue, liveBalanceState.currentTotalBalance, liveBalanceState.maxLiveAvailableYield);
-  }
-
-  function getVisualEarnings(visualBalance) {
-    if (!liveBalanceState.isActive) {
-      return liveBalanceState.settledUserProfits;
-    }
-
-    const visualCycleIncome = clamp(
-      visualBalance - liveBalanceState.currentTotalBalance,
+    const liveEarnedIncome = clamp(
+      liveBalanceState.liveCycleIncome + liveBalanceState.earningsPerSecond * elapsedSinceStatus,
       0,
       liveBalanceState.expectedEarnedIncome,
     );
-    return clamp(
-      liveBalanceState.settledUserProfits + visualCycleIncome,
-      liveBalanceState.settledUserProfits,
-      liveBalanceState.maxLiveTotalEarnings,
-    );
+    return {
+      liveAvailableYield: clamp(
+        liveBalanceState.currentTotalBalance + liveEarnedIncome,
+        liveBalanceState.currentTotalBalance,
+        liveBalanceState.maxLiveAvailableYield,
+      ),
+      liveEarnedIncome,
+    };
   }
 
   function renderLiveBalance() {
     const now = Date.now();
-    const visualBalance = getVisualBalance(now);
+    const liveValues = getVisualBalance(now);
     if (liveBalanceText) {
-      liveBalanceText.textContent = formatLiveBalance(visualBalance);
+      liveBalanceText.textContent = formatLiveBalance(liveValues.liveAvailableYield);
       liveBalanceText.classList.toggle("is-live", liveBalanceState.isActive);
       liveBalanceText.closest(".live-balance-card")?.classList.toggle("is-live", liveBalanceState.isActive);
     }
@@ -973,10 +971,16 @@
       liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
     }
     if (earningsText) {
-      const visualEarnings = getVisualEarnings(visualBalance);
-      earningsText.textContent = formatLiveBalance(visualEarnings);
+      const settledProfits = liveBalanceState.settledUserProfits;
+      const liveEarnedIncome = liveBalanceState.isActive ? liveValues.liveEarnedIncome : 0;
+      const earningsValue = settledProfits + liveEarnedIncome;
+      earningsText.textContent = formatLiveBalance(earningsValue);
       earningsText.classList.toggle("is-live", liveBalanceState.isActive);
       earningsText.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+      if (window.NOVAHASH_DEBUG_LIVE === true && now - lastLiveEarningsDebugAt >= 1000) {
+        console.debug("[NovaHash] live earnings updated", { settledProfits, liveEarnedIncome, earningsValue });
+        lastLiveEarningsDebugAt = now;
+      }
     }
     if (earningsMode) {
       earningsMode.textContent = liveBalanceState.isActive ? "Live Earnings" : "Earnings";
