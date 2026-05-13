@@ -103,6 +103,23 @@
 
   <section class="mining-stats-grid">
     <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
+    <article class="mining-stat-card live-balance-card earnings-card">
+      <span dir="rtl">الأرباح</span>
+      <strong
+        data-earnings-total
+        data-settled-profits="{{ '%.8f'|format(mining_status.settled_user_profits or mining_status.current_total_balance or 0) }}"
+        data-live-cycle-income="{{ '%.8f'|format(mining_status.live_cycle_income or mining_status.live_earned_income or 0) }}"
+        data-live-total-earnings="{{ '%.8f'|format(mining_status.dashboard_earnings_total or mining_status.live_total_earnings or mining_status.live_available_yield or mining_status.current_total_balance or 0) }}"
+        data-expected-earned-income="{{ '%.8f'|format(mining_status.expected_earned_income or 0) }}"
+        data-active-seconds="{{ mining_status.active_seconds or 0 }}"
+        data-actual-start-at="{{ mining_status.actual_start_time_iso }}"
+        data-status-at="{{ mining_status.status_at_iso }}"
+        data-cycle-active="{{ 'true' if not mining_status.can_start and mining_status.status == 'active' else 'false' }}"
+      >
+        ${{ '%.8f'|format(mining_status.dashboard_earnings_total or mining_status.live_total_earnings or mining_status.live_available_yield or mining_status.current_total_balance or 0) }}
+      </strong>
+      <small data-earnings-mode>Live Earnings</small>
+    </article>
     <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.8f'|format(total_referral_earnings or 0) }}">${{ '%.8f'|format(total_referral_earnings or 0) }}</strong><small>All Levels</small></article>
     <article class="mining-stat-card"><span>Referral Rank</span><strong>{{ referral_rank_info.rank }}</strong><small>{{ referral_rank_info.remaining }} to {{ referral_rank_info.next_rank or "Max Rank" }}</small></article>
     <article class="mining-stat-card"><span>Number of Referrals</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Direct Referrals</small></article>

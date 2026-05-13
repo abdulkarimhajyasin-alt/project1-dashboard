@@ -539,7 +539,8 @@ def build_mining_status(user: User, db: Session, now: datetime | None = None) ->
             int(cycle.active_seconds),
         )
         live_earned_income = money(expected_earned_income * Decimal(elapsed_active_seconds) / Decimal(cycle.active_seconds))
-    live_available_yield = money(as_decimal(user.profits) + live_earned_income)
+    settled_user_profits = money(user.profits)
+    live_available_yield = money(settled_user_profits + live_earned_income)
     return {
         "cycle": cycle,
         "cycle_id": cycle.cycle_uuid if cycle else "",
@@ -564,7 +565,11 @@ def build_mining_status(user: User, db: Session, now: datetime | None = None) ->
         "current_daily_income": income["final_income"],
         "full_daily_income": income["final_income"],
         "expected_earned_income": expected_earned_income,
-        "current_total_balance": money(user.profits),
+        "current_total_balance": settled_user_profits,
+        "settled_user_profits": settled_user_profits,
+        "live_cycle_income": live_earned_income,
+        "dashboard_earnings_total": live_available_yield,
+        "live_total_earnings": live_available_yield,
         "live_earned_income": live_earned_income,
         "live_available_yield": live_available_yield,
         "status_at_iso": cycle_to_iso(now),

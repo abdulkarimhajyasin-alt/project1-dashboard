@@ -135,10 +135,14 @@ def build_user_financial_state(user: User, db: Session) -> dict:
     active_capital = get_active_capital(user)
     available_yield = get_available_yield(user)
     total_referral_earnings = get_referral_earnings_total(user, db)
+    dashboard_earnings_total = mining_status.get("dashboard_earnings_total", available_yield)
     return {
         "active_capital": active_capital,
         "available_yield": available_yield,
         "live_available_yield": mining_status.get("live_available_yield", available_yield),
+        "settled_user_profits": available_yield,
+        "dashboard_earnings_total": dashboard_earnings_total,
+        "live_total_earnings": mining_status.get("live_total_earnings", dashboard_earnings_total),
         "total_balance": active_capital + available_yield,
         "mining_status": mining_status,
         "withdrawal_cycle": withdrawal_cycle,

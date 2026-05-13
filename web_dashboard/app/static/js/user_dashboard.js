@@ -865,6 +865,8 @@
   const earningRatioText = document.querySelector("[data-earning-ratio]");
   const liveBalanceText = document.querySelector("[data-live-balance]");
   const liveBalanceMode = document.querySelector("[data-live-balance-mode]");
+  const earningsText = document.querySelector("[data-earnings-total]");
+  const earningsMode = document.querySelector("[data-earnings-mode]");
   const miningCoreNote = document.querySelector("[data-mining-core-note]");
   const startError = document.querySelector("[data-mining-start-error]");
   const startButton = document.querySelector("[data-start-mining-button]");
@@ -879,7 +881,11 @@
     expectedEarnedIncome: 0,
     isActive: false,
     liveAvailableYield: 0,
+    liveCycleIncome: 0,
+    liveTotalEarnings: 0,
     maxLiveAvailableYield: 0,
+    maxLiveTotalEarnings: 0,
+    settledUserProfits: 0,
     statusAt: 0,
   };
 
@@ -938,14 +944,35 @@
     return clamp(liveValue, liveBalanceState.currentTotalBalance, liveBalanceState.maxLiveAvailableYield);
   }
 
+  function getVisualEarnings(now) {
+    if (!liveBalanceState.isActive || liveBalanceState.earningsPerSecond <= 0 || !liveBalanceState.statusAt) {
+      return liveBalanceState.liveTotalEarnings;
+    }
+
+    const elapsedSinceStatus = Math.max(0, (now - liveBalanceState.statusAt) / 1000);
+    const liveValue = liveBalanceState.liveTotalEarnings + liveBalanceState.earningsPerSecond * elapsedSinceStatus;
+    return clamp(liveValue, liveBalanceState.settledUserProfits, liveBalanceState.maxLiveTotalEarnings);
+  }
+
   function renderLiveBalance() {
-    if (!liveBalanceText) return;
-    const visualBalance = getVisualBalance(Date.now());
-    liveBalanceText.textContent = formatLiveBalance(visualBalance);
-    liveBalanceText.classList.toggle("is-live", liveBalanceState.isActive);
-    liveBalanceText.closest(".live-balance-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+    const now = Date.now();
+    if (liveBalanceText) {
+      const visualBalance = getVisualBalance(now);
+      liveBalanceText.textContent = formatLiveBalance(visualBalance);
+      liveBalanceText.classList.toggle("is-live", liveBalanceState.isActive);
+      liveBalanceText.closest(".live-balance-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+    }
     if (liveBalanceMode) {
       liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
+    }
+    if (earningsText) {
+      const visualEarnings = getVisualEarnings(now);
+      earningsText.textContent = formatLiveBalance(visualEarnings);
+      earningsText.classList.toggle("is-live", liveBalanceState.isActive);
+      earningsText.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+    }
+    if (earningsMode) {
+      earningsMode.textContent = liveBalanceState.isActive ? "Live Earnings" : "Earnings";
     }
   }
 
@@ -957,13 +984,14 @@
   }
 
   function updateLiveBalanceFromStatus(status) {
-    if (!liveBalanceText || !status) return;
-    const currentTotalBalance = parseMoneyNumber(status.current_total_balance ?? liveBalanceText.dataset.currentTotalBalance);
-    const expectedEarnedIncome = parseMoneyNumber(status.expected_earned_income ?? liveBalanceText.dataset.liveExpectedEarnedIncome);
-    const activeSeconds = Number(status.active_seconds || liveBalanceText.dataset.activeSeconds || 0);
+    if (!status || (!liveBalanceText && !earningsText)) return;
+    const currentTotalBalance = parseMoneyNumber(status.current_total_balance ?? liveBalanceText?.dataset.currentTotalBalance ?? earningsText?.dataset.settledProfits);
+    const settledUserProfits = parseMoneyNumber(status.settled_user_profits ?? earningsText?.dataset.settledProfits ?? currentTotalBalance);
+    const expectedEarnedIncome = parseMoneyNumber(status.expected_earned_income ?? liveBalanceText?.dataset.liveExpectedEarnedIncome ?? earningsText?.dataset.expectedEarnedIncome);
+    const activeSeconds = Number(status.active_seconds || liveBalanceText?.dataset.activeSeconds || earningsText?.dataset.activeSeconds || 0);
     const actualStartAt = status.actual_start_time_iso
       ? Date.parse(status.actual_start_time_iso)
-      : Date.parse(liveBalanceText.dataset.actualStartAt || "");
+      : Date.parse(liveBalanceText?.dataset.actualStartAt || earningsText?.dataset.actualStartAt || "");
     const isActive =
       !status.completed &&
       status.can_start === false &&
@@ -976,8 +1004,17 @@
     const fallbackLiveYield = currentTotalBalance + expectedEarnedIncome * (elapsedActiveSeconds / Math.max(activeSeconds, 1));
     const liveAvailableYield = status.live_available_yield !== undefined && status.live_available_yield !== null
       ? parseMoneyNumber(status.live_available_yield)
-      : parseMoneyNumber(liveBalanceText.dataset.liveAvailableYield || fallbackLiveYield);
+      : parseMoneyNumber(liveBalanceText?.dataset.liveAvailableYield || fallbackLiveYield);
+    const fallbackLiveCycleIncome = expectedEarnedIncome * (elapsedActiveSeconds / Math.max(activeSeconds, 1));
+    const liveCycleIncome = parseMoneyNumber(status.live_cycle_income ?? status.live_earned_income ?? earningsText?.dataset.liveCycleIncome ?? fallbackLiveCycleIncome);
+    const liveTotalEarnings = parseMoneyNumber(
+      status.dashboard_earnings_total ??
+      status.live_total_earnings ??
+      earningsText?.dataset.liveTotalEarnings ??
+      (settledUserProfits + liveCycleIncome)
+    );
     const maxLiveAvailableYield = currentTotalBalance + expectedEarnedIncome;
+    const maxLiveTotalEarnings = settledUserProfits + expectedEarnedIncome;
 
     liveBalanceState = {
       activeSeconds,
@@ -987,19 +1024,35 @@
       expectedEarnedIncome,
       isActive,
       liveAvailableYield,
+      liveCycleIncome,
+      liveTotalEarnings,
       maxLiveAvailableYield,
+      maxLiveTotalEarnings,
+      settledUserProfits,
       statusAt: Number.isFinite(statusAt) ? statusAt : Date.now(),
     };
 
-    liveBalanceText.dataset.currentTotalBalance = String(currentTotalBalance);
-    liveBalanceText.dataset.liveAvailableYield = String(liveAvailableYield);
-    liveBalanceText.dataset.liveExpectedEarnedIncome = String(expectedEarnedIncome);
-    liveBalanceText.dataset.activeSeconds = String(activeSeconds);
-    liveBalanceText.dataset.actualStartAt = status.actual_start_time_iso || "";
-    liveBalanceText.dataset.endAt = status.end_time_iso || "";
-    liveBalanceText.dataset.statusAt = status.status_at_iso || "";
-    liveBalanceText.dataset.cycleStatus = status.status || "ready";
-    liveBalanceText.dataset.canStart = status.can_start ? "true" : "false";
+    if (liveBalanceText) {
+      liveBalanceText.dataset.currentTotalBalance = String(currentTotalBalance);
+      liveBalanceText.dataset.liveAvailableYield = String(liveAvailableYield);
+      liveBalanceText.dataset.liveExpectedEarnedIncome = String(expectedEarnedIncome);
+      liveBalanceText.dataset.activeSeconds = String(activeSeconds);
+      liveBalanceText.dataset.actualStartAt = status.actual_start_time_iso || "";
+      liveBalanceText.dataset.endAt = status.end_time_iso || "";
+      liveBalanceText.dataset.statusAt = status.status_at_iso || "";
+      liveBalanceText.dataset.cycleStatus = status.status || "ready";
+      liveBalanceText.dataset.canStart = status.can_start ? "true" : "false";
+    }
+    if (earningsText) {
+      earningsText.dataset.settledProfits = String(settledUserProfits);
+      earningsText.dataset.liveCycleIncome = String(liveCycleIncome);
+      earningsText.dataset.liveTotalEarnings = String(liveTotalEarnings);
+      earningsText.dataset.expectedEarnedIncome = String(expectedEarnedIncome);
+      earningsText.dataset.activeSeconds = String(activeSeconds);
+      earningsText.dataset.actualStartAt = status.actual_start_time_iso || "";
+      earningsText.dataset.statusAt = status.status_at_iso || "";
+      earningsText.dataset.cycleActive = isActive ? "true" : "false";
+    }
 
     stopLiveBalanceAnimation();
     if (isActive) {
@@ -1027,18 +1080,21 @@
     startError.hidden = true;
   }
 
-  if (liveBalanceText) {
+  if (liveBalanceText || earningsText) {
     updateLiveBalanceFromStatus({
-      active_seconds: Number(liveBalanceText.dataset.activeSeconds || 0),
-      actual_start_time_iso: liveBalanceText.dataset.actualStartAt || "",
-      can_start: liveBalanceText.dataset.canStart === "true",
+      active_seconds: Number(liveBalanceText?.dataset.activeSeconds || earningsText?.dataset.activeSeconds || 0),
+      actual_start_time_iso: liveBalanceText?.dataset.actualStartAt || earningsText?.dataset.actualStartAt || "",
+      can_start: liveBalanceText?.dataset.canStart === "true",
       completed: false,
-      current_total_balance: liveBalanceText.dataset.currentTotalBalance || "0",
-      end_time_iso: liveBalanceText.dataset.endAt || "",
-      expected_earned_income: liveBalanceText.dataset.liveExpectedEarnedIncome || "0",
-      live_available_yield: liveBalanceText.dataset.liveAvailableYield || liveBalanceText.dataset.currentTotalBalance || "0",
-      status_at_iso: liveBalanceText.dataset.statusAt || "",
-      status: liveBalanceText.dataset.cycleStatus || "ready",
+      current_total_balance: liveBalanceText?.dataset.currentTotalBalance || earningsText?.dataset.settledProfits || "0",
+      end_time_iso: liveBalanceText?.dataset.endAt || "",
+      expected_earned_income: liveBalanceText?.dataset.liveExpectedEarnedIncome || earningsText?.dataset.expectedEarnedIncome || "0",
+      live_available_yield: liveBalanceText?.dataset.liveAvailableYield || liveBalanceText?.dataset.currentTotalBalance || earningsText?.dataset.liveTotalEarnings || "0",
+      live_cycle_income: earningsText?.dataset.liveCycleIncome || "0",
+      live_total_earnings: earningsText?.dataset.liveTotalEarnings || "",
+      settled_user_profits: earningsText?.dataset.settledProfits || liveBalanceText?.dataset.currentTotalBalance || "0",
+      status_at_iso: liveBalanceText?.dataset.statusAt || earningsText?.dataset.statusAt || "",
+      status: liveBalanceText?.dataset.cycleStatus || (earningsText?.dataset.cycleActive === "true" ? "active" : "ready"),
     });
   }
 
