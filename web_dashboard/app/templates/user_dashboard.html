@@ -106,6 +106,7 @@
     <article class="mining-stat-card live-balance-card earnings-card">
       <span dir="rtl">الأرباح</span>
       <strong
+        id="dashboard-earnings-value"
         data-earnings-total
         data-settled-profits="{{ '%.8f'|format(mining_status.settled_user_profits or mining_status.current_total_balance or 0) }}"
         data-live-cycle-income="{{ '%.8f'|format(mining_status.live_cycle_income or mining_status.live_earned_income or 0) }}"

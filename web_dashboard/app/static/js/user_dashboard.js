@@ -865,7 +865,7 @@
   const earningRatioText = document.querySelector("[data-earning-ratio]");
   const liveBalanceText = document.querySelector("[data-live-balance]");
   const liveBalanceMode = document.querySelector("[data-live-balance-mode]");
-  const earningsText = document.querySelector("[data-earnings-total]");
+  const earningsText = document.getElementById("dashboard-earnings-value") || document.querySelector("[data-earnings-total]");
   const earningsMode = document.querySelector("[data-earnings-mode]");
   const miningCoreNote = document.querySelector("[data-mining-core-note]");
   const startError = document.querySelector("[data-mining-start-error]");
@@ -946,11 +946,12 @@
 
   function getVisualEarnings(now) {
     if (!liveBalanceState.isActive || liveBalanceState.earningsPerSecond <= 0 || !liveBalanceState.statusAt) {
-      return liveBalanceState.liveTotalEarnings;
+      return liveBalanceState.settledUserProfits + liveBalanceState.liveCycleIncome;
     }
 
     const elapsedSinceStatus = Math.max(0, (now - liveBalanceState.statusAt) / 1000);
-    const liveValue = liveBalanceState.liveTotalEarnings + liveBalanceState.earningsPerSecond * elapsedSinceStatus;
+    const visualCycleIncome = liveBalanceState.liveCycleIncome + liveBalanceState.earningsPerSecond * elapsedSinceStatus;
+    const liveValue = liveBalanceState.settledUserProfits + clamp(visualCycleIncome, 0, liveBalanceState.expectedEarnedIncome);
     return clamp(liveValue, liveBalanceState.settledUserProfits, liveBalanceState.maxLiveTotalEarnings);
   }
 
@@ -1005,14 +1006,12 @@
     const liveAvailableYield = status.live_available_yield !== undefined && status.live_available_yield !== null
       ? parseMoneyNumber(status.live_available_yield)
       : parseMoneyNumber(liveBalanceText?.dataset.liveAvailableYield || fallbackLiveYield);
-    const fallbackLiveCycleIncome = expectedEarnedIncome * (elapsedActiveSeconds / Math.max(activeSeconds, 1));
-    const liveCycleIncome = parseMoneyNumber(status.live_cycle_income ?? status.live_earned_income ?? earningsText?.dataset.liveCycleIncome ?? fallbackLiveCycleIncome);
-    const liveTotalEarnings = parseMoneyNumber(
-      status.dashboard_earnings_total ??
-      status.live_total_earnings ??
-      earningsText?.dataset.liveTotalEarnings ??
-      (settledUserProfits + liveCycleIncome)
+    const fallbackLiveCycleIncome = Math.max(
+      0,
+      liveAvailableYield - settledUserProfits || expectedEarnedIncome * (elapsedActiveSeconds / Math.max(activeSeconds, 1)),
     );
+    const liveCycleIncome = parseMoneyNumber(status.live_cycle_income ?? status.live_earned_income ?? earningsText?.dataset.liveCycleIncome ?? fallbackLiveCycleIncome);
+    const liveTotalEarnings = settledUserProfits + liveCycleIncome;
     const maxLiveAvailableYield = currentTotalBalance + expectedEarnedIncome;
     const maxLiveTotalEarnings = settledUserProfits + expectedEarnedIncome;
 
