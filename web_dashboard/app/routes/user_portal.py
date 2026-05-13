@@ -104,10 +104,13 @@ def build_register_context(request: Request, ref: str = "", error: str | None = 
 
 
 def build_user_context(request: Request, user: User, active_user_page: str, db: Session) -> dict:
-    withdraw_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
     financial_state = build_user_financial_state(user, db)
     withdrawal_cycle = financial_state["withdrawal_cycle"]
     mining_status = financial_state["mining_status"]
+    profit_progress_percent = min(100, int((Decimal(user.profits or 0) / MIN_WITHDRAWAL) * 100))
+    withdraw_percent = profit_progress_percent
+    if financial_state["plan_status"]["has_active_plan"]:
+        withdraw_percent = int((profit_progress_percent + withdrawal_cycle["withdrawal_progress_percent"]) / 2)
     referrals_count = financial_state["referrals_count"]
     rank_info = financial_state["referral_rank_info"]
     referral_url = get_referral_url(request, user)
