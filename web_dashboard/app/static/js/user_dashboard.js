@@ -929,6 +929,14 @@
     return `$${Math.max(0, value).toFixed(8)}`;
   }
 
+  function formatCurrency8(value) {
+    return formatLiveBalance(value);
+  }
+
+  function getDashboardEarningsElement() {
+    return document.getElementById("dashboard-earnings-value");
+  }
+
   function stopLiveBalanceAnimation() {
     if (!liveBalanceAnimationFrame) return;
     window.cancelAnimationFrame(liveBalanceAnimationFrame);
@@ -949,14 +957,35 @@
       0,
       liveBalanceState.expectedEarnedIncome,
     );
+    const liveAvailableYield = clamp(
+      liveBalanceState.currentTotalBalance + liveEarnedIncome,
+      liveBalanceState.currentTotalBalance,
+      liveBalanceState.maxLiveAvailableYield,
+    );
     return {
-      liveAvailableYield: clamp(
-        liveBalanceState.currentTotalBalance + liveEarnedIncome,
-        liveBalanceState.currentTotalBalance,
-        liveBalanceState.maxLiveAvailableYield,
-      ),
+      liveAvailableYield,
       liveEarnedIncome,
     };
+  }
+
+  function updateDashboardEarnings(liveEarnedIncome, now) {
+    const earningsEl = getDashboardEarningsElement();
+    if (!earningsEl) return;
+
+    const settledProfits = Number.parseFloat(earningsEl.dataset.settledProfits || "0") || 0;
+    const earningsValue = settledProfits + liveEarnedIncome;
+    earningsEl.textContent = formatCurrency8(earningsValue);
+    earningsEl.classList.toggle("is-live", liveBalanceState.isActive);
+    earningsEl.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
+
+    if (liveBalanceState.isActive && now - lastLiveEarningsDebugAt >= 1000) {
+      console.log("LIVE EARNINGS TICK", {
+        settledProfits,
+        liveEarnedIncome,
+        earningsValue,
+      });
+      lastLiveEarningsDebugAt = now;
+    }
   }
 
   function renderLiveBalance() {
@@ -970,18 +999,7 @@
     if (liveBalanceMode) {
       liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
     }
-    if (earningsText) {
-      const settledProfits = liveBalanceState.settledUserProfits;
-      const liveEarnedIncome = liveBalanceState.isActive ? liveValues.liveEarnedIncome : 0;
-      const earningsValue = settledProfits + liveEarnedIncome;
-      earningsText.textContent = formatLiveBalance(earningsValue);
-      earningsText.classList.toggle("is-live", liveBalanceState.isActive);
-      earningsText.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
-      if (window.NOVAHASH_DEBUG_LIVE === true && now - lastLiveEarningsDebugAt >= 1000) {
-        console.debug("[NovaHash] live earnings updated", { settledProfits, liveEarnedIncome, earningsValue });
-        lastLiveEarningsDebugAt = now;
-      }
-    }
+    updateDashboardEarnings(liveBalanceState.isActive ? liveValues.liveEarnedIncome : 0, now);
     if (earningsMode) {
       earningsMode.textContent = liveBalanceState.isActive ? "Live Earnings" : "Earnings";
     }
@@ -1052,15 +1070,16 @@
       liveBalanceText.dataset.cycleStatus = status.status || "ready";
       liveBalanceText.dataset.canStart = status.can_start ? "true" : "false";
     }
-    if (earningsText) {
-      earningsText.dataset.settledProfits = String(settledUserProfits);
-      earningsText.dataset.liveCycleIncome = String(liveCycleIncome);
-      earningsText.dataset.liveTotalEarnings = String(liveTotalEarnings);
-      earningsText.dataset.expectedEarnedIncome = String(expectedEarnedIncome);
-      earningsText.dataset.activeSeconds = String(activeSeconds);
-      earningsText.dataset.actualStartAt = status.actual_start_time_iso || "";
-      earningsText.dataset.statusAt = status.status_at_iso || "";
-      earningsText.dataset.cycleActive = isActive ? "true" : "false";
+    const earningsEl = getDashboardEarningsElement();
+    if (earningsEl) {
+      earningsEl.dataset.settledProfits = String(settledUserProfits);
+      earningsEl.dataset.liveCycleIncome = String(liveCycleIncome);
+      earningsEl.dataset.liveTotalEarnings = String(liveTotalEarnings);
+      earningsEl.dataset.expectedEarnedIncome = String(expectedEarnedIncome);
+      earningsEl.dataset.activeSeconds = String(activeSeconds);
+      earningsEl.dataset.actualStartAt = status.actual_start_time_iso || "";
+      earningsEl.dataset.statusAt = status.status_at_iso || "";
+      earningsEl.dataset.cycleActive = isActive ? "true" : "false";
     }
 
     stopLiveBalanceAnimation();
