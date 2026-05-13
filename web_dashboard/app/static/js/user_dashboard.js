@@ -968,7 +968,7 @@
     };
   }
 
-  function updateDashboardEarnings(liveEarnedIncome, now) {
+  function updateDashboardEarnings(liveEarnedIncome, totalBalanceValue, now) {
     const earningsEl = getDashboardEarningsElement();
     if (!earningsEl) return;
 
@@ -979,7 +979,8 @@
     earningsEl.closest(".earnings-card")?.classList.toggle("is-live", liveBalanceState.isActive);
 
     if (liveBalanceState.isActive && now - lastLiveEarningsDebugAt >= 1000) {
-      console.log("LIVE EARNINGS TICK", {
+      console.log("LIVE_TOTAL_BALANCE_TICK", totalBalanceValue);
+      console.log("LIVE_EARNINGS_TICK", {
         settledProfits,
         liveEarnedIncome,
         earningsValue,
@@ -999,7 +1000,11 @@
     if (liveBalanceMode) {
       liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
     }
-    updateDashboardEarnings(liveBalanceState.isActive ? liveValues.liveEarnedIncome : 0, now);
+    updateDashboardEarnings(
+      liveBalanceState.isActive ? liveValues.liveEarnedIncome : 0,
+      liveValues.liveAvailableYield,
+      now,
+    );
     if (earningsMode) {
       earningsMode.textContent = liveBalanceState.isActive ? "Live Earnings" : "Earnings";
     }
