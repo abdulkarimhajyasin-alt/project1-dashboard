@@ -9,6 +9,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 from urllib.parse import quote, urlencode
 
+from app.audit import create_audit_log
 from app.database import get_db
 from app.dependencies import get_current_admin
 from app.financial_state import build_admin_financial_summary, sync_user_active_capital
@@ -364,6 +365,7 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
         if pending_request.request_type in {"deposit", "plan_subscription"} and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
             final_plan = determine_plan_for_amount(amount)
+            capital_before = Decimal(pending_request.user.capital or 0)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) + amount)
             pending_request.user.plan = final_plan
             sync_user_active_capital(pending_request.user, db)
@@ -395,8 +397,27 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                     "Reviewed by": admin.username,
                 },
             )
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type=f"{pending_request.request_type}_approved",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                amount_before=capital_before,
+                amount_after=pending_request.user.capital,
+                currency="USD",
+                reason=f"Approved by admin: {admin.username}",
+                metadata={
+                    "request_type": pending_request.request_type,
+                    "approved_amount": amount,
+                    "activated_plan": final_plan,
+                },
+            )
         elif pending_request.request_type == "withdraw" and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
+            profits_before = Decimal(pending_request.user.profits or 0)
             pending_request.user.profits = max(Decimal("0"), Decimal(pending_request.user.profits or 0) - amount)
             db.add(
                 Record(
@@ -420,8 +441,23 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                     "Reviewed by": admin.username,
                 },
             )
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type="withdrawal_approved",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                amount_before=profits_before,
+                amount_after=pending_request.user.profits,
+                currency="USD",
+                reason=f"Approved by admin: {admin.username}",
+                metadata={"request_type": pending_request.request_type, "withdrawal_amount": amount},
+            )
         elif pending_request.request_type == "capital_withdraw" and pending_request.user and pending_request.amount:
             amount = money(pending_request.amount)
+            capital_before = Decimal(pending_request.user.capital or 0)
             pending_request.user.capital = max(Decimal("0"), Decimal(pending_request.user.capital or 0) - amount)
             db.add(
                 Record(
@@ -431,6 +467,20 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                     record_type="capital_withdraw",
                     notes=f"Approved by admin: {admin.username}",
                 )
+            )
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type="capital_withdrawal_approved",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                amount_before=capital_before,
+                amount_after=pending_request.user.capital,
+                currency="USD",
+                reason=f"Approved by admin: {admin.username}",
+                metadata={"request_type": pending_request.request_type, "withdrawal_amount": amount},
             )
         elif pending_request.request_type == "verification":
             apply_verification_request_to_user(pending_request, approve=True)
@@ -443,6 +493,20 @@ def accept_pending_request(request_id: int, admin: Admin = Depends(get_current_a
                     target_url="/user/account",
                     kind="verification",
                     data={"Status": "approved", "Reviewed by": admin.username},
+                )
+                create_audit_log(
+                    db,
+                    actor_user_id=admin.id,
+                    actor_role="admin",
+                    target_user_id=pending_request.user.id,
+                    action_type="verification_approved",
+                    entity_type="pending_request",
+                    entity_id=pending_request.id,
+                    reason=f"Approved by admin: {admin.username}",
+                    metadata={
+                        "request_type": pending_request.request_type,
+                        "legal_full_name": pending_request.legal_full_name or pending_request.full_name,
+                    },
                 )
         pending_request.status = "approved"
         db.commit()
@@ -511,6 +575,21 @@ def reject_pending_request(
                     "Reviewed by": admin.username,
                 },
             )
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type=f"{pending_request.request_type}_rejected",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                amount_before=pending_request.amount,
+                amount_after=pending_request.amount,
+                amount_delta=Decimal("0"),
+                currency="USD",
+                reason=clean_reason,
+                metadata={"request_type": pending_request.request_type},
+            )
         elif pending_request.request_type == "withdraw" and pending_request.user:
             message = "تم رفض طلب سحب الأرباح."
             if clean_reason:
@@ -527,6 +606,49 @@ def reject_pending_request(
                     "Reason": clean_reason,
                     "Reviewed by": admin.username,
                 },
+            )
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type="withdrawal_rejected",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                amount_before=pending_request.amount,
+                amount_after=pending_request.amount,
+                amount_delta=Decimal("0"),
+                currency="USD",
+                reason=clean_reason,
+                metadata={"request_type": pending_request.request_type},
+            )
+        elif pending_request.request_type == "capital_withdraw" and pending_request.user:
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type="capital_withdrawal_rejected",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                amount_before=pending_request.amount,
+                amount_after=pending_request.amount,
+                amount_delta=Decimal("0"),
+                currency="USD",
+                reason=clean_reason,
+                metadata={"request_type": pending_request.request_type},
+            )
+        if pending_request.request_type == "verification" and pending_request.user:
+            create_audit_log(
+                db,
+                actor_user_id=admin.id,
+                actor_role="admin",
+                target_user_id=pending_request.user.id,
+                action_type="verification_rejected",
+                entity_type="pending_request",
+                entity_id=pending_request.id,
+                reason=clean_reason,
+                metadata={"request_type": pending_request.request_type},
             )
         db.commit()
         if request_prefers_json(request):

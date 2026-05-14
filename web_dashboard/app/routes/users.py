@@ -8,6 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.audit import create_audit_log
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
@@ -412,7 +413,19 @@ def update_user_plan(
 ):
     user = get_admin_user(db, user_id)
     allowed_plans = {"none", "silver", "gold", "vip"}
+    previous_plan = user.plan
     user.plan = plan if plan in allowed_plans else "none"
+    create_audit_log(
+        db,
+        actor_user_id=admin.id,
+        actor_role="admin",
+        target_user_id=user.id,
+        action_type="user_subscription_deleted" if user.plan == "none" and previous_plan != "none" else "user_subscription_updated",
+        entity_type="user",
+        entity_id=user.id,
+        reason=f"Plan changed by admin: {admin.username}",
+        metadata={"previous_plan": previous_plan, "new_plan": user.plan},
+    )
     db.commit()
     return RedirectResponse(url=f"/users/{user.id}", status_code=303)
 
@@ -431,10 +444,16 @@ def adjust_user_balance(
     delta = safe_amount if operation == "add" else -safe_amount
 
     if field == "profits":
+        amount_before = Decimal(user.profits or 0)
         user.profits = max(Decimal("0"), Decimal(user.profits or 0) + delta)
+        amount_after = Decimal(user.profits or 0)
+        action_type = "admin_available_yield_adjustment"
     else:
+        amount_before = Decimal(user.capital or 0)
         user.capital = max(Decimal("0"), Decimal(user.capital or 0) + delta)
         sync_user_active_capital(user, db)
+        amount_after = Decimal(user.capital or 0)
+        action_type = "admin_capital_adjustment"
 
     db.add(
         Record(
@@ -444,6 +463,21 @@ def adjust_user_balance(
             record_type=f"{field}_{operation}",
             notes=f"Adjusted by admin: {admin.username}",
         )
+    )
+    create_audit_log(
+        db,
+        actor_user_id=admin.id,
+        actor_role="admin",
+        target_user_id=user.id,
+        action_type=action_type,
+        entity_type="user",
+        entity_id=user.id,
+        amount_before=amount_before,
+        amount_after=amount_after,
+        amount_delta=amount_after - amount_before,
+        currency="USD",
+        reason=f"Adjusted by admin: {admin.username}",
+        metadata={"field": field, "operation": operation, "requested_amount": safe_amount},
     )
     db.commit()
     return RedirectResponse(url=f"/users/{user.id}", status_code=303)
@@ -458,6 +492,7 @@ def toggle_manual_withdrawal_unlock(
 ):
     user = get_admin_user(db, user_id)
     should_unlock = unlock_action == "open"
+    previous_unlock = bool(user.manual_withdrawal_unlock)
     user.manual_withdrawal_unlock = should_unlock
     create_user_notification(
         db,
@@ -475,6 +510,17 @@ def toggle_manual_withdrawal_unlock(
             "Reviewed by": admin.username,
         },
     )
+    create_audit_log(
+        db,
+        actor_user_id=admin.id,
+        actor_role="admin",
+        target_user_id=user.id,
+        action_type="manual_withdrawal_unlocked" if should_unlock else "manual_withdrawal_locked",
+        entity_type="user",
+        entity_id=user.id,
+        reason=f"Manual withdrawal {'unlocked' if should_unlock else 'locked'} by admin: {admin.username}",
+        metadata={"previous_unlock": previous_unlock, "new_unlock": should_unlock},
+    )
     db.commit()
     return RedirectResponse(url=f"/users/{user.id}#financial", status_code=303)
 
@@ -482,12 +528,29 @@ def toggle_manual_withdrawal_unlock(
 @router.post("/{user_id}/reset-cycle")
 def reset_user_cycle(user_id: int, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = get_admin_user(db, user_id)
+    active_cycle_ids = [
+        cycle_id
+        for (cycle_id,) in db.query(MiningCycle.id)
+        .filter(MiningCycle.user_id == user.id, MiningCycle.status == "active")
+        .all()
+    ]
     (
         db.query(MiningCycle)
         .filter(MiningCycle.user_id == user.id, MiningCycle.status == "active")
         .update({"status": "cancelled"}, synchronize_session=False)
     )
     user.last_start_at = None
+    create_audit_log(
+        db,
+        actor_user_id=admin.id,
+        actor_role="admin",
+        target_user_id=user.id,
+        action_type="mining_cycle_cancelled_by_admin",
+        entity_type="mining_cycle",
+        entity_id=active_cycle_ids[0] if len(active_cycle_ids) == 1 else None,
+        reason=f"Active mining cycle reset by admin: {admin.username}",
+        metadata={"cancelled_cycle_ids": active_cycle_ids},
+    )
     db.commit()
     return RedirectResponse(url=f"/users/{user.id}", status_code=303)
 
@@ -510,6 +573,31 @@ def delete_user(
         return users_redirect(delete_error="Main admin account cannot be deleted.")
 
     try:
+        deleted_user_id = user.id
+        deleted_user_metadata = {
+            "name": user.name,
+            "username": user.username,
+            "email": user.email,
+            "status": user.status,
+            "plan": user.plan,
+            "capital": user.capital,
+            "profits": user.profits,
+            "referrals_count": len(user.referrals),
+        }
+        create_audit_log(
+            db,
+            actor_user_id=admin.id,
+            actor_role="admin",
+            target_user_id=deleted_user_id,
+            action_type="user_deleted",
+            entity_type="user",
+            entity_id=deleted_user_id,
+            amount_before=Decimal(user.capital or 0) + Decimal(user.profits or 0),
+            amount_after=Decimal("0"),
+            currency="USD",
+            reason=f"Deleted by admin: {admin.username}",
+            metadata=deleted_user_metadata,
+        )
         for referral in list(user.referrals):
             referral.referred_by_id = None
 

@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.audit import create_audit_log
 from app.models import MiningCycle, Record, User
 from app.utils import format_datetime_for_timezone
 
@@ -337,6 +338,7 @@ def grant_referral_rewards(db: Session, completed_cycle: MiningCycle, completed_
         if existing_record:
             total_paid = money(total_paid + existing_record.amount)
         elif reward > 0:
+            profits_before = money(recipient.profits)
             recipient.profits = money(as_decimal(recipient.profits) + reward)
             total_paid = money(total_paid + reward)
             db.add(
@@ -354,6 +356,27 @@ def grant_referral_rewards(db: Session, completed_cycle: MiningCycle, completed_
                         reward,
                     ),
                 )
+            )
+            create_audit_log(
+                db,
+                actor_role="system",
+                target_user_id=recipient.id,
+                action_type="referral_reward_granted",
+                entity_type="mining_cycle",
+                entity_id=completed_cycle.id,
+                amount_before=profits_before,
+                amount_after=recipient.profits,
+                amount_delta=reward,
+                currency="USD",
+                reason="Referral reward granted from completed mining cycle.",
+                metadata={
+                    "source_user_id": completed_user.id,
+                    "recipient_user_id": recipient.id,
+                    "referral_level": level,
+                    "source_income": source_income,
+                    "reward_amount": reward,
+                    "mining_cycle_id": completed_cycle.cycle_uuid,
+                },
             )
             db.add(recipient)
         recipient = recipient.referrer
@@ -419,6 +442,7 @@ def complete_mining_cycle(db: Session, user: User, cycle: MiningCycle, now: date
 
     income = apply_income_to_cycle(cycle)
     earned_income = money(income["final_income"] * cycle_earning_ratio(cycle))
+    profits_before = money(user.profits)
     cycle.status = "completed"
     cycle.completed_at = normalize_utc(now)
     user.profits = money(as_decimal(user.profits) + earned_income)
@@ -426,6 +450,27 @@ def complete_mining_cycle(db: Session, user: User, cycle: MiningCycle, now: date
     user.last_start_at = None
 
     add_cycle_records(db, cycle, user)
+    create_audit_log(
+        db,
+        actor_role="system",
+        target_user_id=user.id,
+        action_type="mining_cycle_settled",
+        entity_type="mining_cycle",
+        entity_id=cycle.id,
+        amount_before=profits_before,
+        amount_after=user.profits,
+        amount_delta=earned_income,
+        currency="USD",
+        reason="Mining cycle settled automatically.",
+        metadata={
+            "cycle_uuid": cycle.cycle_uuid,
+            "earning_ratio": cycle_earning_ratio(cycle),
+            "active_seconds": cycle.active_seconds,
+            "missed_seconds": cycle.missed_seconds,
+            "full_daily_income": income["final_income"],
+            "earned_income": earned_income,
+        },
+    )
     grant_referral_rewards(db, cycle, user)
     return cycle
 

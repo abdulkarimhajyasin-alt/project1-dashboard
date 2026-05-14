@@ -238,6 +238,7 @@ def init_db() -> None:
     ensure_mining_cycle_columns()
     ensure_decimal_precision("users", ["profits", "daily_earnings"])
     ensure_decimal_precision("records", ["amount"])
+    ensure_decimal_precision("audit_logs", ["amount_before", "amount_after", "amount_delta"])
     ensure_decimal_precision(
         "mining_cycles",
         [

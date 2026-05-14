@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, LargeBinary, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -96,6 +96,25 @@ class MiningCycle(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="mining_cycles")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    actor_user_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
+    actor_role: Mapped[str] = mapped_column(String(30), nullable=True, index=True)
+    target_user_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
+    action_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    entity_type: Mapped[str] = mapped_column(String(80), nullable=True, index=True)
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
+    amount_before: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=True)
+    amount_after: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=True)
+    amount_delta: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=True)
+    currency: Mapped[str] = mapped_column(String(12), default="USD", nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 class PendingRequest(Base):
