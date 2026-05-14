@@ -47,6 +47,7 @@
       <a class="is-primary" href="#overview" data-admin-detail-tab="overview">Overview</a>
       <a href="#financial" data-admin-detail-tab="financial">Financial</a>
       <a href="#transactions" data-admin-detail-tab="transactions">Transactions</a>
+      <a href="#audit" data-admin-detail-tab="audit">Audit</a>
       <a href="#verification" data-admin-detail-tab="verification">Verification</a>
       <a href="#actions" data-admin-detail-tab="actions">Actions</a>
     </nav>
@@ -213,6 +214,49 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+    </section>
+
+    <section class="admin-detail-tab-panel" id="audit" data-admin-detail-panel="audit" hidden>
+      <div class="admin-panel-header compact">
+        <div>
+          <p class="mining-kicker">Audit Timeline</p>
+          <h2>Read-only financial and admin events</h2>
+        </div>
+        <a class="admin-user-back" href="/admin/audit-logs?target_user_id={{ user.id }}">Open full audit log</a>
+      </div>
+      <div class="audit-timeline compact">
+        {% for log in audit_logs %}
+        <article class="audit-event tone-{{ audit_action_tone(log.action_type) }}">
+          <div class="audit-event-marker"></div>
+          <div class="audit-event-body">
+            <header>
+              <div>
+                <strong>{{ audit_action_label(log.action_type) }}</strong>
+                <span>{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+              </div>
+              <span class="audit-chip tone-{{ audit_action_tone(log.action_type) }}">{{ log.actor_role or "unknown" }}</span>
+            </header>
+            <dl class="audit-amount-grid">
+              <div><dt>Before</dt><dd>{{ format_audit_amount(log.amount_before) }}</dd></div>
+              <div><dt>After</dt><dd>{{ format_audit_amount(log.amount_after) }}</dd></div>
+              <div><dt>Delta</dt><dd>{{ format_audit_amount(log.amount_delta) }}</dd></div>
+            </dl>
+            {% if log.reason %}
+            <p>{{ log.reason }}</p>
+            {% endif %}
+            <div class="audit-meta-line">
+              <span>{{ log.entity_type or "entity" }} #{{ log.entity_id or "-" }}</span>
+              <span>{{ log.currency or "USD" }}</span>
+            </div>
+          </div>
+        </article>
+        {% else %}
+        <div class="admin-users-empty">
+          <strong>No audit events yet.</strong>
+          <span>Future sensitive changes for this user will appear here.</span>
+        </div>
+        {% endfor %}
       </div>
     </section>
 

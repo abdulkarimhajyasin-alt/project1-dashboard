@@ -9,7 +9,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 from urllib.parse import quote, urlencode
 
-from app.audit import create_audit_log
+from app.audit import audit_action_label, audit_action_tone, create_audit_log
 from app.database import get_db
 from app.dependencies import get_current_admin
 from app.financial_state import build_admin_financial_summary, sync_user_active_capital
@@ -24,7 +24,7 @@ from app.mining import (
     progress_percent,
     remaining_seconds,
 )
-from app.models import Admin, AppSetting, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
+from app.models import Admin, AppSetting, AuditLog, MiningCycle, Notification, PendingRequest, Record, SupportMessage, SupportThread, User
 from app.notifications import build_notifications_poll_payload, create_user_notification, get_admin_notifications_context
 from app.plans import determine_plan_for_amount, plan_label
 from app.support_chat import SupportAttachmentError, add_support_message, get_thread_messages
@@ -172,6 +172,39 @@ def get_pending_requests_context(db: Session) -> dict:
         "pending_requests_by_type": grouped_requests,
         "pending_requests_total": len(pending_requests),
     }
+
+
+def parse_positive_int(value: str | None, default: int = 1, maximum: int | None = None) -> int:
+    try:
+        parsed = int(value or default)
+    except (TypeError, ValueError):
+        parsed = default
+    parsed = max(1, parsed)
+    if maximum is not None:
+        parsed = min(maximum, parsed)
+    return parsed
+
+
+def audit_money(value: Decimal | int | float | None) -> str:
+    if value is None:
+        return "-"
+    return f"${Decimal(value):,.8f}"
+
+
+def actor_label(log: AuditLog, admin_names: dict[int, str], user_names: dict[int, str]) -> str:
+    if log.actor_role == "system":
+        return "System"
+    if log.actor_role == "admin":
+        return admin_names.get(log.actor_user_id or 0, f"Admin #{log.actor_user_id}") if log.actor_user_id else "Admin"
+    if log.actor_role == "user":
+        return user_names.get(log.actor_user_id or 0, f"User #{log.actor_user_id}") if log.actor_user_id else "User"
+    return log.actor_role or "-"
+
+
+def target_label(log: AuditLog, target_names: dict[int, str]) -> str:
+    if not log.target_user_id:
+        return "-"
+    return target_names.get(log.target_user_id, f"Deleted user #{log.target_user_id}")
 
 
 def apply_verification_request_to_user(pending_request: PendingRequest, *, approve: bool = False) -> None:
@@ -338,6 +371,137 @@ def notifications(request: Request, admin: Admin = Depends(get_current_admin), d
             "format_datetime_for_timezone": format_datetime_for_timezone,
             **context,
             **pending_context,
+        },
+    )
+
+
+@router.get("/admin/audit-logs", response_class=HTMLResponse)
+def audit_logs(request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    params = request.query_params
+    page = parse_positive_int(params.get("page"), default=1)
+    per_page = parse_positive_int(params.get("per_page"), default=50, maximum=100)
+    action_type = (params.get("action_type") or "").strip()
+    actor_role = (params.get("actor_role") or "").strip()
+    entity_type = (params.get("entity_type") or "").strip()
+    target_user_id = (params.get("target_user_id") or "").strip()
+    search = (params.get("q") or "").strip()
+
+    query = db.query(AuditLog)
+    if action_type:
+        query = query.filter(AuditLog.action_type == action_type)
+    if actor_role:
+        query = query.filter(AuditLog.actor_role == actor_role)
+    if entity_type:
+        query = query.filter(AuditLog.entity_type == entity_type)
+    if target_user_id:
+        try:
+            query = query.filter(AuditLog.target_user_id == int(target_user_id))
+        except ValueError:
+            query = query.filter(AuditLog.target_user_id == -1)
+    if search:
+        pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                AuditLog.action_type.ilike(pattern),
+                AuditLog.actor_role.ilike(pattern),
+                AuditLog.entity_type.ilike(pattern),
+                AuditLog.reason.ilike(pattern),
+            )
+        )
+
+    total_logs = query.count()
+    logs = (
+        query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+    page_count = max(1, (total_logs + per_page - 1) // per_page)
+
+    target_ids = {log.target_user_id for log in logs if log.target_user_id}
+    actor_admin_ids = {log.actor_user_id for log in logs if log.actor_user_id and log.actor_role == "admin"}
+    actor_user_ids = {log.actor_user_id for log in logs if log.actor_user_id and log.actor_role == "user"}
+    target_users = {
+        user.id: user.username or user.name or user.email or f"User #{user.id}"
+        for user in db.query(User).filter(User.id.in_(target_ids)).all()
+    } if target_ids else {}
+    actor_admins = {
+        item.id: item.username
+        for item in db.query(Admin).filter(Admin.id.in_(actor_admin_ids)).all()
+    } if actor_admin_ids else {}
+    actor_users = {
+        user.id: user.username or user.name or user.email or f"User #{user.id}"
+        for user in db.query(User).filter(User.id.in_(actor_user_ids)).all()
+    } if actor_user_ids else {}
+
+    action_options = [
+        value
+        for (value,) in db.query(AuditLog.action_type).distinct().order_by(AuditLog.action_type.asc()).all()
+        if value
+    ]
+    entity_options = [
+        value
+        for (value,) in db.query(AuditLog.entity_type).distinct().order_by(AuditLog.entity_type.asc()).all()
+        if value
+    ]
+    audit_stats = {
+        "total": db.query(AuditLog).count(),
+        "admin": db.query(AuditLog).filter(AuditLog.actor_role == "admin").count(),
+        "system": db.query(AuditLog).filter(AuditLog.actor_role == "system").count(),
+        "financial": db.query(AuditLog)
+        .filter(
+            AuditLog.action_type.in_(
+                [
+                    "admin_capital_adjustment",
+                    "admin_available_yield_adjustment",
+                    "withdrawal_approved",
+                    "capital_withdrawal_approved",
+                    "mining_cycle_settled",
+                    "referral_reward_granted",
+                ]
+            )
+        )
+        .count(),
+    }
+    page_query = {
+        "per_page": per_page,
+        "q": search,
+        "action_type": action_type,
+        "actor_role": actor_role,
+        "entity_type": entity_type,
+        "target_user_id": target_user_id,
+    }
+
+    return templates.TemplateResponse(
+        "audit_logs.html",
+        {
+            "request": request,
+            "admin": admin,
+            "active_page": "audit_logs",
+            "logs": logs,
+            "audit_stats": audit_stats,
+            "action_options": action_options,
+            "entity_options": entity_options,
+            "selected_action_type": action_type,
+            "selected_actor_role": actor_role,
+            "selected_entity_type": entity_type,
+            "selected_target_user_id": target_user_id,
+            "search_query": search,
+            "page": page,
+            "per_page": per_page,
+            "page_count": page_count,
+            "previous_page_url": f"/admin/audit-logs?{urlencode({**page_query, 'page': page - 1})}",
+            "next_page_url": f"/admin/audit-logs?{urlencode({**page_query, 'page': page + 1})}",
+            "total_logs": total_logs,
+            "target_users": target_users,
+            "actor_admins": actor_admins,
+            "actor_users": actor_users,
+            "audit_action_label": audit_action_label,
+            "audit_action_tone": audit_action_tone,
+            "audit_money": audit_money,
+            "actor_label": actor_label,
+            "target_label": target_label,
+            **get_admin_notifications_context(db),
         },
     )
 

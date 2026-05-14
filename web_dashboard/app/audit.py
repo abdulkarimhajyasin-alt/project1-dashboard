@@ -9,6 +9,63 @@ from sqlalchemy.orm import Session
 from app.models import AuditLog
 
 
+AUDIT_ACTION_LABELS = {
+    "admin_capital_adjustment": "Admin capital adjustment",
+    "admin_available_yield_adjustment": "Admin available-yield adjustment",
+    "plan_subscription_approved": "Plan subscription approved",
+    "plan_subscription_rejected": "Plan subscription rejected",
+    "deposit_approved": "Deposit approved",
+    "deposit_rejected": "Deposit rejected",
+    "withdrawal_approved": "Withdrawal approved",
+    "withdrawal_rejected": "Withdrawal rejected",
+    "capital_withdrawal_approved": "Capital withdrawal approved",
+    "capital_withdrawal_rejected": "Capital withdrawal rejected",
+    "verification_approved": "Verification approved",
+    "verification_rejected": "Verification rejected",
+    "manual_withdrawal_unlocked": "Manual withdrawal unlocked",
+    "manual_withdrawal_locked": "Manual withdrawal locked",
+    "user_subscription_updated": "Subscription updated",
+    "user_subscription_deleted": "Subscription removed",
+    "user_deleted": "User deleted",
+    "referral_reward_granted": "Referral reward granted",
+    "mining_cycle_settled": "Mining cycle settled",
+    "mining_cycle_cancelled_by_admin": "Mining cycle cancelled",
+}
+
+AUDIT_ACTION_TONES = {
+    "admin_capital_adjustment": "warning",
+    "admin_available_yield_adjustment": "warning",
+    "plan_subscription_approved": "success",
+    "plan_subscription_rejected": "danger",
+    "deposit_approved": "success",
+    "deposit_rejected": "danger",
+    "withdrawal_approved": "success",
+    "withdrawal_rejected": "danger",
+    "capital_withdrawal_approved": "success",
+    "capital_withdrawal_rejected": "danger",
+    "verification_approved": "success",
+    "verification_rejected": "danger",
+    "manual_withdrawal_unlocked": "info",
+    "manual_withdrawal_locked": "warning",
+    "user_subscription_updated": "info",
+    "user_subscription_deleted": "danger",
+    "user_deleted": "danger",
+    "referral_reward_granted": "success",
+    "mining_cycle_settled": "success",
+    "mining_cycle_cancelled_by_admin": "warning",
+}
+
+
+def audit_action_label(action_type: str | None) -> str:
+    if not action_type:
+        return "Audit event"
+    return AUDIT_ACTION_LABELS.get(action_type, action_type.replace("_", " ").title())
+
+
+def audit_action_tone(action_type: str | None) -> str:
+    return AUDIT_ACTION_TONES.get(action_type or "", "neutral")
+
+
 def json_safe(value: Any) -> Any:
     if isinstance(value, Decimal):
         return str(value)

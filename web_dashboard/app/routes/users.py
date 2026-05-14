@@ -8,13 +8,13 @@ from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.audit import create_audit_log
+from app.audit import audit_action_label, audit_action_tone, create_audit_log
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_admin
 from app.financial_state import build_admin_financial_summary, build_user_financial_state, sync_user_active_capital
 from app.mining import get_referral_rank_info
-from app.models import Admin, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
+from app.models import Admin, AuditLog, MiningCycle, Notification, PendingRequest, Record, SupportThread, User
 from app.notifications import create_user_notification, get_admin_notifications_context
 from app.support_chat import get_or_create_support_thread
 
@@ -93,6 +93,12 @@ def format_admin_duration(seconds: int | None) -> str:
     if minutes:
         return f"{minutes}m {seconds}s"
     return f"{seconds}s"
+
+
+def format_audit_amount(value: Decimal | int | float | None) -> str:
+    if value is None:
+        return "-"
+    return f"${Decimal(value):,.8f}"
 
 
 def user_initials(user: User) -> str:
@@ -319,6 +325,13 @@ def user_children(user_id: int, admin: Admin = Depends(get_current_admin), db: S
 def user_details(user_id: int, request: Request, admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = get_admin_user(db, user_id)
     records = db.query(Record).filter(Record.user_id == user.id).order_by(Record.created_at.desc()).all()
+    audit_logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.target_user_id == user.id)
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(30)
+        .all()
+    )
     financial_state = build_user_financial_state(user, db)
     mining_status = financial_state["mining_status"]
     withdrawal_cycle = financial_state["withdrawal_cycle"]
@@ -349,6 +362,10 @@ def user_details(user_id: int, request: Request, admin: Admin = Depends(get_curr
             "withdrawal_cycle": withdrawal_cycle,
             "next_withdraw_countdown": format_admin_duration(withdrawal_cycle.get("withdrawal_remaining_seconds")),
             "pending_verification_request": pending_verification_request,
+            "audit_logs": audit_logs,
+            "audit_action_label": audit_action_label,
+            "audit_action_tone": audit_action_tone,
+            "format_audit_amount": format_audit_amount,
             "delete_protected": is_protected_admin_user(user, admin),
             "referral_rank_info": financial_state["referral_rank_info"],
             **get_admin_notifications_context(db),

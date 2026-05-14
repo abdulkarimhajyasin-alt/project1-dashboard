@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block content %}
+<section class="audit-page">
+  <article class="audit-hero">
+    <div>
+      <p class="mining-kicker">Financial Audit Trail</p>
+      <h2>Read-only admin and system event history</h2>
+      <p>Trace sensitive financial, verification, withdrawal, subscription, referral, and mining settlement actions.</p>
+    </div>
+    <div class="audit-hero-lock">
+      <span>Append-only</span>
+      <strong>{{ audit_stats.total }}</strong>
+      <small>Total events</small>
+    </div>
+  </article>
+
+  <div class="audit-stat-grid">
+    <article><span>Total Events</span><strong>{{ audit_stats.total }}</strong></article>
+    <article><span>Admin Events</span><strong>{{ audit_stats.admin }}</strong></article>
+    <article><span>System Events</span><strong>{{ audit_stats.system }}</strong></article>
+    <article><span>Financial Events</span><strong>{{ audit_stats.financial }}</strong></article>
+  </div>
+
+  <section class="audit-filter-panel">
+    <div class="admin-panel-header compact">
+      <div>
+        <p class="mining-kicker">Filters</p>
+        <h2>Search audit trail</h2>
+      </div>
+    </div>
+    <form class="audit-filter-form" method="get" action="/admin/audit-logs">
+      <label>
+        Search
+        <input type="search" name="q" value="{{ search_query }}" placeholder="Action, role, entity, reason">
+      </label>
+      <label>
+        Action
+        <select name="action_type">
+          <option value="">All actions</option>
+          {% for action in action_options %}
+          <option value="{{ action }}" {{ "selected" if selected_action_type == action else "" }}>{{ audit_action_label(action) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Actor
+        <select name="actor_role">
+          <option value="">All actors</option>
+          <option value="admin" {{ "selected" if selected_actor_role == "admin" else "" }}>Admin</option>
+          <option value="user" {{ "selected" if selected_actor_role == "user" else "" }}>User</option>
+          <option value="system" {{ "selected" if selected_actor_role == "system" else "" }}>System</option>
+        </select>
+      </label>
+      <label>
+        Entity
+        <select name="entity_type">
+          <option value="">All entities</option>
+          {% for entity in entity_options %}
+          <option value="{{ entity }}" {{ "selected" if selected_entity_type == entity else "" }}>{{ entity }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Target User ID
+        <input type="number" name="target_user_id" min="1" value="{{ selected_target_user_id }}" placeholder="Any user">
+      </label>
+      <input type="hidden" name="per_page" value="{{ per_page }}">
+      <div class="audit-filter-actions">
+        <button class="admin-action-button blue" type="submit">Apply filters</button>
+        <a class="admin-user-back" href="/admin/audit-logs">Reset</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="audit-log-panel">
+    <div class="admin-panel-header compact">
+      <div>
+        <p class="mining-kicker">Events</p>
+        <h2>{{ total_logs }} matching audit events</h2>
+      </div>
+      <span class="audit-page-count">Page {{ page }} of {{ page_count }}</span>
+    </div>
+
+    <div class="audit-table-scroll">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Actor</th>
+            <th>Target</th>
+            <th>Entity</th>
+            <th>Before</th>
+            <th>After</th>
+            <th>Delta</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td data-label="Time">{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            <td data-label="Action">
+              <span class="audit-chip tone-{{ audit_action_tone(log.action_type) }}">{{ audit_action_label(log.action_type) }}</span>
+              <small>{{ log.action_type }}</small>
+            </td>
+            <td data-label="Actor">{{ actor_label(log, actor_admins, actor_users) }}</td>
+            <td data-label="Target">
+              {% if log.target_user_id %}
+              <a class="admin-user-link" href="/users/{{ log.target_user_id }}">{{ target_label(log, target_users) }}</a>
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td data-label="Entity">{{ log.entity_type or "-" }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td>
+            <td data-label="Before">{{ audit_money(log.amount_before) }}</td>
+            <td data-label="After">{{ audit_money(log.amount_after) }}</td>
+            <td data-label="Delta">{{ audit_money(log.amount_delta) }}</td>
+            <td data-label="Reason">{{ log.reason or "-" }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="empty">No audit events match these filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="audit-pagination">
+      {% if page > 1 %}
+      <a href="{{ previous_page_url }}">Previous</a>
+      {% else %}
+      <span>Previous</span>
+      {% endif %}
+      {% if page < page_count %}
+      <a href="{{ next_page_url }}">Next</a>
+      {% else %}
+      <span>Next</span>
+      {% endif %}
+    </div>
+  </section>
+</section>
+{% endblock %}
