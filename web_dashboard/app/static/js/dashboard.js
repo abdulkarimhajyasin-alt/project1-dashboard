@@ -1151,9 +1151,9 @@
         makeTableCell("Plan", plan),
         makeTableCell("Status", status),
         makeTableCell("Verified", verified),
-        makeTableCell("Capital", formatMoney(user.capital, 2)),
-        makeTableCell("Balance", formatMoney(balance, 4)),
-        makeTableCell("Profit", formatMoney(user.profits, 4)),
+        makeTableCell("Active Capital", formatMoney(user.capital, 2)),
+        makeTableCell("Account Value", formatMoney(balance, 4)),
+        makeTableCell("Available Yield", formatMoney(user.profits, 4)),
         makeTableCell("Children", children),
         makeTableCell("Action", actions),
       );

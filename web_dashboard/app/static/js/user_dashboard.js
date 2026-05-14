@@ -873,7 +873,6 @@
   const radius = 150;
   const circumference = 2 * Math.PI * radius;
   let liveBalanceAnimationFrame = null;
-  let lastLiveEarningsDebugAt = 0;
   let liveBalanceState = {
     activeSeconds: 0,
     actualStartAt: 0,
@@ -989,11 +988,13 @@
       syncEarningsWithLiveBalance();
     }
     if (liveBalanceMode) {
-      liveBalanceMode.textContent = liveBalanceState.isActive ? "Live Available Yield" : "Available Yield";
+      liveBalanceMode.textContent = liveBalanceState.isActive
+        ? "Available Yield plus current live cycle income. الأرباح المتاحة مضافاً إليها ربح الدورة الحالية المباشر."
+        : "Available Yield / الأرباح المتاحة";
     }
     syncEarningsWithLiveBalance();
     if (earningsMode) {
-      earningsMode.textContent = liveBalanceState.isActive ? "Live Earnings" : "Earnings";
+      earningsMode.textContent = liveBalanceState.isActive ? "Available Yield Preview" : "Available Yield";
     }
   }
 

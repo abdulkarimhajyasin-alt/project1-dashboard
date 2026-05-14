@@ -27,8 +27,8 @@
 <section class="admin-stats-grid">
   <article class="admin-stat-card"><span>إجمالي المستخدمين</span><strong>{{ users_count }}</strong><small>Total Users</small></article>
   <article class="admin-stat-card"><span>المستخدمون النشطون</span><strong>{{ active_users_count }}</strong><small>Active Accounts</small></article>
-  <article class="admin-stat-card"><span>مجموع رؤوس الأموال</span><strong>${{ "%.2f"|format(total_capital or 0) }}</strong><small>Capital Pool</small></article>
-  <article class="admin-stat-card"><span>مجموع الأرباح</span><strong>${{ "%.4f"|format(total_profits or 0) }}</strong><small>User Profits</small></article>
+  <article class="admin-stat-card"><span>إجمالي رأس المال النشط</span><strong>${{ "%.2f"|format(total_capital or 0) }}</strong><small>Total Active Capital</small></article>
+  <article class="admin-stat-card"><span>مجموع الأرباح المتاحة</span><strong>${{ "%.4f"|format(total_profits or 0) }}</strong><small>Total Available Yield</small></article>
   <article class="admin-stat-card"><span>سجلات العمليات</span><strong>{{ records_count }}</strong><small>Records</small></article>
   <article class="admin-stat-card"><span>إجمالي العمليات</span><strong>${{ "%.2f"|format(total_amount or 0) }}</strong><small>Record Volume</small></article>
 </section>

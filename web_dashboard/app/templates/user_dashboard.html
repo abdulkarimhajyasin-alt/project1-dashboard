@@ -68,7 +68,7 @@
       </div>
     </div>
     <article class="mining-stat-card live-balance-card mining-core-balance-card">
-      <span>Total Balance</span>
+      <span>Live Available Yield / الأرباح المتاحة المباشرة</span>
       <strong
         id="live-available-yield-value"
         data-live-balance
@@ -84,7 +84,7 @@
       >
         ${{ '%.8f'|format(mining_status.live_available_yield or mining_status.current_total_balance or 0) }}
       </strong>
-      <small data-live-balance-mode>{{ "Live Available Yield" if not mining_status.can_start and (mining_status.expected_earned_income or 0) > 0 else "Available Yield" }}</small>
+      <small data-live-balance-mode>{{ "Available Yield plus current live cycle income. الأرباح المتاحة مضافاً إليها ربح الدورة الحالية المباشر." if not mining_status.can_start and (mining_status.expected_earned_income or 0) > 0 else "Available Yield / الأرباح المتاحة" }}</small>
     </article>
     <div class="mining-cycle-meta">
       <span>Mining Status <strong data-mining-status-label>{{ mining_status.status|title }}</strong></span>
@@ -103,9 +103,9 @@
   </article>
 
   <section class="mining-stats-grid">
-    <article class="mining-stat-card"><span>Active Capital</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Approved Capital</small></article>
+    <article class="mining-stat-card"><span>Active Capital / رأس المال النشط</span><strong data-counter="{{ '%.2f'|format(mining_status.active_capital or 0) }}">${{ '%.2f'|format(mining_status.active_capital or 0) }}</strong><small>Separate from withdrawable yield. منفصل عن الأرباح المتاحة للسحب.</small></article>
     <article class="mining-stat-card live-balance-card earnings-card">
-      <span dir="rtl">الأرباح</span>
+      <span>Available Yield Preview / معاينة الأرباح المتاحة</span>
       <strong
         id="dashboard-earnings-value"
         data-earnings-total
@@ -120,9 +120,9 @@
       >
         ${{ '%.8f'|format(mining_status.dashboard_earnings_total or mining_status.live_total_earnings or mining_status.live_available_yield or mining_status.current_total_balance or 0) }}
       </strong>
-      <small data-earnings-mode>Live Earnings</small>
+      <small data-earnings-mode>Available Yield Preview</small>
     </article>
-    <article class="mining-stat-card"><span>Referral Earnings</span><strong data-counter="{{ '%.8f'|format(total_referral_earnings or 0) }}">${{ '%.8f'|format(total_referral_earnings or 0) }}</strong><small>All Levels</small></article>
+    <article class="mining-stat-card"><span>Referral Rewards / مكافآت الإحالة</span><strong data-counter="{{ '%.8f'|format(total_referral_earnings or 0) }}">${{ '%.8f'|format(total_referral_earnings or 0) }}</strong><small>Included in Available Yield after settlement. تُضاف إلى الأرباح المتاحة بعد اعتمادها.</small></article>
     <article class="mining-stat-card"><span>Referral Rank</span><strong>{{ referral_rank_info.rank }}</strong><small>{{ referral_rank_info.remaining }} to {{ referral_rank_info.next_rank or "Max Rank" }}</small></article>
     <article class="mining-stat-card"><span>Number of Referrals</span><strong data-counter="{{ referrals_count }}">{{ referrals_count }}</strong><small>Direct Referrals</small></article>
   </section>

@@ -28,9 +28,9 @@
       <article><span>إجمالي المستخدمين</span><strong>{{ users_metrics.total_users }}</strong></article>
       <article><span>المستخدمون النشطون</span><strong>{{ users_metrics.active_users }}</strong></article>
       <article><span>المستخدمون الموثقون</span><strong>{{ users_metrics.verified_users }}</strong></article>
-      <article><span>إجمالي رأس المال</span><strong>${{ "%.2f"|format(users_metrics.total_capital or 0) }}</strong></article>
-      <article><span>إجمالي الأرباح</span><strong>${{ "%.4f"|format(users_metrics.total_profits or 0) }}</strong></article>
-      <article><span>إجمالي الأرصدة</span><strong>${{ "%.4f"|format(users_metrics.total_balances or 0) }}</strong></article>
+      <article><span>إجمالي رأس المال النشط</span><strong>${{ "%.2f"|format(users_metrics.total_capital or 0) }}</strong></article>
+      <article><span>مجموع الأرباح المتاحة</span><strong>${{ "%.4f"|format(users_metrics.total_profits or 0) }}</strong></article>
+      <article><span>إجمالي قيمة الحسابات</span><strong>${{ "%.4f"|format(users_metrics.total_balances or 0) }}</strong></article>
     </div>
   </header>
 
@@ -99,8 +99,8 @@
         <span>Sort by</span>
         <select name="sort">
           <option value="newest" {{ "selected" if active_sort == "newest" else "" }}>Newest</option>
-          <option value="capital" {{ "selected" if active_sort == "capital" else "" }}>Capital</option>
-          <option value="profits" {{ "selected" if active_sort == "profits" else "" }}>Profits</option>
+          <option value="capital" {{ "selected" if active_sort == "capital" else "" }}>Active Capital</option>
+          <option value="profits" {{ "selected" if active_sort == "profits" else "" }}>Available Yield</option>
           <option value="referrals" {{ "selected" if active_sort == "referrals" else "" }}>Referrals</option>
         </select>
       </label>
@@ -130,9 +130,9 @@
             <th>Plan</th>
             <th>Status</th>
             <th>Verified</th>
-            <th>Capital</th>
-            <th>Balance</th>
-            <th>Profit</th>
+            <th>Active Capital</th>
+            <th>Account Value</th>
+            <th>Available Yield</th>
             <th>Children</th>
             <th>Action</th>
           </tr>
@@ -158,9 +158,9 @@
             <td data-label="Plan"><span class="user-badge plan">{{ (user.plan or "none")|upper }}</span></td>
             <td data-label="Status"><span class="user-badge status-{{ user.status }}">{{ user.status }}</span></td>
             <td data-label="Verified"><span class="user-badge {{ 'is-verified' if user.verified else 'is-muted' }}">{{ 'موثق' if user.verified else 'غير موثق' }}</span></td>
-            <td data-label="Capital">${{ "%.2f"|format(user.capital or 0) }}</td>
-            <td data-label="Balance">${{ "%.4f"|format((user.capital or 0) + (user.profits or 0)) }}</td>
-            <td data-label="Profit">${{ "%.4f"|format(user.profits or 0) }}</td>
+            <td data-label="Active Capital">${{ "%.2f"|format(user.capital or 0) }}</td>
+            <td data-label="Account Value">${{ "%.4f"|format((user.capital or 0) + (user.profits or 0)) }}</td>
+            <td data-label="Available Yield">${{ "%.4f"|format(user.profits or 0) }}</td>
             <td data-label="Children">
               <div class="admin-users-children-cell">
                 <span class="user-badge children">{{ referral_count }}</span>

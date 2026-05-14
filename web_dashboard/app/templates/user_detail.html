@@ -31,9 +31,9 @@
     </div>
 
     <div class="admin-user-stat-grid">
-      <article><span>الرصيد</span><strong>${{ "%.4f"|format(total_balance or 0) }}</strong></article>
-      <article><span>رأس المال</span><strong>${{ "%.2f"|format(user.capital or 0) }}</strong></article>
-      <article><span>الأرباح</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></article>
+      <article><span>قيمة الحساب</span><strong>${{ "%.4f"|format(total_balance or 0) }}</strong></article>
+      <article><span>رأس المال النشط</span><strong>${{ "%.2f"|format(user.capital or 0) }}</strong></article>
+      <article><span>الأرباح المتاحة</span><strong>${{ "%.4f"|format(user.profits or 0) }}</strong></article>
       <article><span>عدد العمليات</span><strong>{{ transaction_count }}</strong></article>
       <article><span>موعد الربح القادم</span><strong>{{ mining_status.end_time or "-" }}</strong></article>
       <article><span>عداد الربح القادم</span><strong>{{ next_profit_countdown }}</strong></article>
@@ -112,21 +112,21 @@
         <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm capital adjustment" data-sensitive-message="This will change the user's active capital and may sync the active mining cycle." data-sensitive-confirm-label="Apply adjustment">
           <input type="hidden" name="field" value="capital">
           <label>
-            إضافة/خصم Balance
+            إضافة/خصم Active Capital
             <input type="number" name="amount" step="0.01" min="0" value="10">
           </label>
-          <button class="admin-action-button green" type="submit" name="operation" value="add">Balance +</button>
-          <button class="admin-action-button red" type="submit" name="operation" value="subtract">Balance -</button>
+          <button class="admin-action-button green" type="submit" name="operation" value="add">Active Capital +</button>
+          <button class="admin-action-button red" type="submit" name="operation" value="subtract">Active Capital -</button>
         </form>
 
         <form method="post" action="/users/{{ user.id }}/balance" class="admin-balance-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm profit adjustment" data-sensitive-message="This will change the user's available profits balance." data-sensitive-confirm-label="Apply adjustment">
           <input type="hidden" name="field" value="profits">
           <label>
-            إضافة/خصم Profit
+            إضافة/خصم Available Yield
             <input type="number" name="amount" step="0.0001" min="0" value="1">
           </label>
-          <button class="admin-action-button green" type="submit" name="operation" value="add">Profit +</button>
-          <button class="admin-action-button red" type="submit" name="operation" value="subtract">Profit -</button>
+          <button class="admin-action-button green" type="submit" name="operation" value="add">Available Yield +</button>
+          <button class="admin-action-button red" type="submit" name="operation" value="subtract">Available Yield -</button>
         </form>
 
         <form method="post" action="/users/{{ user.id }}/plan" class="admin-plan-form" data-sensitive-confirm="approve" data-sensitive-title="Confirm plan change" data-sensitive-message="This will update the user's active plan state." data-sensitive-confirm-label="Change plan">
